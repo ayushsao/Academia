@@ -1,15 +1,44 @@
 import { Router } from 'express';
 import { createRequire } from 'module';
+import https from 'https';
 import { User } from '../db.js';
 import { JWT_SECRET, authenticateUser } from '../middleware.js';
-import { OAuth2Client } from 'google-auth-library';
 
 const require = createRequire(import.meta.url);
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const router = Router();
-const googleClient = new OAuth2Client();
+
+// Helper: fetch Google userinfo using Node's built-in https (works on ALL Node versions)
+function fetchGoogleUserInfo(accessToken) {
+    return new Promise((resolve, reject) => {
+        const options = {
+            hostname: 'www.googleapis.com',
+            path: '/oauth2/v3/userinfo',
+            method: 'GET',
+            headers: { Authorization: `Bearer ${accessToken}` }
+        };
+        const req = https.request(options, (res) => {
+            let data = '';
+            res.on('data', (chunk) => { data += chunk; });
+            res.on('end', () => {
+                try {
+                    const parsed = JSON.parse(data);
+                    if (res.statusCode >= 400) {
+                        reject(new Error(`Google API returned ${res.statusCode}: ${data}`));
+                    } else {
+                        resolve(parsed);
+                    }
+                } catch (e) {
+                    reject(new Error('Failed to parse Google response'));
+                }
+            });
+        });
+        req.on('error', (err) => reject(err));
+        req.end();
+    });
+}
 
 // POST /api/auth/google
 router.post('/google', async (req, res) => {
@@ -19,17 +48,9 @@ router.post('/google', async (req, res) => {
 
         let payload;
         try {
-            const googleRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                headers: { Authorization: `Bearer ${access_token}` }
-            });
-            if (!googleRes.ok) {
-                const errText = await googleRes.text();
-                console.error('Google API error:', googleRes.status, errText);
-                return res.status(400).json({ error: 'Failed to verify Google token.' });
-            }
-            payload = await googleRes.json();
+            payload = await fetchGoogleUserInfo(access_token);
         } catch (fetchErr) {
-            console.error('Google fetch() error:', fetchErr);
+            console.error('Google userinfo fetch error:', fetchErr);
             return res.status(500).json({ error: 'Could not reach Google servers. ' + (fetchErr.message || '') });
         }
 
