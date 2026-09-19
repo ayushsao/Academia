@@ -38,26 +38,36 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [step, setStep] = useState<number>(1);
   const [service, setService] = useState<ServiceType | ''>(initialConfig?.service || '');
   const [subject, setSubject] = useState<SubjectType | ''>(initialConfig?.subject || '');
-  const [pages, setPages] = useState<number>(initialConfig?.pages || 5);
+  const [pages, setPages] = useState<number>(initialConfig?.pages || 0);
   const [deadline, setDeadline] = useState<string>(initialConfig?.deadline || getNextWeek());
-  const [academicLevel, setAcademicLevel] = useState<'Undergraduate' | 'Master\'s' | 'PhD / Doctoral' | 'Professional'>('Master\'s');
+  const [academicLevel, setAcademicLevel] = useState<'Undergraduate' | 'Master\'s' | 'PhD / Doctoral' | 'Professional'>('Undergraduate');
   const [topicTitle, setTopicTitle] = useState<string>('');
   const [instructions, setInstructions] = useState<string>('');
   const [files, setFiles] = useState<string[]>([]);
 
   const [errors, setErrors] = useState<{ topicTitle?: string; instructions?: string; files?: string }>({});
 
-  // Add-ons
-  const [turnitinReport, setTurnitinReport] = useState<boolean>(true);
-  const [topExpert, setTopExpert] = useState<boolean>(true);
-  const [abstractPage, setAbstractPage] = useState<boolean>(true);
+  // Add-ons (Start unselected to match base quote accurately)
+  const [turnitinReport, setTurnitinReport] = useState<boolean>(true); // Free anyway
+  const [topExpert, setTopExpert] = useState<boolean>(false);
+  const [abstractPage, setAbstractPage] = useState<boolean>(false);
 
-  // Completed order state
   const [orderNumber, setOrderNumber] = useState<string>('');
 
   const addOrder = useStore(state => state.addOrder);
   const user = useStore(state => state.user);
   const navigate = useNavigate();
+
+  // Reset internal state to incoming initialConfig every time the modal OPENS
+  React.useEffect(() => {
+    if (isOpen) {
+      setService(initialConfig?.service || '');
+      setSubject(initialConfig?.subject || '');
+      setPages(initialConfig?.pages || 0); // 0 pages by default if empty
+      setDeadline(initialConfig?.deadline || getNextWeek());
+      setStep(1);
+    }
+  }, [isOpen, initialConfig]);
 
   if (!isOpen) return null;
 

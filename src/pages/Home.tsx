@@ -53,12 +53,7 @@ export default function App() {
     subject?: SubjectType;
     pages?: number;
     deadline?: string;
-  }>({
-    service: 'Academic Writing',
-    subject: 'Business & Mgt',
-    pages: 5,
-    deadline: '2026-08-28'
-  });
+  }>({});
 
   const [activeSection, setActiveSection] = useState<string>('academic-support');
 
@@ -68,8 +63,10 @@ export default function App() {
     pages?: number;
     deadline?: string;
   }) => {
-    if (prefill) {
+    if (prefill && Object.keys(prefill).length > 0) {
       setOrderPrefill(prefill);
+    } else {
+      setOrderPrefill({}); // Reset to empty if opened from general Nav button
     }
     setOrderModalOpen(true);
   };
