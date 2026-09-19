@@ -15,6 +15,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpenDrawer }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileExpandedMenu, setMobileExpandedMenu] = useState<string | null>(null);
 
   const user = useStore(state => state.user);
   const logout = useStore(state => state.logout);
@@ -238,15 +239,84 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                         setMobileMenuOpen(false);
                         navigate(`/p/${link.label.toLowerCase().replace(/ /g, '-')}`);
                       } else {
-                        navigate(`/p/${link.label === 'Academic Tools' ? 'ai-essay-writer' : 'assignment-writing'}`);
-                        setMobileMenuOpen(false);
+                        setMobileExpandedMenu(mobileExpandedMenu === link.label ? null : link.label);
                       }
                     }}
                     className="font-medium text-[#2d2d2d] pb-2 cursor-pointer pt-1 flex justify-between items-center"
                   >
                     {link.label}
-                    {link.hasDropdown && <ChevronDown className="w-4 h-4 text-gray-400" />}
+                    {link.hasDropdown && <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${mobileExpandedMenu === link.label ? 'rotate-180' : ''}`} />}
                   </div>
+                  {link.hasDropdown && mobileExpandedMenu === link.label && link.label === 'Academic Tools' && (
+                    <div className="flex flex-col gap-2 pl-4 pb-3">
+                      {[
+                        'Free Paraphrasing Tool',
+                        'Free Grammar Checker',
+                        'Free Plagiarism Checker',
+                        'Free Essay Typer',
+                        'Free Dissertation Outline\nGenerator',
+                        'Free Thesis Statement Generator',
+                        'Referencing Tool',
+                        'AI Essay Writer',
+                        'AI Humanizer'
+                      ].map((item, i) => (
+                        <div
+                          key={i}
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            navigate(`/p/${item.replace(/\n/g, ' ').toLowerCase().replace(/ /g, '-')}`);
+                          }}
+                          className="text-sm font-medium text-gray-600 py-1.5 cursor-pointer"
+                        >
+                          {item.replace(/\n/g, ' ')}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {link.hasDropdown && mobileExpandedMenu === link.label && link.label === 'Services' && (
+                    <div className="flex flex-col gap-2 pl-4 pb-3">
+                      {[
+                        'Assignment Writing',
+                        'Research Proposal Writing',
+                        'Research Paper Writing',
+                        'Academic Ghost Writing'
+                      ].map((item, i) => (
+                        <div
+                          key={i}
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            navigate(`/p/${item.replace(/\n/g, ' ').toLowerCase().replace(/ /g, '-')}`);
+                          }}
+                          className="text-sm font-medium text-gray-600 py-1.5 cursor-pointer"
+                        >
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {link.hasDropdown && mobileExpandedMenu === link.label && link.label === 'Resources' && (
+                    <div className="flex flex-col gap-2 pl-4 pb-3">
+                      {[
+                        'Programming Assignment Help',
+                        'Assessment Help',
+                        'Pay Someone To Do My Homework',
+                        'Take My Online Class',
+                        'Take My Online Exam',
+                        'Homework Help',
+                      ].map((item, i) => (
+                        <div
+                          key={i}
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            navigate(`/p/${item.replace(/\n/g, ' ').toLowerCase().replace(/ /g, '-')}`);
+                          }}
+                          className="text-sm font-medium text-gray-600 py-1.5 cursor-pointer"
+                        >
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
               <div className="flex flex-col gap-3 pt-2">
