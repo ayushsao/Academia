@@ -70,10 +70,9 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
       onClose();
       navigate('/dashboard');
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-        setApiError(' Please try again in 30 seconds.');
-      } else if (err instanceof TypeError && err.message.includes('fetch')) {
-        setApiError('Cannot reach server. It may be starting up — please retry in 30s.');
+      const msg = err.message ? err.message.toLowerCase() : '';
+      if (err.name === 'AbortError' || msg.includes('fetch') || msg.includes('load failed') || msg.includes('network')) {
+        setApiError('Server is securely waking up. Please try again in 30 seconds.');
       } else {
         setApiError(err.message || 'Google Auth failed');
       }
@@ -115,15 +114,12 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
       onClose();
       navigate('/dashboard');
     } catch (err: any) {
-      // Fallback: demo mode when backend is offline
-      if (err instanceof TypeError && err.message.includes('fetch')) {
-        login(email, name || 'Demo User');
-        setIsAuthenticating(false);
-        onClose();
-        navigate('/dashboard');
+      setIsAuthenticating(false);
+      const msg = err.message ? err.message.toLowerCase() : '';
+      if (err.name === 'AbortError' || msg.includes('fetch') || msg.includes('load failed') || msg.includes('network')) {
+        setApiError('Server is securely waking up. Please try again in 30 seconds.');
       } else {
-        setIsAuthenticating(false);
-        setApiError(err.message);
+        setApiError(err.message || 'Authentication failed');
       }
     }
   };
