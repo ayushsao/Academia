@@ -31,7 +31,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
       const env = (import.meta as any).env;
       await emailjs.send(
         env.VITE_EMAILJS_SERVICE_ID || 'service_089l13d',
-        env.VITE_EMAILJS_WELCOME_TEMPLATE_ID || env.VITE_EMAILJS_TEMPLATE_ID,
+        env.VITE_EMAILJS_TEMPLATE_ID || 'template_omo2hya',
         {
           name: userName || 'Student',
           email: userEmail,
