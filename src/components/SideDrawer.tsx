@@ -29,11 +29,17 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
   onClose,
   onProceedToOrder,
 }) => {
+  const getNextWeek = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().split('T')[0];
+  };
+
   const [activeTab, setActiveTab] = useState<'services' | 'subjects' | 'deadlines' | 'overview'>('overview');
-  const [selectedService, setSelectedService] = useState<ServiceType>('Academic Writing');
-  const [selectedSubject, setSelectedSubject] = useState<SubjectType>('Business & Mgt');
-  const [pages, setPages] = useState<number>(5);
-  const [deadline, setDeadline] = useState<string>('2026-08-28');
+  const [selectedService, setSelectedService] = useState<ServiceType | ''>('');
+  const [selectedSubject, setSelectedSubject] = useState<SubjectType | ''>('');
+  const [pages, setPages] = useState<number>(0);
+  const [deadline, setDeadline] = useState<string>(getNextWeek());
 
   const servicesList: { name: ServiceType; rate: number; desc: string }[] = [
     { name: 'Academic Writing', rate: 15, desc: 'Original essays, research papers, and assignments' },
@@ -136,7 +142,7 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
                 </div>
                 <div>
                   <span className="text-xs text-[#708ab5] font-semibold uppercase block">Service</span>
-                  <span className="text-sm font-bold text-[#000a1e]">{selectedService}</span>
+                  <span className={`text-sm font-bold ${!selectedService ? 'text-[#74777f] italic text-xs' : 'text-[#000a1e]'}`}>{selectedService || 'Select a Service'}</span>
                 </div>
               </div>
               <ChevronRight className={`w-5 h-5 text-[#74777f] transition-transform ${activeTab === 'services' ? 'rotate-90 text-[#fea520]' : ''}`} />
@@ -185,7 +191,7 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
                 </div>
                 <div>
                   <span className="text-xs text-[#708ab5] font-semibold uppercase block">Subject</span>
-                  <span className="text-sm font-bold text-[#000a1e]">{selectedSubject}</span>
+                  <span className={`text-sm font-bold ${!selectedSubject ? 'text-[#74777f] italic text-xs' : 'text-[#000a1e]'}`}>{selectedSubject || 'Select a Subject'}</span>
                 </div>
               </div>
               <ChevronRight className={`w-5 h-5 text-[#74777f] transition-transform ${activeTab === 'subjects' ? 'rotate-90' : ''}`} />
