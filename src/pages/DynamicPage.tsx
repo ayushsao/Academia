@@ -721,11 +721,55 @@ export const DynamicPage: React.FC = () => {
                                                 type="file"
                                                 className="hidden"
                                                 id="tool-file-upload"
-                                                accept=".txt,.doc,.docx,.pdf"
-                                                onChange={(e) => {
+                                                accept=".txt,.doc,.docx,.pdf,.csv,.json"
+                                                onChange={async (e) => {
                                                     if (e.target.files && e.target.files[0]) {
-                                                        const fileName = e.target.files[0].name;
-                                                        setToolInput(prev => prev + `\n[Attached File: ${fileName}]\n`);
+                                                        const file = e.target.files[0];
+                                                        const fileName = file.name;
+                                                        const fileExt = fileName.toLowerCase().split('.').pop() || '';
+
+                                                        try {
+                                                            setToolInput(prev => prev + `\n[System: Securely extracting text from ${fileName} on device. Please wait...]\n`);
+                                                            let extractedText = '';
+
+                                                            if (['txt', 'csv', 'json', 'md'].includes(fileExt)) {
+                                                                extractedText = await file.text();
+                                                            } else if (fileExt === 'pdf') {
+                                                                const pdfjsLib = await import('pdfjs-dist');
+                                                                pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+
+                                                                const arrayBuffer = await file.arrayBuffer();
+                                                                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                                                                let textChunks = [];
+                                                                for (let i = 1; i <= pdf.numPages; i++) {
+                                                                    const page = await pdf.getPage(i);
+                                                                    const content = await page.getTextContent();
+                                                                    textChunks.push(content.items.map((item: any) => item.str).join(' '));
+                                                                }
+                                                                extractedText = textChunks.join('\n');
+                                                            } else if (fileExt === 'docx') {
+                                                                const mammoth = await import('mammoth');
+                                                                const arrayBuffer = await file.arrayBuffer();
+                                                                const result = await mammoth.extractRawText({ arrayBuffer });
+                                                                extractedText = result.value;
+                                                            } else {
+                                                                throw new Error('Unsupported format for deep text extraction.');
+                                                            }
+
+                                                            // Truncate massively large documents to prevent token overflow, giving priority to beginning.
+                                                            const safeText = extractedText.substring(0, 15000);
+                                                            const truncatedMsg = extractedText.length > 15000 ? '...(TRUNCATED_AT_15K_CHARS_FOR_AI_PROCESSING)' : '';
+
+                                                            setToolInput(prev => {
+                                                                let newText = prev.replace(`\n[System: Securely extracting text from ${fileName} on device. Please wait...]\n`, '');
+                                                                return newText + `\n\n=== START OF DOCUMENT: ${fileName} ===\n${safeText}${truncatedMsg}\n=== END OF DOCUMENT ===\n\n`;
+                                                            });
+                                                        } catch (err: any) {
+                                                            setToolInput(prev => {
+                                                                let newText = prev.replace(`\n[System: Securely extracting text from ${fileName} on device. Please wait...]\n`, '');
+                                                                return newText + `\n[Attached File: ${fileName} - Note: Full text extraction failed (${err.message})]\n`;
+                                                            });
+                                                        }
                                                     }
                                                 }}
                                             />
