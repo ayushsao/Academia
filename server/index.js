@@ -21,11 +21,17 @@ const PORT = process.env.PORT || 5000;
 
 // ── CORS ────────────────────────────────────────────────────────────────────
 app.use(cors({
-    origin: [
-        'http://localhost:3000',
-        'http://localhost:5173',
-        process.env.APP_URL ? process.env.APP_URL.replace(/\/$/, '') : null,
-    ].filter(Boolean),
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        if (origin.includes('localhost') || origin.includes('vercel.app')) {
+            return callback(null, true);
+        }
+        const appUrl = process.env.APP_URL ? process.env.APP_URL.trim().replace(/\/$/, '') : '';
+        if (origin === appUrl) {
+            return callback(null, true);
+        }
+        callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
 }));
 
