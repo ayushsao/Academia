@@ -322,9 +322,41 @@ export const DynamicPage: React.FC = () => {
 
                 let aiOutput = '';
                 try {
+                    // 1. PRIMARY ENGINE: INCEPTION LABS AI
+                    const inceptionApiKey = (import.meta as any).env.VITE_INCEPTION_API_KEY || 'sk_64856c8924e2ef2340749318732a331f';
+
+                    const inceptionResponse = await fetch('https://api.inceptionlabs.ai/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${inceptionApiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: 'mercury-2.5',
+                            reasoning_effort: 'low',
+                            messages: [{ role: 'user', content: prompt }]
+                        })
+                    });
+
+                    if (!inceptionResponse.ok) {
+                        const err = await inceptionResponse.text();
+                        throw new Error(`Inception API status ${inceptionResponse.status}: ${err.slice(0, 50)}`);
+                    }
+
+                    const inceptionData = await inceptionResponse.json();
+                    if (inceptionData.choices && inceptionData.choices[0].message.content) {
+                        aiOutput = inceptionData.choices[0].message.content;
+                    } else {
+                        throw new Error("Inception AI generated an empty response.");
+                    }
+
+                } catch (inceptionError) {
+                    // 2. FALLBACK ENGINE: GOOGLE GEMINI
+                    console.warn("Primary Inception AI failed (", inceptionError, ") -> Routing to Gemini Fallback...");
+
                     let response;
                     let errorData = '';
-                    // First try Gemini with retries
+
                     for (let attempt = 1; attempt <= 3; attempt++) {
                         response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiApiKey}`, {
                             method: 'POST',
@@ -347,49 +379,17 @@ export const DynamicPage: React.FC = () => {
                         }
                     }
 
-                    if (!response || !response.ok) throw new Error("Gemini Connection Failed");
+                    if (!response || !response.ok) throw new Error("Gemini Fallback Connection Failed");
 
                     const data = await response.json();
                     if (data.candidates && data.candidates[0].content.parts[0].text) {
                         aiOutput = data.candidates[0].content.parts[0].text;
                     } else {
-                        throw new Error('Gemini response format invalid.');
-                    }
-
-                } catch (geminiError) {
-                    // FALLBACK TO INCEPTION LABS AI
-                    console.warn("Primary AI failed (", geminiError, ") -> Routing to Inception AI Fallback...");
-
-                    // We will use the VITE_INCEPTION_API_KEY from environment, or use the key directly if not deployed yet
-                    const inceptionApiKey = (import.meta as any).env.VITE_INCEPTION_API_KEY || 'sk_64856c8924e2ef2340749318732a331f';
-
-                    const inceptionResponse = await fetch('https://api.inceptionlabs.ai/v1/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${inceptionApiKey}`
-                        },
-                        body: JSON.stringify({
-                            model: 'mercury-2.5',
-                            reasoning_effort: 'low',
-                            messages: [{ role: 'user', content: prompt }]
-                        })
-                    });
-
-                    if (!inceptionResponse.ok) {
-                        const err = await inceptionResponse.text();
-                        throw new Error(`Inception API Error: ${err.slice(0, 150)}...`);
-                    }
-
-                    const inceptionData = await inceptionResponse.json();
-                    if (inceptionData.choices && inceptionData.choices[0].message.content) {
-                        aiOutput = inceptionData.choices[0].message.content;
-                    } else {
-                        throw new Error("Inception AI generated an empty response.");
+                        throw new Error('Gemini fallback response format invalid.');
                     }
                 }
 
-                // Commit final output (either from Gemini or Groq)
+                // Commit final output (either from Inception or Gemini)
                 setToolOutput(aiOutput);
 
             }
