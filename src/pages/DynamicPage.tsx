@@ -357,53 +357,35 @@ export const DynamicPage: React.FC = () => {
                     }
 
                 } catch (geminiError) {
-                    // FALLBACK TO GROQ
-                    console.warn("Primary AI failed (", geminiError, ") -> Routing to Groq Fallback...");
+                    // FALLBACK TO INCEPTION LABS AI
+                    console.warn("Primary AI failed (", geminiError, ") -> Routing to Inception AI Fallback...");
 
-                    const groqApiKey = (import.meta as any).env.VITE_GROQ_API_KEY;
+                    // We will use the VITE_INCEPTION_API_KEY from environment, or use the key directly if not deployed yet
+                    const inceptionApiKey = (import.meta as any).env.VITE_INCEPTION_API_KEY || 'sk_64856c8924e2ef2340749318732a331f';
 
-                    // Fetch available Groq models dynamically to prevent "decommissioned" or "not found" errors
-                    const modelsRes = await fetch('https://api.groq.com/openai/v1/models', {
-                        headers: { Authorization: `Bearer ${groqApiKey}` }
-                    });
-                    const modelsData = await modelsRes.json();
-
-                    if (!modelsData.data || modelsData.data.length === 0) {
-                        throw new Error("No active models found in Groq");
-                    }
-
-                    // Filter out whisper (audio), prompt guards, and select a valid generative core model
-                    const validModels = modelsData.data.filter((m: any) =>
-                        !m.id.includes('whisper') &&
-                        !m.id.includes('guard') &&
-                        !m.id.includes('compound')
-                    );
-
-                    const fallbackModel = validModels.length > 0 ? validModels[0].id : modelsData.data[0].id;
-
-                    const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    const inceptionResponse = await fetch('https://api.inceptionlabs.ai/v1/chat/completions', {
                         method: 'POST',
                         headers: {
-                            'Authorization': `Bearer ${groqApiKey}`,
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${inceptionApiKey}`
                         },
                         body: JSON.stringify({
-                            model: fallbackModel, // Instantly auto-adjusts to Groq's live active models
-                            messages: [{ role: 'user', content: prompt }],
-                            temperature: 0.7
+                            model: 'mercury-2.5',
+                            reasoning_effort: 'low',
+                            messages: [{ role: 'user', content: prompt }]
                         })
                     });
 
-                    if (!groqResponse.ok) {
-                        const err = await groqResponse.text();
-                        throw new Error(`Groq API Error: ${err.slice(0, 150)}...`);
+                    if (!inceptionResponse.ok) {
+                        const err = await inceptionResponse.text();
+                        throw new Error(`Inception API Error: ${err.slice(0, 150)}...`);
                     }
 
-                    const groqData = await groqResponse.json();
-                    if (groqData.choices && groqData.choices[0].message.content) {
-                        aiOutput = groqData.choices[0].message.content;
+                    const inceptionData = await inceptionResponse.json();
+                    if (inceptionData.choices && inceptionData.choices[0].message.content) {
+                        aiOutput = inceptionData.choices[0].message.content;
                     } else {
-                        throw new Error("Fallback AI generated an empty response.");
+                        throw new Error("Inception AI generated an empty response.");
                     }
                 }
 
