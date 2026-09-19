@@ -58,6 +58,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
   const addOrder = useStore(state => state.addOrder);
   const user = useStore(state => state.user);
+  const authToken = useStore(state => state.token);
   const navigate = useNavigate();
 
   // Reset internal state to incoming initialConfig every time the modal OPENS
@@ -169,7 +170,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     let uploadedFileNames: string[] = [];
 
     try {
-      const token = localStorage.getItem('ap_token');
+      const token = authToken;
 
       // 1. Upload files first if any
       if (actualFileObjects.length > 0) {
