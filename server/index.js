@@ -61,7 +61,7 @@ app.use('/api/contact', contactRouter);
 app.use('/api/admin', adminRouter);
 
 app.get('/api/health', (req, res) =>
-    res.json({ status: 'OK', timestamp: new Date().toISOString() })
+    res.json({ status: 'OK', version: 'v3-https-fix', timestamp: new Date().toISOString() })
 );
 
 app.use('/api/*', (req, res) =>
@@ -76,14 +76,20 @@ app.get('*', (req, res) => {
 
 // ── Global error handler ──────────────────────────────────────────────────────
 app.use((err, req, res, _next) => {
+    // Handle JSON parse errors gracefully (bad request bodies from bots/malformed clients)
+    if (err.type === 'entity.parse.failed') {
+        return res.status(400).json({ error: 'Invalid JSON in request body.' });
+    }
     console.error('[ERROR]', err.message);
     res.status(500).json({ error: 'Internal server error.' });
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────
+const DEPLOY_VERSION = '2026-09-19-v3-https-fix';
 connectDB().then(() => {
     app.listen(PORT, () => {
         console.log(`\n🎓 AcademiaPro Backend  →  http://localhost:${PORT}`);
+        console.log(`📦 Deploy Version      →  ${DEPLOY_VERSION}`);
         console.log(`📊 Admin Panel         →  http://localhost:3000/admin`);
         console.log(`🔑 Admin login         →  username: admin  |  password: admin123\n`);
     });
