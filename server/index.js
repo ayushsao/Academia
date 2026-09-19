@@ -68,10 +68,9 @@ app.use('/api/*', (req, res) =>
     res.status(404).json({ error: 'API route not found.' })
 );
 
-// ── Serve React Frontend (Production) ─────────────────────────────────────────
-app.use(express.static(path.join(process.cwd(), 'dist')));
-app.get('*', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'dist', 'index.html'));
+// ── Status Route for Render ───────────────────────────────────────────────────
+app.get('/', (req, res) => {
+    res.send('AcademiaPro API is running smoothly. Frontend is hosted on Vercel.');
 });
 
 // ── Global error handler ──────────────────────────────────────────────────────
