@@ -717,8 +717,36 @@ export const DynamicPage: React.FC = () => {
                                     />
                                     <div className="p-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
                                         <div className="flex gap-2">
-                                            <button className="px-4 py-2 border border-gray-200 rounded text-xs font-bold hover:bg-gray-100 transition shadow-sm bg-white">Upload File</button>
-                                            <button className="px-4 py-2 border border-gray-200 rounded text-xs font-bold hover:bg-gray-100 transition shadow-sm bg-white">Import Link</button>
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                id="tool-file-upload"
+                                                accept=".txt,.doc,.docx,.pdf"
+                                                onChange={(e) => {
+                                                    if (e.target.files && e.target.files[0]) {
+                                                        const fileName = e.target.files[0].name;
+                                                        setToolInput(prev => prev + `\n[Attached File: ${fileName}]\n`);
+                                                    }
+                                                }}
+                                            />
+                                            <button
+                                                onClick={() => document.getElementById('tool-file-upload')?.click()}
+                                                className="px-4 py-2 border border-gray-200 rounded text-xs font-bold hover:bg-gray-100 transition shadow-sm bg-white"
+                                            >
+                                                Upload File
+                                            </button>
+
+                                            <button
+                                                onClick={() => {
+                                                    const link = prompt("Enter the URL to import context from:");
+                                                    if (link) {
+                                                        setToolInput(prev => prev + `\n[Imported Link: ${link}]\n`);
+                                                    }
+                                                }}
+                                                className="px-4 py-2 border border-gray-200 rounded text-xs font-bold hover:bg-gray-100 transition shadow-sm bg-white"
+                                            >
+                                                Import Link
+                                            </button>
                                         </div>
                                         <button
                                             onClick={handleProcessTool}
