@@ -1,5 +1,4 @@
-@import "tailwindcss";
-
+﻿@import "tailwindcss";
 @theme {
   --font-sans: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --color-primary: #000a1e;
@@ -57,7 +56,6 @@ body {
   box-shadow: 0 8px 32px 0 rgba(0, 33, 71, 0.08);
 }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -77,15 +75,14 @@ body {
 }
 
 @keyframes marquee {
-  0% {
-    transform: translateX(0%);
-  }
-
-  100% {
-    transform: translateX(-50%);
-  }
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
 }
 
 .animate-marquee {
   animation: marquee 25s linear infinite;
+}
+
+button, a, input, select, textarea {
+  touch-action: manipulation;
 }

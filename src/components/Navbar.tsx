@@ -231,7 +231,23 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
           >
             <div className="flex flex-col p-4 gap-4">
               {navLinks.map((link, idx) => (
-                <a key={idx} href="#" className="font-medium text-[#2d2d2d] border-b border-gray-100 pb-2">{link.label}</a>
+                <div key={idx} className="flex flex-col border-b border-gray-100">
+                  <div
+                    onClick={() => {
+                      if (!link.hasDropdown) {
+                        setMobileMenuOpen(false);
+                        navigate(`/p/${link.label.toLowerCase().replace(/ /g, '-')}`);
+                      } else {
+                        navigate(`/p/${link.label === 'Academic Tools' ? 'ai-essay-writer' : 'assignment-writing'}`);
+                        setMobileMenuOpen(false);
+                      }
+                    }}
+                    className="font-medium text-[#2d2d2d] pb-2 cursor-pointer pt-1 flex justify-between items-center"
+                  >
+                    {link.label}
+                    {link.hasDropdown && <ChevronDown className="w-4 h-4 text-gray-400" />}
+                  </div>
+                </div>
               ))}
               <div className="flex flex-col gap-3 pt-2">
                 <button onClick={onOpenOrder} className="bg-[#fea520] text-[#000a1e] font-bold py-3 rounded text-center w-full shadow-sm">Order Now</button>
