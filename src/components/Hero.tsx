@@ -25,7 +25,13 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
   const [service, setService] = useState<ServiceType | ''>('');
   const [subject, setSubject] = useState<SubjectType | ''>('');
   const [pages, setPages] = useState<number>(0);
-  const [deadline, setDeadline] = useState<string>('2026-08-22');
+  const getNextWeek = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().split('T')[0];
+  };
+
+  const [deadline, setDeadline] = useState<string>(getNextWeek());
   const [animatedPrice, setAnimatedPrice] = useState<number>(0);
 
   useEffect(() => {
