@@ -13,6 +13,8 @@ import { ServiceType, SubjectType } from '../types';
 import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
 
+const API = (import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api');
+
 interface OrderModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -177,7 +179,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
         const formData = new FormData();
         actualFileObjects.forEach(f => formData.append('files', f));
 
-        const uploadRes = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000/api'}/upload`, {
+        const uploadRes = await fetch(`${API}/upload`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }, // if upload needs auth
           body: formData
@@ -205,7 +207,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
         totalAmount: grandTotal,
       };
 
-      const res = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000/api'}/orders`, {
+      const res = await fetch(`${API}/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
