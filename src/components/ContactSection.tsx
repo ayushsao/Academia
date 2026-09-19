@@ -33,13 +33,19 @@ export const ContactSection: React.FC = () => {
                 body: JSON.stringify(dbData)
             });
 
-            // Then send via EmailJS to Gmail
+            // Then send via EmailJS securely via API
             const env = (import.meta as any).env;
-            await emailjs.sendForm(
+            await emailjs.send(
                 env.VITE_EMAILJS_SERVICE_ID || 'service_089l13d',
-                env.VITE_EMAILJS_TEMPLATE_ID || 'template_placeholder',
-                formRef.current,
-                env.VITE_EMAILJS_PUBLIC_KEY || 'public_key_placeholder'
+                env.VITE_EMAILJS_TEMPLATE_ID || 'template_omo2hya',
+                {
+                    name: formData.get('from_name'),
+                    email: formData.get('from_email'),
+                    subject: formData.get('subject'),
+                    message: formData.get('message'),
+                    phone: formData.get('from_phone') || 'No Phone'
+                },
+                env.VITE_EMAILJS_PUBLIC_KEY || 'u1Lnz6UEF9jlDevVZ'
             );
 
             setStatus('success');

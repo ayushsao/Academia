@@ -155,7 +155,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     }
   };
 
-  const handleCompleteOrder = () => {
+  const handleCompleteOrder = async () => {
     const randomId = 'ACAD-' + Math.floor(100000 + Math.random() * 900000);
     setOrderNumber(randomId);
 
@@ -173,6 +173,27 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     });
 
     setStep(3);
+
+    // Send EmailJS Notification for the Order
+    if (user) {
+      try {
+        const env = (import.meta as any).env;
+        const emailjs = (await import('@emailjs/browser')).default;
+        await emailjs.send(
+          env.VITE_EMAILJS_SERVICE_ID || 'service_089l13d',
+          env.VITE_EMAILJS_TEMPLATE_ID || 'template_omo2hya',
+          {
+            name: user.name,
+            email: user.email,
+            subject: `New Order Placed: ${randomId}`,
+            message: `User ${user.name} placed a new order for ${service} (${subject}). Topic: ${topicTitle}. Total: £${grandTotal}`
+          },
+          env.VITE_EMAILJS_PUBLIC_KEY || 'u1Lnz6UEF9jlDevVZ'
+        );
+      } catch (err) {
+        console.error("Order EmailJS trigger failed", err);
+      }
+    }
   };
 
   const handleReset = () => {
