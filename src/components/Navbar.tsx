@@ -274,24 +274,40 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                     </div>
                   )}
                   {link.hasDropdown && mobileExpandedMenu === link.label && link.label === 'Services' && (
-                    <div className="flex flex-col gap-2 pl-4 pb-3">
-                      {[
-                        'Assignment Writing',
-                        'Research Proposal Writing',
-                        'Research Paper Writing',
-                        'Academic Ghost Writing'
-                      ].map((item, i) => (
-                        <div
-                          key={i}
-                          onClick={() => {
-                            setMobileMenuOpen(false);
-                            navigate(`/p/${item.replace(/\n/g, ' ').toLowerCase().replace(/ /g, '-')}`);
-                          }}
-                          className="text-sm font-medium text-gray-600 py-1.5 cursor-pointer"
-                        >
-                          {item}
+                    <div className="flex flex-col gap-4 pl-4 pb-3">
+                      <div>
+                        <div className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#000a1e]" /> Writing</div>
+                        <div className="flex flex-col gap-1 pl-3.5">
+                          {[
+                            'Essay Editing Service', 'MBA Essay Writing Service', 'Essay Help',
+                            'Research Proposal Writing Service', 'Research Paper Writing', 'Ghost Writer'
+                          ].map((item, i) => (
+                            <div key={`w-${i}`} onClick={() => { setMobileMenuOpen(false); navigate(`/p/${item.toLowerCase().replace(/ /g, '-')}`); }} className="text-sm font-medium text-gray-600 py-1 cursor-pointer">{item}</div>
+                          ))}
                         </div>
-                      ))}
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#fea520]" /> Problem Solving</div>
+                        <div className="flex flex-col gap-1 pl-3.5">
+                          {[
+                            'Programming Assignment Help', 'Assessment Help',
+                            'Pay Someone To Do My Homework', 'Take My Online Class'
+                          ].map((item, i) => (
+                            <div key={`ps-${i}`} onClick={() => { setMobileMenuOpen(false); navigate(`/p/${item.toLowerCase().replace(/ /g, '-')}`); }} className="text-sm font-medium text-gray-600 py-1 cursor-pointer">{item}</div>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#000a1e]/50" /> More Services</div>
+                        <div className="flex flex-col gap-1 pl-3.5">
+                          {[
+                            'Take My Online Exam', 'Dissertation Help', 'Term Paper Help', 'Homework Help',
+                            'Case Study Help', 'Coursework Help', 'Thesis Help', 'Powerpoint Presentation Services'
+                          ].map((item, i) => (
+                            <div key={`ms-${i}`} onClick={() => { setMobileMenuOpen(false); navigate(`/p/${item.toLowerCase().replace(/ /g, '-')}`); }} className="text-sm font-medium text-gray-600 py-1 cursor-pointer">{item}</div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   )}
                   {link.hasDropdown && mobileExpandedMenu === link.label && link.label === 'Resources' && (
