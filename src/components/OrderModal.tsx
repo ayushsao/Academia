@@ -29,15 +29,21 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   onClose,
   initialConfig,
 }) => {
+  const getNextWeek = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().split('T')[0];
+  };
+
   const [step, setStep] = useState<number>(1);
   const [service, setService] = useState<ServiceType | ''>(initialConfig?.service || '');
   const [subject, setSubject] = useState<SubjectType | ''>(initialConfig?.subject || '');
   const [pages, setPages] = useState<number>(initialConfig?.pages || 5);
-  const [deadline, setDeadline] = useState<string>(initialConfig?.deadline || '2026-08-25');
+  const [deadline, setDeadline] = useState<string>(initialConfig?.deadline || getNextWeek());
   const [academicLevel, setAcademicLevel] = useState<'Undergraduate' | 'Master\'s' | 'PhD / Doctoral' | 'Professional'>('Master\'s');
-  const [topicTitle, setTopicTitle] = useState<string>('Evaluation of Empirical Strategies in Modern Corporate Finance');
-  const [instructions, setInstructions] = useState<string>('Please follow APA 7th edition formatting guidelines, include at least 15 peer-reviewed scholarly references from 2020-2026, and structure according to the provided departmental grading rubric.');
-  const [files, setFiles] = useState<string[]>(['Assignment_Brief_2026.pdf', 'Marking_Rubric_v2.docx']);
+  const [topicTitle, setTopicTitle] = useState<string>('');
+  const [instructions, setInstructions] = useState<string>('');
+  const [files, setFiles] = useState<string[]>([]);
 
   const [errors, setErrors] = useState<{ topicTitle?: string; instructions?: string; files?: string }>({});
 
