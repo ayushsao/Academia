@@ -44,6 +44,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [topicTitle, setTopicTitle] = useState<string>('');
   const [instructions, setInstructions] = useState<string>('');
   const [files, setFiles] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actualFileObjects, setActualFileObjects] = useState<File[]>([]);
 
   const [errors, setErrors] = useState<{ topicTitle?: string; instructions?: string; files?: string }>({});
 
@@ -115,20 +117,22 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const newFiles = Array.from(e.target.files).map((f: File) => f.name);
+      const selectedFiles = Array.from(e.target.files);
+      const newFileNames = selectedFiles.map((f: File) => f.name);
 
-      // Basic validation for file types and count (mocked for frontend)
-      if (files.length + newFiles.length > 5) {
+      if (files.length + newFileNames.length > 5) {
         setErrors(prev => ({ ...prev, files: 'Maximum 5 files allowed.' }));
         return;
       }
       setErrors(prev => ({ ...prev, files: undefined }));
-      setFiles(prev => [...prev, ...newFiles]);
+      setFiles(prev => [...prev, ...newFileNames]);
+      setActualFileObjects(prev => [...prev, ...selectedFiles]);
     }
   };
 
   const removeFile = (indexToRemove: number) => {
     setFiles(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    setActualFileObjects(prev => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
   const validateStep1 = () => {
@@ -156,43 +160,98 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   };
 
   const handleCompleteOrder = async () => {
-    const randomId = 'ACAD-' + Math.floor(100000 + Math.random() * 900000);
-    setOrderNumber(randomId);
+    if (!user) {
+      alert("Please login first to place an order.");
+      return;
+    }
 
-    addOrder({
-      id: randomId,
-      service,
-      subject,
-      pages,
-      deadline,
-      topicTitle,
-      instructions,
-      totalAmount: grandTotal,
-      status: 'Pending',
-      createdAt: new Date().toISOString()
-    });
+    setIsSubmitting(true);
+    let uploadedFileNames: string[] = [];
 
-    setStep(3);
+    try {
+      const token = localStorage.getItem('ap_token');
 
-    // Send EmailJS Notification for the Order
-    if (user) {
+      // 1. Upload files first if any
+      if (actualFileObjects.length > 0) {
+        const formData = new FormData();
+        actualFileObjects.forEach(f => formData.append('files', f));
+
+        const uploadRes = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000/api'}/upload`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }, // if upload needs auth
+          body: formData
+        });
+
+        if (uploadRes.ok) {
+          const uData = await uploadRes.json();
+          uploadedFileNames = uData.files || [];
+        }
+      }
+
+      // 2. Submit order to backend
+      const payload = {
+        service,
+        subject,
+        pages,
+        deadline,
+        topicTitle,
+        instructions,
+        academicLevel,
+        files: uploadedFileNames,
+        turnitinReport,
+        topExpert,
+        abstractPage,
+        totalAmount: grandTotal,
+      };
+
+      const res = await fetch(`${(import.meta as any).env.VITE_API_URL || 'http://localhost:5000/api'}/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to place order');
+      }
+
+      const data = await res.json();
+      setOrderNumber(data.order?.orderId || 'Order Placed');
+
+      // Update local store as fallback display
+      addOrder(data.order);
+
+      setStep(3);
+
+      // Send EmailJS Notification for the Order
       try {
-        const env = (import.meta as any).env;
+        const EmailJSConfig = {
+          serviceId: (import.meta as any).env.VITE_EMAILJS_SERVICE_ID || 'service_089l13d',
+          templateId: (import.meta as any).env.VITE_EMAILJS_TEMPLATE_ID || 'template_omo2hya',
+          publicKey: (import.meta as any).env.VITE_EMAILJS_PUBLIC_KEY || 'u1Lnz6UEF9jlDevVZ'
+        };
         const emailjs = (await import('@emailjs/browser')).default;
         await emailjs.send(
-          env.VITE_EMAILJS_SERVICE_ID || 'service_089l13d',
-          env.VITE_EMAILJS_TEMPLATE_ID || 'template_omo2hya',
+          EmailJSConfig.serviceId as string,
+          EmailJSConfig.templateId as string,
           {
             name: user.name,
             email: user.email,
-            subject: `New Order Placed: ${randomId}`,
+            subject: `New Order Placed: ${data.order?.orderId}`,
             message: `User ${user.name} placed a new order for ${service} (${subject}). Topic: ${topicTitle}. Total: £${grandTotal}`
           },
-          env.VITE_EMAILJS_PUBLIC_KEY || 'u1Lnz6UEF9jlDevVZ'
+          EmailJSConfig.publicKey as string
         );
       } catch (err) {
         console.error("Order EmailJS trigger failed", err);
       }
+    } catch (e: any) {
+      alert("Error placing order: " + e.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -525,10 +584,14 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               ) : (
                 <button
                   onClick={handleCompleteOrder}
-                  className="bg-[#fea520] hover:bg-[#e36100] text-[#000a1e] hover:text-white px-7 py-3 rounded-xl text-sm font-bold shadow-soft flex items-center gap-1.5 transition-all"
+                  disabled={isSubmitting}
+                  className="bg-[#fea520] hover:bg-[#e36100] text-[#000a1e] hover:text-white px-7 py-3 rounded-xl text-sm font-bold shadow-soft flex items-center gap-1.5 transition-all disabled:opacity-75 disabled:cursor-not-allowed"
                 >
-                  <Lock className="w-4 h-4" />
-                  <span>Place Request</span>
+                  {isSubmitting ? (
+                    <><div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> Processing...</>
+                  ) : (
+                    <><Lock className="w-4 h-4" /> Place Request</>
+                  )}
                 </button>
               )}
             </div>

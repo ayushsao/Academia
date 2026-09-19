@@ -60,7 +60,21 @@ const adminSchema = new mongoose.Schema({
   password: { type: String, required: true },
 }, { timestamps: true });
 
+const siteSettingsSchema = new mongoose.Schema({
+  key: { type: String, required: true, unique: true },
+  value: { type: mongoose.Schema.Types.Mixed, required: true },
+}, { timestamps: true });
+
+const pageViewSchema = new mongoose.Schema({
+  page: { type: String, required: true },
+  userAgent: { type: String, default: '' },
+  referrer: { type: String, default: '' },
+  country: { type: String, default: 'Unknown' },
+}, { timestamps: true });
+
 export const User = mongoose.model('User', userSchema);
 export const Order = mongoose.model('Order', orderSchema);
 export const Contact = mongoose.model('Contact', contactSchema);
 export const Admin = mongoose.model('Admin', adminSchema);
+export const SiteSettings = mongoose.model('SiteSettings', siteSettingsSchema);
+export const PageView = mongoose.model('PageView', pageViewSchema);

@@ -57,6 +57,12 @@ export default function App() {
 
   const [activeSection, setActiveSection] = useState<string>('academic-support');
 
+  React.useEffect(() => {
+    const handleGlobalOrder = () => handleOpenOrder();
+    window.addEventListener('open-order-modal', handleGlobalOrder);
+    return () => window.removeEventListener('open-order-modal', handleGlobalOrder);
+  }, []);
+
   const handleOpenOrder = (prefill?: {
     service?: ServiceType;
     subject?: SubjectType;

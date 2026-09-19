@@ -3,7 +3,8 @@ import {
     LayoutDashboard, ShoppingBag, Users, MessageSquare, LogOut,
     Search, RefreshCw, Trash2, ChevronDown, X, Check, Eye,
     TrendingUp, AlertCircle, Clock, CheckCircle2, XCircle,
-    Shield, Mail, Phone, DollarSign, FileText, Menu, Award
+    Shield, Mail, DollarSign, FileText, Menu, Award,
+    BarChart2, Settings, Tag, Globe, Save, Activity
 } from 'lucide-react';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
@@ -14,7 +15,15 @@ async function apiFetch(path: string, opts: RequestInit = {}, token?: string) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const res = await fetch(`${API}${path}`, { ...opts, headers: { ...headers, ...(opts.headers as Record<string, string> || {}) } });
-    if (!res.ok) { const e = await res.json().catch(() => ({ error: 'Request failed' })); throw new Error(e.error); }
+    if (!res.ok) {
+        const e = await res.json().catch(() => ({ error: 'Request failed' }));
+        // Auto-logout on 401 Unauthorized (expired/invalid token)
+        if (res.status === 401) {
+            localStorage.removeItem('ap_admin_token');
+            window.dispatchEvent(new Event('admin-unauthorized'));
+        }
+        throw new Error(e.error);
+    }
     return res.json();
 }
 
@@ -642,7 +651,7 @@ const OverviewTab = ({ token }: { token: string }) => {
     useEffect(() => {
         apiFetch('/admin/stats', {}, token)
             .then(data => setStats(data))
-            .catch(e => alert(e.message))
+            .catch(e => console.error(e.message))
             .finally(() => setLoading(false));
     }, [token]);
 
@@ -707,13 +716,199 @@ const OverviewTab = ({ token }: { token: string }) => {
     );
 };
 
+// ─── Analytics Tab ────────────────────────────────────────────────────────────
+const AnalyticsTab = ({ token }: { token: string }) => {
+    const [data, setData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        apiFetch('/admin/analytics', {}, token)
+            .then(d => setData(d))
+            .catch(e => console.error(e))
+            .finally(() => setLoading(false));
+    }, [token]);
+
+    if (loading) return <div className="flex justify-center py-24"><div className="w-10 h-10 border-4 border-gray-200 border-t-[#fea520] rounded-full animate-spin" /></div>;
+    if (!data) return <div className="text-center py-16 text-gray-400">No analytics data yet. Traffic will appear as visitors browse the site.</div>;
+
+    const maxViews = Math.max(...(data.dailyViews?.map((d: any) => d.views) || [1]), 1);
+
+    return (
+        <div className="space-y-6">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                    <div className="flex items-center gap-3 mb-3"><Globe className="w-5 h-5 text-blue-500" /><span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Page Views</span></div>
+                    <p className="text-3xl font-extrabold text-[#000a1e]">{data.totalViews?.toLocaleString()}</p>
+                </div>
+                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                    <div className="flex items-center gap-3 mb-3"><Activity className="w-5 h-5 text-emerald-500" /><span className="text-xs font-bold text-gray-400 uppercase tracking-widest">This Week Views</span></div>
+                    <p className="text-3xl font-extrabold text-[#000a1e]">{data.weeklyViews?.toLocaleString()}</p>
+                </div>
+                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                    <div className="flex items-center gap-3 mb-3"><BarChart2 className="w-5 h-5 text-purple-500" /><span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Top Pages Tracked</span></div>
+                    <p className="text-3xl font-extrabold text-[#000a1e]">{data.topPages?.length || 0}</p>
+                </div>
+            </div>
+
+            {/* Daily Views Chart */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <h3 className="font-bold text-[#000a1e] mb-5 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-blue-500" /> Page Views (Last 7 Days)</h3>
+                {!data.dailyViews?.length ? (
+                    <div className="flex items-center justify-center h-40 text-gray-300 text-sm font-semibold">No traffic data yet</div>
+                ) : (
+                    <div className="flex items-end gap-3 h-40">
+                        {data.dailyViews.map((d: any) => (
+                            <div key={d.day} className="flex-1 flex flex-col items-center gap-1.5">
+                                <div className="text-xs font-bold text-[#000a1e]">{d.views}</div>
+                                <div className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg transition-all duration-700"
+                                    style={{ height: `${(d.views / maxViews) * 120}px`, minHeight: '4px' }} />
+                                <div className="text-[10px] text-gray-400 font-medium">{d.day.slice(5)}</div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Top Pages */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <h3 className="font-bold text-[#000a1e] mb-4">Top Pages (Last 30 Days)</h3>
+                    {!data.topPages?.length ? (
+                        <p className="text-gray-400 text-sm">No page data yet.</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {data.topPages.map((p: any, i: number) => (
+                                <div key={i} className="flex items-center gap-3">
+                                    <span className="w-5 h-5 rounded-full bg-[#eef4ff] text-[#002147] text-xs font-extrabold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                                    <span className="text-sm text-gray-700 font-medium truncate flex-1">{p.page}</span>
+                                    <span className="text-xs font-extrabold text-[#002147] bg-[#eef4ff] px-2 py-0.5 rounded-lg">{p.count} views</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Top Referrers */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <h3 className="font-bold text-[#000a1e] mb-4">Top Referrers</h3>
+                    {!data.topReferrers?.length ? (
+                        <p className="text-gray-400 text-sm">No referrer data yet.</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {data.topReferrers.map((r: any, i: number) => (
+                                <div key={i} className="flex items-center gap-3">
+                                    <span className="w-5 h-5 rounded-full bg-amber-50 text-amber-700 text-xs font-extrabold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                                    <span className="text-sm text-gray-700 font-medium truncate flex-1">{r.referrer}</span>
+                                    <span className="text-xs font-extrabold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg">{r.count}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ─── Settings Tab ─────────────────────────────────────────────────────────────
+const SettingsTab = ({ token }: { token: string }) => {
+    const [settings, setSettings] = useState<any>({});
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [saved, setSaved] = useState(false);
+
+    useEffect(() => {
+        apiFetch('/admin/settings', {}, token)
+            .then(d => setSettings(d))
+            .catch(e => console.error(e))
+            .finally(() => setLoading(false));
+    }, [token]);
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            await apiFetch('/admin/settings', { method: 'PATCH', body: JSON.stringify(settings) }, token);
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2500);
+        } catch (e: any) { alert(e.message); }
+        finally { setSaving(false); }
+    };
+
+    if (loading) return <div className="flex justify-center py-24"><div className="w-10 h-10 border-4 border-gray-200 border-t-[#fea520] rounded-full animate-spin" /></div>;
+
+    return (
+        <div className="space-y-6 max-w-2xl">
+            {/* Coupon / Discount */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
+                <div className="flex items-center gap-2 mb-1"><Tag className="w-5 h-5 text-[#fea520]" /><h3 className="font-bold text-[#000a1e]">Discount / Coupon Code</h3></div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase mb-1.5">Coupon Code</label>
+                        <input type="text" value={settings.discount_code || ''}
+                            onChange={e => setSettings({ ...settings, discount_code: e.target.value.toUpperCase() })}
+                            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-bold text-[#000a1e] focus:outline-none focus:ring-2 focus:ring-[#fea520]/30 uppercase tracking-widest" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase mb-1.5">Discount %</label>
+                        <input type="number" min="0" max="100" value={settings.discount_percent || 0}
+                            onChange={e => setSettings({ ...settings, discount_percent: Number(e.target.value) })}
+                            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-bold text-[#000a1e] focus:outline-none focus:ring-2 focus:ring-[#fea520]/30" />
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <div onClick={() => setSettings({ ...settings, discount_active: !settings.discount_active })}
+                            className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${settings.discount_active ? 'bg-emerald-500' : 'bg-gray-200'}`}>
+                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${settings.discount_active ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </div>
+                        <span className="text-sm font-semibold text-gray-700">{settings.discount_active ? 'Coupon Active' : 'Coupon Disabled'}</span>
+                    </label>
+                </div>
+            </div>
+
+            {/* Site Info */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
+                <div className="flex items-center gap-2 mb-1"><Globe className="w-5 h-5 text-blue-500" /><h3 className="font-bold text-[#000a1e]">Site Info</h3></div>
+                <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-1.5">WhatsApp Number</label>
+                    <input type="text" value={settings.whatsapp_number || ''}
+                        onChange={e => setSettings({ ...settings, whatsapp_number: e.target.value })}
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium text-[#000a1e] focus:outline-none focus:ring-2 focus:ring-[#fea520]/30" />
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-1.5">Site Announcement Banner</label>
+                    <textarea rows={3} value={settings.site_announcement || ''}
+                        onChange={e => setSettings({ ...settings, site_announcement: e.target.value })}
+                        placeholder="Leave empty to hide the announcement..."
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-[#000a1e] focus:outline-none focus:ring-2 focus:ring-[#fea520]/30 resize-none" />
+                </div>
+            </div>
+
+            <button onClick={handleSave} disabled={saving}
+                className="bg-[#000a1e] hover:bg-[#002147] text-white px-8 py-3.5 rounded-xl font-extrabold text-sm flex items-center gap-2 transition-all disabled:opacity-60 shadow-lg">
+                {saving ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</>
+                    : saved ? <><Check className="w-4 h-4 text-emerald-400" />Saved!</>
+                        : <><Save className="w-4 h-4" />Save Settings</>}
+            </button>
+        </div>
+    );
+};
+
 // ─── Main Admin Panel ─────────────────────────────────────────────────────────
 export const AdminPanel: React.FC = () => {
     const [token, setToken] = useState<string>(() => localStorage.getItem('ap_admin_token') || '');
-    const [tab, setTab] = useState<'overview' | 'orders' | 'users' | 'contacts'>('overview');
+    const [tab, setTab] = useState<'overview' | 'orders' | 'users' | 'contacts' | 'analytics' | 'settings'>('overview');
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const handleLogout = () => { localStorage.removeItem('ap_admin_token'); setToken(''); };
+
+    // Auto-logout when any API call returns 401 Unauthorized
+    useEffect(() => {
+        const onUnauth = () => { localStorage.removeItem('ap_admin_token'); setToken(''); };
+        window.addEventListener('admin-unauthorized', onUnauth);
+        return () => window.removeEventListener('admin-unauthorized', onUnauth);
+    }, []);
 
     if (!token) return <AdminLogin onLogin={setToken} />;
 
@@ -722,6 +917,8 @@ export const AdminPanel: React.FC = () => {
         { id: 'orders', label: 'Orders', icon: <ShoppingBag className="w-5 h-5" /> },
         { id: 'users', label: 'Users', icon: <Users className="w-5 h-5" /> },
         { id: 'contacts', label: 'Messages', icon: <MessageSquare className="w-5 h-5" /> },
+        { id: 'analytics', label: 'Analytics', icon: <BarChart2 className="w-5 h-5" /> },
+        { id: 'settings', label: 'Settings', icon: <Settings className="w-5 h-5" /> },
     ] as const;
 
     return (
@@ -767,7 +964,13 @@ export const AdminPanel: React.FC = () => {
                     <div className="flex items-center gap-4">
                         <button className="lg:hidden text-gray-400 hover:text-[#000a1e]" onClick={() => setSidebarOpen(true)}><Menu className="w-5 h-5" /></button>
                         <div>
-                            <h1 className="text-xl font-extrabold text-[#000a1e] capitalize">{tab === 'overview' ? 'Dashboard Overview' : tab === 'contacts' ? 'Contact Messages' : tab.charAt(0).toUpperCase() + tab.slice(1) + ' Management'}</h1>
+                            <h1 className="text-xl font-extrabold text-[#000a1e] capitalize">{
+                                tab === 'overview' ? 'Dashboard Overview'
+                                    : tab === 'contacts' ? 'Contact Messages'
+                                        : tab === 'analytics' ? 'Traffic & Analytics'
+                                            : tab === 'settings' ? 'Site Settings'
+                                                : tab.charAt(0).toUpperCase() + tab.slice(1) + ' Management'
+                            }</h1>
                             <p className="text-xs text-gray-400">AssignmentMinds Admin Console</p>
                         </div>
                     </div>
@@ -785,6 +988,8 @@ export const AdminPanel: React.FC = () => {
                     {tab === 'orders' && <OrdersTab token={token} />}
                     {tab === 'users' && <UsersTab token={token} />}
                     {tab === 'contacts' && <ContactsTab token={token} />}
+                    {tab === 'analytics' && <AnalyticsTab token={token} />}
+                    {tab === 'settings' && <SettingsTab token={token} />}
                 </main>
             </div>
         </div>

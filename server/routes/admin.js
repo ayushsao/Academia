@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { createRequire } from 'module';
-import { User, Order, Contact, Admin } from '../db.js';
+import { User, Order, Contact, Admin, SiteSettings, PageView } from '../db.js';
 import { authenticateAdmin, ADMIN_SECRET } from '../middleware.js';
 
 const require = createRequire(import.meta.url);
@@ -221,6 +221,95 @@ router.patch('/contacts/:id', authenticateAdmin, async (req, res) => {
     try {
         await Contact.findByIdAndUpdate(req.params.id, { status: req.body.status });
         res.json({ message: 'Updated.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── Analytics Routes ──────────────────────────────────────────────────────────
+
+// POST /api/admin/track (public — no auth needed)
+router.post('/track', async (req, res) => {
+    try {
+        const { page } = req.body;
+        const userAgent = req.headers['user-agent'] || '';
+        const referrer = req.headers['referer'] || req.body.referrer || '';
+        await PageView.create({ page: page || '/', userAgent, referrer });
+        res.json({ ok: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/admin/analytics
+router.get('/analytics', authenticateAdmin, async (req, res) => {
+    try {
+        const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const [totalViews, weeklyViews, topPages, dailyViews, topReferrers] = await Promise.all([
+            PageView.countDocuments(),
+            PageView.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
+            PageView.aggregate([
+                { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+                { $group: { _id: '$page', count: { $sum: 1 } } },
+                { $sort: { count: -1 } },
+                { $limit: 10 },
+                { $project: { page: '$_id', count: 1, _id: 0 } }
+            ]),
+            PageView.aggregate([
+                { $match: { createdAt: { $gte: sevenDaysAgo } } },
+                { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, views: { $sum: 1 } } },
+                { $sort: { _id: 1 } },
+                { $project: { day: '$_id', views: 1, _id: 0 } }
+            ]),
+            PageView.aggregate([
+                { $match: { createdAt: { $gte: thirtyDaysAgo }, referrer: { $ne: '' } } },
+                { $group: { _id: '$referrer', count: { $sum: 1 } } },
+                { $sort: { count: -1 } },
+                { $limit: 5 },
+                { $project: { referrer: '$_id', count: 1, _id: 0 } }
+            ])
+        ]);
+
+        res.json({ totalViews, weeklyViews, topPages, dailyViews, topReferrers });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── Site Settings / Coupon Routes ─────────────────────────────────────────────
+
+// GET /api/admin/settings
+router.get('/settings', authenticateAdmin, async (req, res) => {
+    try {
+        const settings = await SiteSettings.find();
+        const obj = {};
+        settings.forEach(s => { obj[s.key] = s.value; });
+        // defaults
+        if (!obj.discount_code) obj.discount_code = 'INSTANT25';
+        if (!obj.discount_percent) obj.discount_percent = 25;
+        if (!obj.discount_active) obj.discount_active = true;
+        if (!obj.site_announcement) obj.site_announcement = '';
+        if (!obj.whatsapp_number) obj.whatsapp_number = '+447700900000';
+        res.json(obj);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PATCH /api/admin/settings
+router.patch('/settings', authenticateAdmin, async (req, res) => {
+    try {
+        const updates = req.body;
+        for (const [key, value] of Object.entries(updates)) {
+            await SiteSettings.findOneAndUpdate(
+                { key },
+                { value },
+                { upsert: true, new: true }
+            );
+        }
+        res.json({ message: 'Settings updated.' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
