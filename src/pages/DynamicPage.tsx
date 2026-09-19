@@ -362,6 +362,25 @@ export const DynamicPage: React.FC = () => {
 
                     const groqApiKey = (import.meta as any).env.VITE_GROQ_API_KEY;
 
+                    // Fetch available Groq models dynamically to prevent "decommissioned" or "not found" errors
+                    const modelsRes = await fetch('https://api.groq.com/openai/v1/models', {
+                        headers: { Authorization: `Bearer ${groqApiKey}` }
+                    });
+                    const modelsData = await modelsRes.json();
+
+                    if (!modelsData.data || modelsData.data.length === 0) {
+                        throw new Error("No active models found in Groq");
+                    }
+
+                    // Filter out whisper (audio), prompt guards, and select a valid generative core model
+                    const validModels = modelsData.data.filter((m: any) =>
+                        !m.id.includes('whisper') &&
+                        !m.id.includes('guard') &&
+                        !m.id.includes('compound')
+                    );
+
+                    const fallbackModel = validModels.length > 0 ? validModels[0].id : modelsData.data[0].id;
+
                     const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                         method: 'POST',
                         headers: {
@@ -369,7 +388,7 @@ export const DynamicPage: React.FC = () => {
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            model: 'llama-3.1-8b-instant', // Extremely fast global model
+                            model: fallbackModel, // Instantly auto-adjusts to Groq's live active models
                             messages: [{ role: 'user', content: prompt }],
                             temperature: 0.7
                         })
