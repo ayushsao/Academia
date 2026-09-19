@@ -24,7 +24,7 @@ app.use(cors({
     origin: [
         'http://localhost:3000',
         'http://localhost:5173',
-        process.env.APP_URL,
+        process.env.APP_URL ? process.env.APP_URL.replace(/\/$/, '') : null,
     ].filter(Boolean),
     credentials: true,
 }));
