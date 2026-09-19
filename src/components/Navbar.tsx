@@ -3,6 +3,22 @@ import { Search, ShoppingCart, Menu, ChevronDown, User, LogOut } from 'lucide-re
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { useNavigate, Link } from 'react-router-dom';
+import { WriterModal, WriterData } from './WriterModal';
+
+const WRITERS: WriterData[] = [
+  { name: 'Dr. Sarah Jenkins', deg: 'Ph.D. Literature', img: '1', rating: '4.9/5', completed: 450, experience: '8 Years', about: 'I specialize in structuring profound academic essays and dissertations in English Literature and Humanities. Let me help you achieve highest grades with zero plagiarism.', subjects: ['Literature', 'History'] },
+  { name: 'Prof. Michael C.', deg: 'MSc. Finance', img: '11', rating: '5.0/5', completed: 830, experience: '12 Years', about: 'Former corporate financial analyst turned academic mentor. I solve complex accounting/finance tasks, balance sheets, and create rigorous corporate financial analyses.', subjects: ['Finance', 'Accounting'] },
+  { name: 'Dr. Emily Carter', deg: 'Ph.D. Nursing', img: '5', rating: '4.8/5', completed: 310, experience: '6 Years', about: 'Passionate about medical writing. I provide robust clinical case studies, nursing reflection papers, and evidence-based practice research articles.', subjects: ['Nursing', 'Healthcare'] },
+  { name: 'Robert Davis', deg: 'MSc. Data Sci.', img: '13', rating: '4.9/5', completed: 520, experience: '7 Years', about: 'Data is my language. I handle SPSS, R, Python, and complex statistical analysis modules for master-level dissertations.', subjects: ['Data Science', 'Statistics'] },
+  { name: 'Dr. Alan Greene', deg: 'Ph.D. History', img: '3', rating: '4.7/5', completed: 410, experience: '10 Years', about: 'I write deep, heavily-researched historical papers with perfect Turabian/Chicago citations.', subjects: ['History', 'Political Science'] },
+  { name: 'Alice Smith', deg: 'MBA Business', img: '9', rating: '4.9/5', completed: 620, experience: '5 Years', about: 'I excel in writing winning Business Management assignments, SWOT analyses, and strategic corporate reports.', subjects: ['Business', 'Management'] },
+  { name: 'John Doe', deg: 'MSc. Engineering', img: '15', rating: '4.8/5', completed: 290, experience: '4 Years', about: 'Electrical and Mechanical engineering assignments mapped out with perfect calculations and CAD integrations.', subjects: ['Engineering', 'Physics'] },
+  { name: 'Jane Roe', deg: 'MA Psychology', img: '21', rating: '4.9/5', completed: 480, experience: '6 Years', about: 'Behavioral analysis and psychological research papers structured according to strict APA 7 guidelines.', subjects: ['Psychology', 'Counseling'] },
+  { name: 'Dr. Peter Parker', deg: 'Ph.D. Physics', img: '12', rating: '5.0/5', completed: 610, experience: '9 Years', about: 'Quantum mechanics to basic kinematics, I solve physics lab reports and theory papers effortlessly.', subjects: ['Physics', 'Mathematics'] },
+  { name: 'Mary Jane', deg: 'MA Journalism', img: '25', rating: '4.8/5', completed: 200, experience: '3 Years', about: 'Creative writing and media studies essays with strong analytical arguments and perfect grammar.', subjects: ['Media Studies', 'Journalism'] },
+  { name: 'Dr. Bruce Wayne', deg: 'Ph.D. Econ.', img: '14', rating: '4.9/5', completed: 780, experience: '15 Years', about: 'Macro/Micro economics graphs, elasticity computations, and econometric modeling expert.', subjects: ['Economics', 'Statistics'] },
+  { name: 'Clark Kent', deg: 'MSc. Sociology', img: '29', rating: '4.7/5', completed: 340, experience: '5 Years', about: 'Cultural studies, sociological theory, and deep societal impact research papers are my favorite subjects.', subjects: ['Sociology', 'Theology'] }
+];
 
 interface NavbarProps {
   onOpenOrder: () => void;
@@ -16,6 +32,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileExpandedMenu, setMobileExpandedMenu] = useState<string | null>(null);
+  const [selectedWriter, setSelectedWriter] = useState<WriterData | null>(null);
 
   const user = useStore(state => state.user);
   const logout = useStore(state => state.logout);
@@ -32,7 +49,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
   const navLinks = [
     { label: 'Services', hasDropdown: true },
     { label: 'Resources', hasDropdown: false },
-    { label: 'Hire Writers', hasDropdown: false },
+    { label: 'Hire Writers', hasDropdown: true },
     { label: 'Blogs', hasDropdown: false },
     { label: 'Academic Tools', hasDropdown: true },
   ];
@@ -159,6 +176,39 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                   </div>
                 </div>
               )}
+              {/* HIRE WRITERS MEGA MENU */}
+              {link.hasDropdown && link.label === 'Hire Writers' && (
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-0 w-[950px] bg-white rounded-b-xl rounded-t-sm shadow-[0_10px_40px_rgba(0,0,0,0.15)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 p-6 border border-gray-100">
+                  <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+                    <div>
+                      <h3 className="font-extrabold text-[#000a1e] text-lg">Top Academic Experts Available Now</h3>
+                      <p className="text-xs text-gray-500 font-medium">Select from our vetted pool of master's and Ph.D. graduates</p>
+                    </div>
+                    <button onClick={onOpenOrder} className="text-xs font-bold bg-[#fea520] hover:bg-[#e36100] text-[#000a1e] px-4 py-2 rounded shadow-sm transition-colors cursor-pointer">
+                      Hire Any Writer
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-4">
+                    {WRITERS.map((writer, i) => (
+                      <div key={i} onClick={() => setSelectedWriter(writer)} className="group/writer flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all cursor-pointer">
+                        <div className="relative">
+                          <img src={`https://i.pravatar.cc/150?img=${writer.img}`} alt={writer.name} className="w-10 h-10 rounded-full object-cover shadow-sm bg-gray-200" />
+                          <div className="absolute -bottom-1 -right-1 bg-green-500 w-3 h-3 rounded-full border-2 border-white"></div>
+                        </div>
+                        <div className="overflow-hidden">
+                          <h4 className="font-bold text-[#000a1e] text-[13px] group-hover/writer:text-[#fea520] transition-colors truncate">{writer.name}</h4>
+                          <div className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-gray-400">
+                            <span>{writer.deg}</span>
+                            <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                            <span className="text-[#fea520] flex items-center gap-0.5">★ {writer.rating}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -273,6 +323,27 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                       ))}
                     </div>
                   )}
+                  {link.hasDropdown && mobileExpandedMenu === link.label && link.label === 'Hire Writers' && (
+                    <div className="flex flex-col gap-2 mt-2 bg-gray-50/50 p-3 rounded-lg border border-gray-100 max-h-[300px] overflow-y-auto">
+                      {[
+                        { name: 'Dr. Sarah Jenkins', deg: 'Ph.D. Literature', img: '1', rating: '4.9/5' },
+                        { name: 'Prof. Michael C.', deg: 'MSc. Finance', img: '11', rating: '5.0/5' },
+                        { name: 'Dr. Emily Carter', deg: 'Ph.D. Nursing', img: '5', rating: '4.8/5' },
+                        { name: 'Robert Davis', deg: 'MSc. Data Sci.', img: '13', rating: '4.9/5' },
+                        { name: 'Dr. Alan Greene', deg: 'Ph.D. History', img: '3', rating: '4.7/5' },
+                        { name: 'Alice Smith', deg: 'MBA Business', img: '9', rating: '4.9/5' },
+                      ].map((writer, i) => (
+                        <div key={i} onClick={() => { setMobileMenuOpen(false); onOpenOrder(); }} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+                          <img src={`https://i.pravatar.cc/150?img=${writer.img}`} alt={writer.name} className="w-8 h-8 rounded-full border border-gray-200" />
+                          <div>
+                            <p className="font-bold text-[#000a1e] text-xs leading-none">{writer.name}</p>
+                            <p className="text-[10px] text-gray-500 font-semibold mt-0.5">{writer.deg} <span className="text-[#fea520]">★ {writer.rating}</span></p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {link.hasDropdown && mobileExpandedMenu === link.label && link.label === 'Services' && (
                     <div className="flex flex-col gap-4 pl-4 pb-3">
                       <div>
@@ -310,6 +381,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                       </div>
                     </div>
                   )}
+                  {link.hasDropdown && mobileExpandedMenu === link.label && link.label === 'Hire Writers' && (
+                    <div className="flex flex-col gap-2 mt-2 bg-gray-50/50 p-3 rounded-lg border border-gray-100 max-h-[300px] overflow-y-auto">
+                      {WRITERS.map((writer, i) => (
+                        <div key={i} onClick={() => { setMobileMenuOpen(false); setSelectedWriter(writer); }} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+                          <img src={`https://i.pravatar.cc/150?img=${writer.img}`} alt={writer.name} className="w-8 h-8 rounded-full border border-gray-200 object-cover" />
+                          <div>
+                            <p className="font-bold text-[#000a1e] text-xs leading-none">{writer.name}</p>
+                            <p className="text-[10px] text-gray-500 font-semibold mt-0.5">{writer.deg} <span className="text-[#fea520]">★ {writer.rating}</span></p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
               <div className="flex flex-col gap-3 pt-2">
@@ -327,6 +411,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Embedded Writer Profile Modal */}
+      <WriterModal
+        writer={selectedWriter}
+        isOpen={!!selectedWriter}
+        onClose={() => setSelectedWriter(null)}
+        onHire={() => {
+          setSelectedWriter(null);
+          onOpenOrder();
+        }}
+      />
     </nav>
   );
 };
