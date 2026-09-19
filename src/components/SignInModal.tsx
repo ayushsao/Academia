@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGoogleLogin } from '@react-oauth/google';
 import emailjs from '@emailjs/browser';
 
-const API = (import.meta as any).env.VITE_API_URL || 'https://academia-iw7x.onrender.com/api';
+const API = (import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api');
 
 interface SignInModalProps {
   isOpen: boolean;

@@ -26,7 +26,7 @@ export const ContactSection: React.FC = () => {
                 message: formData.get('message')
             };
 
-            const API = (import.meta as any).env.VITE_API_URL || 'https://academia-iw7x.onrender.com/api';
+            const API = (import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api');
             await fetch(`${API}/contact`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
