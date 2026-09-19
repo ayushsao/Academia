@@ -16,12 +16,12 @@ export const TopUtilityBar: React.FC = () => {
                         assignmentminds@gmail.com
                     </a>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className="bg-yellow-400 text-red-700 font-bold px-2 py-0.5 rounded-sm text-[11px] uppercase flex items-center gap-1 shadow-sm">
+                <div className="flex items-center justify-center flex-wrap gap-2 text-[11px] sm:text-[13px] text-center w-full md:w-auto">
+                    <span className="bg-yellow-400 text-red-700 font-bold px-2 py-0.5 rounded-sm text-[10px] sm:text-[11px] uppercase flex items-center gap-1 shadow-sm shrink-0">
                         OFFERS! <span className="rotate-12 bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center text-[8px]">%</span>
                     </span>
-                    <span>Get Expert-crafted assignments &</span>
-                    <span className="bg-emerald-500 font-bold px-2 py-0.5 rounded-sm shadow-sm text-white">Save 51%</span>
+                    <span className="whitespace-nowrap shrink-0">Get Expert-crafted assignments &</span>
+                    <span className="bg-emerald-500 font-bold px-2 py-0.5 rounded-sm shadow-sm text-white shrink-0">Save 51%</span>
                 </div>
             </div>
         </div>
