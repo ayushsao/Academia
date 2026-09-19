@@ -50,8 +50,8 @@ const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
 app.use('/uploads', express.static(uploadsDir));
 
 app.post('/api/upload', upload.array('files', 5), (req, res) => {
-    if (!req.files?.length) return res.status(400).json({ error: 'No files uploaded.' });
-    res.json({ files: req.files.map(f => f.originalname) });
+    if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No files uploaded.' });
+    res.json({ files: req.files.map(f => f.filename) });
 });
 
 // ── Routes ───────────────────────────────────────────────────────────────────
