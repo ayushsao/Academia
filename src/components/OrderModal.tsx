@@ -61,6 +61,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const addOrder = useStore(state => state.addOrder);
   const user = useStore(state => state.user);
   const authToken = useStore(state => state.token);
+  const logout = useStore(state => state.logout);
   const navigate = useNavigate();
 
   // Reset internal state to incoming initialConfig every time the modal OPENS
@@ -217,6 +218,12 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       });
 
       if (!res.ok) {
+        if (res.status === 401) {
+          logout();
+          alert("Session expired. Please log out and sign in again.");
+          navigate('/');
+          return;
+        }
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || 'Failed to place order');
       }
@@ -252,7 +259,9 @@ export const OrderModal: React.FC<OrderModalProps> = ({
         console.error("Order EmailJS trigger failed", err);
       }
     } catch (e: any) {
-      alert("Error placing order: " + e.message);
+      const errDetail = e instanceof Error ? e.message : JSON.stringify(e);
+      alert(`[Debug Error] Failed to place order. Details: ${errDetail}. Please screenshot this and send it.`);
+      console.error("Order completion failed:", e);
     } finally {
       setIsSubmitting(false);
     }
