@@ -75,11 +75,31 @@ export const Dashboard: React.FC = () => {
                     </button>
                 </div>
 
+                {/* Mobile Bottom Navigation Bar (Fixed) */}
+                <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#000a1e] border-t border-gray-800 flex justify-around items-center px-2 py-3 z-50 rounded-t-2xl shadow-[0_-10px_20px_rgba(0,0,0,0.15)] pb-safe">
+                    <button onClick={() => navigate('/')} className="flex flex-col items-center gap-1 opacity-70 hover:opacity-100 text-white">
+                        <Home className="w-5 h-5" />
+                        <span className="text-[10px] font-bold">Home</span>
+                    </button>
+                    <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center gap-1 text-white transition-opacity ${activeTab === 'dashboard' ? 'opacity-100' : 'opacity-70'}`}>
+                        <LayoutDashboard className="w-5 h-5" />
+                        <span className="text-[10px] font-bold">Dash</span>
+                    </button>
+                    <button onClick={() => setActiveTab('orders')} className={`flex flex-col items-center gap-1 text-white transition-opacity ${activeTab === 'orders' ? 'opacity-100' : 'opacity-70'}`}>
+                        <List className="w-5 h-5" />
+                        <span className="text-[10px] font-bold">Orders</span>
+                    </button>
+                    <button onClick={() => setActiveTab('loyalty')} className={`flex flex-col items-center gap-1 text-[#fea520] transition-opacity ${activeTab === 'loyalty' ? 'opacity-100' : 'opacity-70'}`}>
+                        <Coins className="w-5 h-5" />
+                        <span className="text-[10px] font-bold">Loyalty</span>
+                    </button>
+                </div>
+
                 {/* Right Side Icons & Profile */}
-                <div className="flex items-center gap-5">
+                <div className="flex items-center gap-2 sm:gap-5">
                     <button
                         onClick={() => setOrderModalOpen(true)}
-                        className="bg-white text-[#e37e25] px-4 py-1.5 rounded text-sm font-bold shadow-sm hover:bg-gray-50 flex items-center gap-1 relative"
+                        className="bg-white text-[#e37e25] px-3 sm:px-4 py-1.5 rounded text-xs sm:text-sm font-bold shadow-sm hover:bg-gray-50 flex items-center gap-1 relative whitespace-nowrap"
                     >
                         New Order <Plus className="w-3 h-3 absolute -top-1 -right-1 text-emerald-500 font-extrabold" />
                     </button>
@@ -88,22 +108,22 @@ export const Dashboard: React.FC = () => {
                         <Bookmark className="w-5 h-5" />
                     </button>
 
-                    <div className="flex items-center gap-1 text-white/90">
+                    <div className="hidden sm:flex items-center gap-1 text-white/90">
                         <Wallet className="w-5 h-5" />
                         <span className="bg-[#000a1e] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm">£ 0.00</span>
                     </div>
 
-                    <button className="text-white/90 hover:text-white relative">
+                    <button className="text-white/90 hover:text-white relative hidden sm:block">
                         <Bell className="w-5 h-5" />
                         <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-[#f4933a]"></div>
                     </button>
 
-                    <div className="relative group cursor-pointer pl-4 border-l border-white/20 flex flex-col items-center">
-                        <div className="w-8 h-8 rounded-full bg-white text-[#e37e25] flex items-center justify-center font-bold relative z-10 border-2 border-white overflow-hidden shadow-sm">
-                            <User className="w-5 h-5" />
+                    <div className="relative group cursor-pointer pl-2 sm:pl-4 sm:border-l border-white/20 flex flex-col items-center">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white text-[#e37e25] flex items-center justify-center font-bold relative z-10 border-2 border-white overflow-hidden shadow-sm">
+                            <User className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
-                        <span className="text-[10px] text-white font-bold tracking-wide mt-0.5">ID {studentId}</span>
-                        <span className="absolute -bottom-2 bg-white text-[#222] text-[8px] font-black px-1.5 rounded-sm shadow-sm">NEW</span>
+                        <span className="hidden sm:inline-block text-[10px] text-white font-bold tracking-wide mt-0.5">ID {studentId}</span>
+                        <span className="hidden sm:inline-block absolute -bottom-2 bg-white text-[#222] text-[8px] font-black px-1.5 rounded-sm shadow-sm">NEW</span>
 
                         {/* Logout Dropdown */}
                         <div className="absolute top-full right-0 mt-2 w-32 bg-white rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
@@ -116,47 +136,47 @@ export const Dashboard: React.FC = () => {
             </header>
 
             {/* Main Layout Area */}
-            <main className="max-w-[1400px] mx-auto p-4 md:p-6 grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-8">
+            <main className="max-w-[1400px] mx-auto p-3 sm:p-6 pb-24 lg:pb-6 grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6">
 
                 {/* Left Side Main Content Base on Tab */}
                 <div className="flex-1 w-full space-y-6">
                     {activeTab === 'dashboard' && (
                         <div>
                             <div className="mb-6">
-                                <h1 className="text-2xl font-extrabold mb-1 tracking-tight text-[#000a1e]">Welcome Back, {user?.name?.split(' ')[0]}!</h1>
-                                <p className="text-gray-500 text-sm">Here's a quick overview of your latest academic progress.</p>
+                                <h1 className="text-xl sm:text-2xl font-extrabold mb-1 tracking-tight text-[#000a1e]">Welcome Back, {user?.name?.split(' ')[0]}!</h1>
+                                <p className="text-gray-500 text-xs sm:text-sm">Here's a quick overview of your latest academic progress.</p>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 w-full">
-                                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-10 w-full">
+                                <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
-                                            <FileText className="w-7 h-7" />
+                                        <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                                            <FileText className="w-6 h-6" />
                                         </div>
                                         <div>
-                                            <p className="text-xs text-gray-400 font-bold uppercase">Total Orders</p>
-                                            <p className="text-2xl font-black text-[#000a1e]">{orders.length}</p>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase">Total Orders</p>
+                                            <p className="text-xl font-black text-[#000a1e]">{orders.length}</p>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                                <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-14 h-14 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
-                                            <CheckCircle className="w-7 h-7" />
+                                        <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+                                            <CheckCircle className="w-6 h-6" />
                                         </div>
                                         <div>
-                                            <p className="text-xs text-gray-400 font-bold uppercase">Completed</p>
-                                            <p className="text-2xl font-black text-[#000a1e]">{pastOrders.length}</p>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase">Completed</p>
+                                            <p className="text-xl font-black text-[#000a1e]">{pastOrders.length}</p>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                                <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-14 h-14 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600">
-                                            <Clock className="w-7 h-7" />
+                                        <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600">
+                                            <Clock className="w-6 h-6" />
                                         </div>
                                         <div>
-                                            <p className="text-xs text-gray-400 font-bold uppercase">In Progress</p>
-                                            <p className="text-2xl font-black text-[#000a1e]">{activeOrders.length}</p>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase">In Progress</p>
+                                            <p className="text-xl font-black text-[#000a1e]">{activeOrders.length}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -165,64 +185,68 @@ export const Dashboard: React.FC = () => {
                     )}
 
                     {activeTab === 'orders' && (
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden min-h-[500px]">
-                            <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-[#fdfdfd]">
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden min-h-[400px] flex flex-col">
+                            <div className="p-4 sm:p-5 border-b border-gray-100 flex justify-between items-center bg-[#fdfdfd]">
                                 <h2 className="text-sm font-bold text-[#1b2733] uppercase">All Projects ({orders.length})</h2>
                             </div>
 
-                            <div className="w-full overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="bg-[#dfe4ef] text-[#4a5568] text-sm">
-                                            <th className="font-bold py-3 px-6 whitespace-nowrap">Order ID & Status</th>
-                                            <th className="font-bold py-3 px-6 whitespace-nowrap">Service Type</th>
-                                            <th className="font-bold py-3 px-6 whitespace-nowrap">Deadline</th>
-                                            <th className="font-bold py-3 px-6 whitespace-nowrap">Price Quote</th>
-                                            <th className="font-bold py-3 px-6 whitespace-nowrap">Payment Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {orders.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={5} className="py-20 text-center text-3xl text-gray-500 font-light bg-gray-50/50">
-                                                    No results
-                                                </td>
+                            {orders.length === 0 ? (
+                                <div className="flex-1 flex items-center justify-center p-8 text-center bg-gray-50/50">
+                                    <div className="flex flex-col items-center">
+                                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-4">
+                                            <List className="w-8 h-8 opacity-50" />
+                                        </div>
+                                        <p className="text-lg sm:text-2xl text-gray-500 font-light">No orders found</p>
+                                        <p className="text-xs text-gray-400 mt-2">Create a new order to get started</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="w-full overflow-x-auto">
+                                    <table className="w-full text-left border-collapse min-w-[600px]">
+                                        <thead>
+                                            <tr className="bg-[#dfe4ef] text-[#4a5568] text-[11px] sm:text-sm">
+                                                <th className="font-bold py-3 px-4 sm:px-6 whitespace-nowrap">Order ID & Status</th>
+                                                <th className="font-bold py-3 px-4 sm:px-6 whitespace-nowrap">Service Type</th>
+                                                <th className="font-bold py-3 px-4 sm:px-6 whitespace-nowrap">Deadline</th>
+                                                <th className="font-bold py-3 px-4 sm:px-6 whitespace-nowrap">Price Quote</th>
+                                                <th className="font-bold py-3 px-4 sm:px-6 whitespace-nowrap">Payment Status</th>
                                             </tr>
-                                        ) : (
-                                            orders.map(order => (
+                                        </thead>
+                                        <tbody>
+                                            {orders.map(order => (
                                                 <tr key={order.orderId || order.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                                    <td className="py-4 px-6">
-                                                        <div className="font-bold text-[#000a1e] text-sm">{order.orderId || order.id}</div>
-                                                        <span className={`inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase ${order.status === 'Completed' ? 'bg-emerald-100 text-emerald-700'
+                                                    <td className="py-4 px-4 sm:px-6">
+                                                        <div className="font-bold text-[#000a1e] text-xs sm:text-sm">{order.orderId || order.id}</div>
+                                                        <span className={`inline-block mt-1 text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase ${order.status === 'Completed' ? 'bg-emerald-100 text-emerald-700'
                                                             : order.status === 'Pending' ? 'bg-amber-100 text-amber-700'
                                                                 : 'bg-blue-100 text-blue-700'
                                                             }`}>
                                                             {order.status}
                                                         </span>
                                                     </td>
-                                                    <td className="py-4 px-6">
-                                                        <div className="font-bold text-gray-700 text-sm whitespace-pre-wrap line-clamp-2">{order.service}</div>
-                                                        <div className="text-xs text-gray-500 mt-1">{order.subject}</div>
+                                                    <td className="py-4 px-4 sm:px-6">
+                                                        <div className="font-bold text-gray-700 text-xs sm:text-sm whitespace-pre-wrap line-clamp-2">{order.service}</div>
+                                                        <div className="text-[10px] sm:text-xs text-gray-500 mt-1">{order.subject}</div>
                                                     </td>
-                                                    <td className="py-4 px-6 text-sm font-semibold text-gray-700 whitespace-nowrap">
+                                                    <td className="py-4 px-4 sm:px-6 text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">
                                                         {order.deadline}
                                                     </td>
-                                                    <td className="py-4 px-6 font-black text-[#e37e25]">
+                                                    <td className="py-4 px-4 sm:px-6 font-black text-[#e37e25] text-sm">
                                                         £{order.totalAmount}
                                                     </td>
-                                                    <td className="py-4 px-6">
+                                                    <td className="py-4 px-4 sm:px-6">
                                                         {order.totalAmount > 0 ? (
-                                                            <span className="text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded border border-red-100">UNPAID</span>
+                                                            <span className="text-[10px] sm:text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded border border-red-100">UNPAID</span>
                                                         ) : (
-                                                            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">FREE</span>
+                                                            <span className="text-[10px] sm:text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">FREE</span>
                                                         )}
                                                     </td>
                                                 </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
                         </div>
                     )}
 
