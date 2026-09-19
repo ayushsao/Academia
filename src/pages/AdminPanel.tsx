@@ -3,7 +3,7 @@ import {
     LayoutDashboard, ShoppingBag, Users, MessageSquare, LogOut,
     Search, RefreshCw, Trash2, ChevronDown, X, Check, Eye,
     TrendingUp, AlertCircle, Clock, CheckCircle2, XCircle,
-    Shield, Mail, Phone, DollarSign, FileText, Menu
+    Shield, Mail, Phone, DollarSign, FileText, Menu, Award
 } from 'lucide-react';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
@@ -29,6 +29,10 @@ interface Order {
     _id: string; orderId: string; userId: string; user_name?: string; user_email?: string;
     service: string; subject: string; academicLevel: string; pages: number;
     deadline: string; topicTitle: string; instructions?: string;
+    files?: string[];
+    turnitinReport?: boolean;
+    topExpert?: boolean;
+    abstractPage?: boolean;
     totalAmount: number; status: string; assignedTo?: string;
     adminNotes?: string; createdAt: string; updatedAt: string;
 }
@@ -126,8 +130,8 @@ const StatCard = ({ label, value, sub, icon, accent }: { label: string; value: s
     </div>
 );
 
-// ─── Order Detail Modal ───────────────────────────────────────────────────────
-const OrderDetailModal = ({
+// ─── Order Detail Side Drawer ─────────────────────────────────────────────────
+const OrderDetailDrawer = ({
     order, token, onClose, onUpdate
 }: { order: Order; token: string; onClose: () => void; onUpdate: (o: Order) => void }) => {
     const [status, setStatus] = useState(order.status);
@@ -135,6 +139,8 @@ const OrderDetailModal = ({
     const [adminNotes, setAdminNotes] = useState(order.adminNotes || '');
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+
+    const isNew = (new Date().getTime() - new Date(order.createdAt).getTime()) < 5 * 60 * 1000;
 
     const handleSave = async () => {
         setSaving(true);
@@ -144,53 +150,140 @@ const OrderDetailModal = ({
             }, token);
             onUpdate(data.order);
             setSaved(true);
-            setTimeout(() => setSaved(false), 2000);
+            setTimeout(() => setSaved(false), 2500);
         } catch (e: any) { alert(e.message); }
         finally { setSaving(false); }
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                <div className="bg-[#000a1e] text-white px-8 py-6 flex items-center justify-between rounded-t-3xl">
-                    <div>
-                        <h2 className="text-xl font-extrabold">{order.orderId}</h2>
-                        <p className="text-white/50 text-sm mt-0.5">{order.topicTitle}</p>
+        <>
+            {/* Backdrop */}
+            <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+            {/* Side Drawer */}
+            <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-xl bg-white shadow-2xl flex flex-col overflow-hidden">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-[#000a1e] to-[#002147] text-white px-6 py-5 flex items-start justify-between flex-shrink-0">
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="font-mono text-sm font-bold text-[#fea520]">{order.orderId}</span>
+                            {isNew && <span className="bg-[#fea520] text-[#000a1e] text-[10px] font-extrabold px-2 py-0.5 rounded-full animate-pulse">NEW</span>}
+                            <StatusBadge status={order.status} />
+                        </div>
+                        <h2 className="text-base font-extrabold leading-snug truncate">{order.topicTitle}</h2>
+                        <p className="text-white/40 text-xs mt-0.5">
+                            Placed {new Date(order.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </p>
                     </div>
-                    <button onClick={onClose} className="text-white/50 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+                    <button onClick={onClose} className="ml-4 text-white/50 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors flex-shrink-0">
+                        <X className="w-5 h-5" />
+                    </button>
                 </div>
-                <div className="p-8 space-y-6">
-                    {/* Client info */}
-                    <div className="bg-gray-50 rounded-2xl p-5 space-y-2">
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Client Details</h3>
-                        <div className="flex items-center gap-2 text-sm"><Users className="w-4 h-4 text-gray-400" /><span className="font-semibold">{order.user_name || 'N/A'}</span></div>
-                        <div className="flex items-center gap-2 text-sm"><Mail className="w-4 h-4 text-gray-400" /><span>{order.user_email || 'N/A'}</span></div>
-                    </div>
 
-                    {/* Order info */}
-                    <div className="grid grid-cols-2 gap-4">
-                        {[
-                            ['Service', order.service], ['Subject', order.subject],
-                            ['Level', order.academicLevel], ['Pages', `${order.pages} pages`],
-                            ['Deadline', order.deadline], ['Amount', `£${order.totalAmount}`]
-                        ].map(([k, v]) => (
-                            <div key={k}>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{k}</p>
-                                <p className="font-semibold text-[#000a1e]">{v}</p>
+                {/* Scrollable Body */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-5">
+
+                    {/* Client */}
+                    <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Client Details</p>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-[#002147] text-white flex items-center justify-center text-sm font-extrabold flex-shrink-0">
+                                {(order.user_name || 'NA').slice(0, 2).toUpperCase()}
                             </div>
-                        ))}
+                            <div>
+                                <div className="font-bold text-[#000a1e]">{order.user_name || 'N/A'}</div>
+                                <div className="text-xs text-gray-500">{order.user_email || 'N/A'}</div>
+                            </div>
+                            {order.user_email && (
+                                <a href={`mailto:${order.user_email}?subject=Re: Your Order ${order.orderId}`}
+                                    className="ml-auto bg-[#000a1e] text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-[#002147] transition-colors flex items-center gap-1.5">
+                                    <Mail className="w-3.5 h-3.5" /> Email
+                                </a>
+                            )}
+                        </div>
                     </div>
 
+                    {/* Order Details Grid */}
+                    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Order Specifications</p>
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                            {([
+                                ['Service', order.service],
+                                ['Subject', order.subject],
+                                ['Academic Level', order.academicLevel],
+                                ['Pages', `${order.pages} pages (~${order.pages * 250} words)`],
+                                ['Deadline', order.deadline],
+                                ['Total Amount', `£${order.totalAmount}`],
+                            ] as [string, string][]).map(([k, v]) => (
+                                <div key={k}>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{k}</p>
+                                    <p className="text-sm font-semibold text-[#000a1e] mt-0.5">{v}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Add-ons */}
+                    <div className="flex flex-wrap gap-2">
+                        {order.turnitinReport && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold">
+                                <Check className="w-3 h-3" /> Plagiarism Report
+                            </span>
+                        )}
+                        {order.topExpert && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg text-xs font-bold">
+                                <Award className="w-3 h-3" /> Top Expert (+£15)
+                            </span>
+                        )}
+                        {order.abstractPage && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold">
+                                <FileText className="w-3 h-3" /> Abstract Page (+£10)
+                            </span>
+                        )}
+                        {!order.turnitinReport && !order.topExpert && !order.abstractPage && (
+                            <span className="text-xs text-gray-400 italic">No add-ons selected</span>
+                        )}
+                    </div>
+
+                    {/* Instructions */}
                     {order.instructions && (
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Instructions</p>
-                            <p className="text-sm text-gray-600 bg-gray-50 rounded-xl p-4 leading-relaxed">{order.instructions}</p>
+                        <div className="bg-amber-50 rounded-2xl p-4 border border-amber-100">
+                            <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-2">Student Instructions</p>
+                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{order.instructions}</p>
                         </div>
                     )}
 
-                    {/* Admin controls */}
-                    <div className="bg-[#eef4ff] rounded-2xl p-5 space-y-4 border border-[#d1e4ff]">
-                        <h3 className="text-xs font-bold text-[#002147] uppercase tracking-widest">Admin Controls</h3>
+                    {/* Uploaded Files */}
+                    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Uploaded Files</p>
+                        {order.files && order.files.length > 0 ? (
+                            <div className="space-y-2">
+                                {order.files.map((fileName, idx) => (
+                                    <a
+                                        key={idx}
+                                        href={`${API.replace('/api', '')}/uploads/${fileName}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-3 p-3 bg-[#eef4ff] border border-[#d1e4ff] rounded-xl hover:bg-[#dbeafe] transition-colors group"
+                                    >
+                                        <div className="w-8 h-8 bg-[#002147] text-white rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <FileText className="w-4 h-4" />
+                                        </div>
+                                        <span className="text-sm font-semibold text-[#002147] truncate flex-1">{fileName}</span>
+                                        <span className="text-xs font-bold text-[#fea520] group-hover:text-[#e09510] flex-shrink-0">Download ↗</span>
+                                    </a>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2 text-gray-400 py-2">
+                                <FileText className="w-4 h-4" />
+                                <span className="text-sm">No files uploaded by student</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Admin Controls */}
+                    <div className="bg-[#eef4ff] rounded-2xl p-5 border border-[#d1e4ff] space-y-4">
+                        <p className="text-[10px] font-bold text-[#002147] uppercase tracking-widest">Admin Controls</p>
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Update Status</label>
                             <select value={status} onChange={e => setStatus(e.target.value)}
@@ -199,26 +292,32 @@ const OrderDetailModal = ({
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Assigned Writer</label>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Assign Writer</label>
                             <input type="text" value={assignedTo} onChange={e => setAssignedTo(e.target.value)}
-                                placeholder="Writer name or email"
+                                placeholder="Writer name or email..."
                                 className="w-full bg-white border border-[#d1e4ff] rounded-xl px-4 py-2.5 text-sm font-semibold text-[#000a1e] focus:outline-none focus:ring-2 focus:ring-[#002147]/20" />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Admin Notes</label>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Internal Admin Notes</label>
                             <textarea rows={3} value={adminNotes} onChange={e => setAdminNotes(e.target.value)}
-                                placeholder="Internal notes (not visible to client)..."
+                                placeholder="Not visible to student..."
                                 className="w-full bg-white border border-[#d1e4ff] rounded-xl px-4 py-2.5 text-sm text-[#000a1e] focus:outline-none focus:ring-2 focus:ring-[#002147]/20 resize-none" />
                         </div>
-                        <button onClick={handleSave} disabled={saving}
-                            className="bg-[#000a1e] hover:bg-[#002147] text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-all disabled:opacity-60">
-                            {saving ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</>
-                                : saved ? <><Check className="w-4 h-4 text-emerald-400" />Saved!</> : 'Save Changes'}
-                        </button>
                     </div>
                 </div>
+
+                {/* Sticky Save Footer */}
+                <div className="flex-shrink-0 bg-white border-t border-gray-100 px-6 py-4">
+                    <button onClick={handleSave} disabled={saving}
+                        className="w-full bg-[#000a1e] hover:bg-[#002147] text-white px-6 py-3.5 rounded-xl font-extrabold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-60 shadow-lg">
+                        {saving
+                            ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving Changes...</>
+                            : saved ? <><Check className="w-4 h-4 text-emerald-400" />Changes Saved!</>
+                                : '💾 Save Changes'}
+                    </button>
+                </div>
             </div>
-        </div>
+        </>
     );
 };
 
@@ -231,19 +330,33 @@ const OrdersTab = ({ token }: { token: string }) => {
     const [statusFilter, setStatusFilter] = useState('all');
     const [page, setPage] = useState(1);
     const [selected, setSelected] = useState<Order | null>(null);
+    const [newCount, setNewCount] = useState(0);
+    const prevTotalRef = React.useRef(0);
 
-    const load = useCallback(async () => {
-        setLoading(true);
+    const load = useCallback(async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const params = new URLSearchParams({ page: String(page), limit: '15', status: statusFilter });
             if (search) params.set('search', search);
             const data = await apiFetch(`/admin/orders?${params}`, {}, token);
             setOrders(data.orders); setTotal(data.total);
-        } catch (e: any) { alert(e.message); }
-        finally { setLoading(false); }
+            // detect new orders while admin is on this tab
+            if (prevTotalRef.current > 0 && data.total > prevTotalRef.current) {
+                setNewCount(data.total - prevTotalRef.current);
+                setTimeout(() => setNewCount(0), 5000);
+            }
+            prevTotalRef.current = data.total;
+        } catch (e: any) { if (!silent) alert(e.message); }
+        finally { if (!silent) setLoading(false); }
     }, [token, page, statusFilter, search]);
 
     useEffect(() => { load(); }, [load]);
+
+    // ── Auto-poll every 30 s ──────────────────────────────────────────────────
+    useEffect(() => {
+        const id = setInterval(() => load(true), 30000);
+        return () => clearInterval(id);
+    }, [load]);
 
     const handleDelete = async (id: string) => {
         if (!confirm(`Delete order ${id}? This cannot be undone.`)) return;
@@ -253,6 +366,13 @@ const OrdersTab = ({ token }: { token: string }) => {
 
     return (
         <div className="space-y-6">
+            {/* New order alert banner */}
+            {newCount > 0 && (
+                <div className="bg-[#fea520] text-[#000a1e] px-5 py-3 rounded-2xl font-extrabold text-sm flex items-center gap-3 shadow-lg animate-bounce">
+                    <span className="text-xl">🔔</span>
+                    {newCount} New Order{newCount > 1 ? 's' : ''} Received! Refresh to see the latest.
+                </div>
+            )}
             <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -264,7 +384,9 @@ const OrdersTab = ({ token }: { token: string }) => {
                     className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-[#000a1e] focus:outline-none shadow-sm">
                     {['all', 'Pending', 'In Progress', 'Completed', 'Cancelled'].map(s => <option key={s} value={s}>{s === 'all' ? 'All Statuses' : s}</option>)}
                 </select>
-                <button onClick={load} className="bg-white border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-50 transition-colors shadow-sm"><RefreshCw className="w-4 h-4 text-gray-500" /></button>
+                <button onClick={() => load(false)} className="bg-white border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-50 transition-colors shadow-sm flex items-center gap-2 text-xs font-bold text-gray-500">
+                    <RefreshCw className="w-4 h-4" /> Refresh
+                </button>
             </div>
 
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -286,28 +408,37 @@ const OrdersTab = ({ token }: { token: string }) => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {orders.map(order => (
-                                    <tr key={order.orderId} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-6 py-4 font-mono text-xs font-bold text-[#002147]">{order.orderId}</td>
-                                        <td className="px-6 py-4">
-                                            <div className="font-semibold text-[#000a1e] truncate max-w-[140px]">{order.user_name || '—'}</div>
-                                            <div className="text-gray-400 text-xs truncate max-w-[140px]">{order.user_email}</div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="font-semibold text-[#000a1e] truncate max-w-[160px]">{order.topicTitle}</div>
-                                            <div className="text-gray-400 text-xs">{order.service}</div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-gray-600 font-medium">{order.deadline}</td>
-                                        <td className="px-6 py-4 font-extrabold text-[#000a1e] whitespace-nowrap">£{order.totalAmount}</td>
-                                        <td className="px-6 py-4"><StatusBadge status={order.status} /></td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <button onClick={() => setSelected(order)} className="text-[#002147] hover:text-[#fea520] p-1.5 hover:bg-[#eef4ff] rounded-lg transition-colors" title="View"><Eye className="w-4 h-4" /></button>
-                                                <button onClick={() => handleDelete(order.orderId)} className="text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-colors" title="Delete"><Trash2 className="w-4 h-4" /></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {orders.map(order => {
+                                    const isNew = (new Date().getTime() - new Date(order.createdAt).getTime()) < 5 * 60 * 1000;
+                                    return (
+                                        <tr key={order.orderId} className={`hover:bg-gray-50/50 transition-colors cursor-pointer ${isNew ? 'bg-amber-50/50' : ''}`} onClick={() => setSelected(order)}>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-mono text-xs font-bold text-[#002147]">{order.orderId}</span>
+                                                    {isNew && <span className="bg-[#fea520] text-[#000a1e] text-[9px] font-extrabold px-1.5 py-0.5 rounded-full animate-pulse">NEW</span>}
+                                                </div>
+                                                <div className="text-gray-400 text-[10px] mt-0.5">{new Date(order.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="font-semibold text-[#000a1e] truncate max-w-[140px]">{order.user_name || '—'}</div>
+                                                <div className="text-gray-400 text-xs truncate max-w-[140px]">{order.user_email}</div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="font-semibold text-[#000a1e] truncate max-w-[160px]">{order.topicTitle}</div>
+                                                <div className="text-gray-400 text-xs">{order.service}</div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-gray-600 font-medium">{order.deadline}</td>
+                                            <td className="px-6 py-4 font-extrabold text-[#000a1e] whitespace-nowrap">£{order.totalAmount}</td>
+                                            <td className="px-6 py-4"><StatusBadge status={order.status} /></td>
+                                            <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
+                                                <div className="flex items-center gap-2">
+                                                    <button onClick={() => setSelected(order)} className="text-[#002147] hover:text-[#fea520] p-1.5 hover:bg-[#eef4ff] rounded-lg transition-colors" title="View Details"><Eye className="w-4 h-4" /></button>
+                                                    <button onClick={() => handleDelete(order.orderId)} className="text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-colors" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )
+                                })}
                             </tbody>
                         </table>
                     </div>
@@ -326,7 +457,7 @@ const OrdersTab = ({ token }: { token: string }) => {
                 )}
             </div>
             {selected && (
-                <OrderDetailModal order={selected} token={token} onClose={() => setSelected(null)}
+                <OrderDetailDrawer order={selected} token={token} onClose={() => setSelected(null)}
                     onUpdate={(updated) => { setOrders(prev => prev.map(o => o.orderId === updated.orderId ? updated : o)); setSelected(updated); }} />
             )}
         </div>
