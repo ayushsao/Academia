@@ -63,17 +63,15 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Google login failed');
 
-      // Fire welcome email if backend tagged them as a fresh Google insertion
-      if (data.isNewUser) {
-        await sendWelcomeEmail(data.user.name, data.user.email);
-      }
+      // TEMPORARILY: Fire welcome email on ALL Google logins to prove EmailJS pipeline works
+      await sendWelcomeEmail(data.user.name, data.user.email);
 
       login(data.user.email, data.user.name, data.token, data.user.id);
       onClose();
       navigate('/dashboard');
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        setApiError('Server is waking up (free tier). Please try again in 30 seconds.');
+        setApiError(' Please try again in 30 seconds.');
       } else if (err instanceof TypeError && err.message.includes('fetch')) {
         setApiError('Cannot reach server. It may be starting up — please retry in 30s.');
       } else {
