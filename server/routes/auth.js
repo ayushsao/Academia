@@ -17,20 +17,28 @@ router.post('/google', async (req, res) => {
         const { access_token } = req.body;
         if (!access_token) return res.status(400).json({ error: 'Google access token missing.' });
 
-        const googleRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: { Authorization: `Bearer ${access_token}` }
-        });
+        let payload;
+        try {
+            const googleRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: `Bearer ${access_token}` }
+            });
+            if (!googleRes.ok) {
+                const errText = await googleRes.text();
+                console.error('Google API error:', googleRes.status, errText);
+                return res.status(400).json({ error: 'Failed to verify Google token.' });
+            }
+            payload = await googleRes.json();
+        } catch (fetchErr) {
+            console.error('Google fetch() error:', fetchErr);
+            return res.status(500).json({ error: 'Could not reach Google servers. ' + (fetchErr.message || '') });
+        }
 
-        if (!googleRes.ok) return res.status(400).json({ error: 'Failed to verify Google token.' });
-
-        const payload = await googleRes.json();
         if (!payload || !payload.email) return res.status(400).json({ error: 'Invalid Google payload.' });
 
         const email = payload.email.toLowerCase();
         let user = await User.findOne({ email });
 
         if (!user) {
-            // Create user silently using Google details
             const hash = await bcrypt.hash(Math.random().toString(36).slice(-10), 10);
             user = await User.create({
                 name: payload.name || 'Google User',
@@ -48,7 +56,7 @@ router.post('/google', async (req, res) => {
         res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role, picture: payload.picture } });
     } catch (err) {
         console.error('Google Auth Error:', err);
-        res.status(500).json({ error: 'Failed to authenticate with Google.' });
+        res.status(500).json({ error: 'Failed to authenticate with Google. ' + (err.message || '') });
     }
 });
 

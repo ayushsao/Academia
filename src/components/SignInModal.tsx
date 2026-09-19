@@ -30,18 +30,28 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
     setIsAuthenticating(true);
     setApiError('');
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
       const res = await fetch(`${API}/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ access_token: tokenResponse.access_token }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Google login failed');
       login(data.user.email, data.user.name, data.token, data.user.id);
       onClose();
       navigate('/dashboard');
     } catch (err: any) {
-      setApiError(err.message || 'Google Auth failed');
+      if (err.name === 'AbortError') {
+        setApiError('Server is waking up (free tier). Please try again in 30 seconds.');
+      } else if (err instanceof TypeError && err.message.includes('fetch')) {
+        setApiError('Cannot reach server. It may be starting up — please retry in 30s.');
+      } else {
+        setApiError(err.message || 'Google Auth failed');
+      }
     } finally {
       setIsAuthenticating(false);
     }
