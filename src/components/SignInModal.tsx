@@ -33,12 +33,12 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
         env.VITE_EMAILJS_SERVICE_ID || 'service_089l13d',
         env.VITE_EMAILJS_WELCOME_TEMPLATE_ID || env.VITE_EMAILJS_TEMPLATE_ID,
         {
-          from_name: "AssignmentMinds Team",
+          name: userName || 'Student',
+          email: userEmail,
+          // Sending these as fallbacks just in case an older template is triggered
           to_name: userName || 'Student',
-          to_email: userEmail, // Send TO the user
-          reply_to: "support@assignmentminds.com",
-          subject: "Welcome to AssignmentMinds!",
-          message: "Welcome to AssignmentMinds! Your account has been created successfully. We're thrilled to have you onboard as a premium member, and look forward to helping you ace your academics! Let us know if you need any assignment help."
+          to_email: userEmail,
+          message: "Welcome to AssignmentMinds! Your account has been created successfully."
         },
         env.VITE_EMAILJS_PUBLIC_KEY || 'u1Lnz6UEF9jlDevVZ'
       );
