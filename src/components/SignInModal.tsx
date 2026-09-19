@@ -26,6 +26,26 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
   const login = useStore(state => state.login);
   const navigate = useNavigate();
 
+  const sendWelcomeEmail = async (userName: string, userEmail: string) => {
+    try {
+      const env = (import.meta as any).env;
+      await emailjs.send(
+        env.VITE_EMAILJS_SERVICE_ID || 'service_089l13d',
+        env.VITE_EMAILJS_WELCOME_TEMPLATE_ID || env.VITE_EMAILJS_TEMPLATE_ID,
+        {
+          from_name: "AssignmentMinds Team",
+          to_name: userName || 'Student',
+          from_email: userEmail,
+          subject: "Welcome to AssignmentMinds!",
+          message: "Welcome to AssignmentMinds! Your account has been created successfully (via Google Secure Login). We're thrilled to have you onboard as a premium member, and look forward to helping you ace your academics! Let us know if you need any assignment help."
+        },
+        env.VITE_EMAILJS_PUBLIC_KEY || 'u1Lnz6UEF9jlDevVZ'
+      );
+    } catch (emailErr) {
+      console.error("Welcome email failed", emailErr);
+    }
+  };
+
   const handleGoogleSuccess = async (tokenResponse: any) => {
     setIsAuthenticating(true);
     setApiError('');
@@ -41,6 +61,12 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
       clearTimeout(timeout);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Google login failed');
+
+      // Fire welcome email if backend tagged them as a fresh Google insertion
+      if (data.isNewUser) {
+        await sendWelcomeEmail(data.user.name, data.user.email);
+      }
+
       login(data.user.email, data.user.name, data.token, data.user.id);
       onClose();
       navigate('/dashboard');
@@ -83,23 +109,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
 
       // -- Send Welcome Email on Signup --
       if (activeTab === 'signup') {
-        try {
-          const env = (import.meta as any).env;
-          await emailjs.send(
-            env.VITE_EMAILJS_SERVICE_ID || 'service_089l13d',
-            env.VITE_EMAILJS_WELCOME_TEMPLATE_ID || env.VITE_EMAILJS_TEMPLATE_ID,
-            {
-              from_name: "AssignmentMinds Team",
-              to_name: data.user.name || 'Student',
-              from_email: data.user.email,
-              subject: "Welcome to AssignmentMinds!",
-              message: "Welcome to AssignmentMinds! Your account has been created successfully. We're thrilled to have you onboard as a premium member, and look forward to helping you ace your academics! Let us know if you need any assignment help."
-            },
-            env.VITE_EMAILJS_PUBLIC_KEY || 'u1Lnz6UEF9jlDevVZ'
-          );
-        } catch (emailErr) {
-          console.error("Welcome email failed to send:", emailErr);
-        }
+        await sendWelcomeEmail(data.user.name, data.user.email);
       }
 
       setIsAuthenticating(false);

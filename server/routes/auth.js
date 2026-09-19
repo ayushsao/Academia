@@ -58,8 +58,10 @@ router.post('/google', async (req, res) => {
 
         const email = payload.email.toLowerCase();
         let user = await User.findOne({ email });
+        let isNewUser = false;
 
         if (!user) {
+            isNewUser = true;
             const hash = await bcrypt.hash(Math.random().toString(36).slice(-10), 10);
             user = await User.create({
                 name: payload.name || 'Google User',
@@ -74,7 +76,7 @@ router.post('/google', async (req, res) => {
         }
 
         const token = jwt.sign({ id: user._id, email: user.email, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-        res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role, picture: payload.picture } });
+        res.json({ token, isNewUser, user: { id: user._id, name: user.name, email: user.email, role: user.role, picture: payload.picture } });
     } catch (err) {
         console.error('Google Auth Error:', err);
         res.status(500).json({ error: 'Failed to authenticate with Google. ' + (err.message || '') });
