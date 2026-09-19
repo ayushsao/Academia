@@ -31,7 +31,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
 
   const navLinks = [
     { label: 'Services', hasDropdown: true },
-    { label: 'Resources', hasDropdown: true },
+    { label: 'Resources', hasDropdown: false },
     { label: 'Hire Writers', hasDropdown: false },
     { label: 'Blogs', hasDropdown: false },
     { label: 'Academic Tools', hasDropdown: true },
@@ -308,29 +308,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                           ))}
                         </div>
                       </div>
-                    </div>
-                  )}
-                  {link.hasDropdown && mobileExpandedMenu === link.label && link.label === 'Resources' && (
-                    <div className="flex flex-col gap-2 pl-4 pb-3">
-                      {[
-                        'Programming Assignment Help',
-                        'Assessment Help',
-                        'Pay Someone To Do My Homework',
-                        'Take My Online Class',
-                        'Take My Online Exam',
-                        'Homework Help',
-                      ].map((item, i) => (
-                        <div
-                          key={i}
-                          onClick={() => {
-                            setMobileMenuOpen(false);
-                            navigate(`/p/${item.replace(/\n/g, ' ').toLowerCase().replace(/ /g, '-')}`);
-                          }}
-                          className="text-sm font-medium text-gray-600 py-1.5 cursor-pointer"
-                        >
-                          {item}
-                        </div>
-                      ))}
                     </div>
                   )}
                 </div>
