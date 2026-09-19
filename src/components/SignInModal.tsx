@@ -35,9 +35,10 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
         {
           from_name: "AssignmentMinds Team",
           to_name: userName || 'Student',
-          from_email: userEmail,
+          to_email: userEmail, // Send TO the user
+          reply_to: "support@assignmentminds.com",
           subject: "Welcome to AssignmentMinds!",
-          message: "Welcome to AssignmentMinds! Your account has been created successfully (via Google Secure Login). We're thrilled to have you onboard as a premium member, and look forward to helping you ace your academics! Let us know if you need any assignment help."
+          message: "Welcome to AssignmentMinds! Your account has been created successfully. We're thrilled to have you onboard as a premium member, and look forward to helping you ace your academics! Let us know if you need any assignment help."
         },
         env.VITE_EMAILJS_PUBLIC_KEY || 'u1Lnz6UEF9jlDevVZ'
       );
