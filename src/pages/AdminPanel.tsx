@@ -895,10 +895,123 @@ const SettingsTab = ({ token }: { token: string }) => {
     );
 };
 
+// ─── Founders / Admins Tab ──────────────────────────────────────────────────────────
+const AdminsTab = ({ token }: { token: string }) => {
+    const [admins, setAdmins] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [inviteEmail, setInviteEmail] = useState('');
+    const [inviting, setInviting] = useState(false);
+
+    const load = React.useCallback(async () => {
+        try {
+            const data = await apiFetch('/admin/managers', {}, token);
+            setAdmins(data.admins);
+        } catch (e: any) { alert(e.message); }
+        finally { setLoading(false); }
+    }, [token]);
+
+    React.useEffect(() => { load(); }, [load]);
+
+    const handleInvite = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!inviteEmail) return;
+        setInviting(true);
+        try {
+            const data = await apiFetch('/admin/managers', { method: 'POST', body: JSON.stringify({ email: inviteEmail }) }, token);
+
+            // Send Email over EmailJS
+            const EmailJSConfig = {
+                serviceId: (import.meta as any).env.VITE_EMAILJS_SERVICE_ID || 'service_089l13d',
+                templateId: (import.meta as any).env.VITE_EMAILJS_TEMPLATE_ID || 'template_omo2hya',
+                publicKey: (import.meta as any).env.VITE_EMAILJS_PUBLIC_KEY || 'u1Lnz6UEF9jlDevVZ'
+            };
+            const emailjs = (await import('@emailjs/browser')).default;
+            await emailjs.send(
+                EmailJSConfig.serviceId as string,
+                EmailJSConfig.templateId as string,
+                {
+                    name: 'Co-Founder',
+                    email: inviteEmail,
+                    subject: 'Admin Access Granted for AssignmentMinds',
+                    message: `You have been granted Admin Access.\n\nPlease go to ${window.location.origin}/admin and login:\nUsername: ${data.admin.username} \nPassword: ${data.plainPassword}\n\nPlease keep these safe.`
+                },
+                EmailJSConfig.publicKey as string
+            );
+
+            alert('Admin invited successfully! An email with credentials has been sent.');
+            setInviteEmail('');
+            load();
+        } catch (e: any) { alert('Failed to invite admin: ' + e.message); }
+        finally { setInviting(false); }
+    };
+
+    const handleDelete = async (id: string, username: string) => {
+        if (!window.confirm(`Revoke admin access for ${username}?`)) return;
+        try {
+            await apiFetch(`/admin/managers/${id}`, { method: 'DELETE' }, token);
+            load();
+        } catch (e: any) { alert(e.message); }
+    };
+
+    if (loading) return <div className="flex justify-center py-24"><div className="w-10 h-10 border-4 border-gray-200 border-t-[#fea520] rounded-full animate-spin" /></div>;
+
+    return (
+        <div className="space-y-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 max-w-xl">
+                <h3 className="font-bold text-[#000a1e] mb-2 flex items-center gap-2"><Shield className="w-5 h-5 text-[#fea520]" /> Invite Co-Founder</h3>
+                <p className="text-sm text-gray-500 mb-5">Grant admin console access to another team member via email.</p>
+                <form onSubmit={handleInvite} className="flex gap-3">
+                    <input type="email" placeholder="Co-founder's email address..." value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} required
+                        className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-[#fea520]" />
+                    <button type="submit" disabled={inviting}
+                        className="bg-[#000a1e] hover:bg-[#002147] text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all disabled:opacity-60 flex items-center gap-2">
+                        {inviting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Mail className="w-4 h-4" />} Invite
+                    </button>
+                </form>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                    <h3 className="font-bold text-[#000a1e]">Active Admins <span className="text-gray-400 font-normal text-sm">({admins.length} total)</span></h3>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="bg-gray-50 border-b border-gray-100">
+                                <th className="text-left px-6 py-3 text-xs font-bold text-gray-400 uppercase tracking-widest">Username / Email</th>
+                                <th className="text-left px-6 py-3 text-xs font-bold text-gray-400 uppercase tracking-widest">Added On</th>
+                                <th className="text-right px-6 py-3 text-xs font-bold text-gray-400 uppercase tracking-widest">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {admins.map(admin => (
+                                <tr key={admin._id} className="hover:bg-gray-50/50 transition-colors">
+                                    <td className="px-6 py-4">
+                                        <div className="font-bold text-[#000a1e]">{admin.username}</div>
+                                        {admin.email && <div className="text-xs text-gray-400">{admin.email}</div>}
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-600 font-medium">{new Date(admin.createdAt || Date.now()).toLocaleDateString()}</td>
+                                    <td className="px-6 py-4 text-right">
+                                        {admin.username !== 'admin' && (
+                                            <button onClick={() => handleDelete(admin._id, admin.username)} className="text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-colors inline-block" title="Revoke Access">
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // ─── Main Admin Panel ─────────────────────────────────────────────────────────
 export const AdminPanel: React.FC = () => {
     const [token, setToken] = useState<string>(() => localStorage.getItem('ap_admin_token') || '');
-    const [tab, setTab] = useState<'overview' | 'orders' | 'users' | 'contacts' | 'analytics' | 'settings'>('overview');
+    const [tab, setTab] = useState<'overview' | 'orders' | 'users' | 'contacts' | 'analytics' | 'settings' | 'admins'>('overview');
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const handleLogout = () => { localStorage.removeItem('ap_admin_token'); setToken(''); };
@@ -919,6 +1032,7 @@ export const AdminPanel: React.FC = () => {
         { id: 'contacts', label: 'Messages', icon: <MessageSquare className="w-5 h-5" /> },
         { id: 'analytics', label: 'Analytics', icon: <BarChart2 className="w-5 h-5" /> },
         { id: 'settings', label: 'Settings', icon: <Settings className="w-5 h-5" /> },
+        { id: 'admins', label: 'Co-Founders', icon: <Shield className="w-5 h-5" /> },
     ] as const;
 
     return (
@@ -990,6 +1104,7 @@ export const AdminPanel: React.FC = () => {
                     {tab === 'contacts' && <ContactsTab token={token} />}
                     {tab === 'analytics' && <AnalyticsTab token={token} />}
                     {tab === 'settings' && <SettingsTab token={token} />}
+                    {tab === 'admins' && <AdminsTab token={token} />}
                 </main>
             </div>
         </div>

@@ -228,6 +228,44 @@ router.patch('/contacts/:id', authenticateAdmin, async (req, res) => {
 
 // ── Analytics Routes ──────────────────────────────────────────────────────────
 
+// ── Admins / Founders Management ────────────────────────────────────────────────
+router.get('/managers', authenticateAdmin, async (req, res) => {
+    try {
+        const admins = await Admin.find().select('-password');
+        res.json({ admins });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.post('/managers', authenticateAdmin, async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ error: 'Email is required.' });
+        const existing = await Admin.findOne({ username: email });
+        if (existing) return res.status(400).json({ error: 'An admin with this email/username already exists.' });
+
+        const plainPassword = Math.random().toString(36).slice(-8); // 8 char random 
+        const hash = await bcrypt.hash(plainPassword, 10);
+        const admin = await Admin.create({ username: email, email, password: hash });
+
+        res.status(201).json({ admin: { id: admin._id, username: admin.username, email: admin.email }, plainPassword });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.delete('/managers/:id', authenticateAdmin, async (req, res) => {
+    try {
+        const count = await Admin.countDocuments();
+        if (count <= 1) return res.status(400).json({ error: 'Cannot delete the only remaining admin.' });
+        await Admin.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Admin deleted successfully.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // POST /api/admin/track (public — no auth needed)
 router.post('/track', async (req, res) => {
     try {
