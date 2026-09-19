@@ -61,7 +61,7 @@ app.use('/api/contact', contactRouter);
 app.use('/api/admin', adminRouter);
 
 app.get('/api/health', (req, res) =>
-    res.json({ status: 'OK', version: 'v3-https-fix', timestamp: new Date().toISOString() })
+    res.json({ status: 'OK', version: 'latest-admin-fix', timestamp: new Date().toISOString() })
 );
 
 app.use('/api/*', (req, res) =>
