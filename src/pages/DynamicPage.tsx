@@ -21,6 +21,26 @@ export const DynamicPage: React.FC = () => {
     const [toolOutput, setToolOutput] = useState<string>('');
     const [isToolProcessing, setIsToolProcessing] = useState<boolean>(false);
     const [toolError, setToolError] = useState<string>('');
+    const [loadingText, setLoadingText] = useState<string>('Initializing AI engine...');
+
+    useEffect(() => {
+        if (!isToolProcessing) return;
+        const messages = [
+            "Initializing AI engine...",
+            "Analyzing your prompt...",
+            "Gathering academic structures...",
+            "Checking university formatting...",
+            "Drafting high-quality content...",
+            "Finalizing output..."
+        ];
+        let i = 0;
+        setLoadingText(messages[0]);
+        const interval = setInterval(() => {
+            i = (i + 1) % messages.length;
+            setLoadingText(messages[i]);
+        }, 1800);
+        return () => clearInterval(interval);
+    }, [isToolProcessing]);
     // Dynamic Data Dictionary for Services
     const serviceContent: Record<string, {
         title: string,
@@ -285,19 +305,19 @@ export const DynamicPage: React.FC = () => {
 
                 let prompt = '';
                 if (slug === 'free-paraphrasing-tool') {
-                    prompt = `Paraphrase the following text clearly and professionally while maintaining its original meaning. If the text is short, expand on it to provide deeply detailed context. Generate a lengthy, comprehensive response:\n\n${toolInput}`;
+                    prompt = `Paraphrase the following text clearly and professionally while maintaining its original meaning. If the text is short, expand on it to provide deeply detailed context. Generate a comprehensive response:\n\n${toolInput}`;
                 } else if (slug === 'free-essay-typer' || slug === 'ai-essay-writer') {
-                    prompt = `Write a highly detailed, extremely comprehensive academic essay on the following topic/prompt. Provide rich sections, an extensive introduction, deep body paragraphs with academic examples, and a strong conclusion. **CRITICAL REQUIREMENT: The essay MUST be approximately 1500 words long. Do not write a short summary, write a full-length 1500+ word academic paper.**\n\n${toolInput}`;
+                    prompt = `Write a highly detailed, comprehensive academic essay on the following topic/prompt. Provide rich sections, an introduction, body paragraphs with academic examples, and a strong conclusion. **CRITICAL REQUIREMENT: The essay MUST be approximately 800 words long. Do not write a short summary, write a full 800+ word academic paper.**\n\n${toolInput}`;
                 } else if (slug === 'ai-humanizer') {
-                    prompt = `Rewrite the following text so that it sounds completely natural, human, and conversational, removing any robotic AI tone. Keep the output extremely detailed and lengthy:\n\n${toolInput}`;
+                    prompt = `Rewrite the following text so that it sounds completely natural, human, and conversational, removing any robotic AI tone. Keep the output detailed and lengthy:\n\n${toolInput}`;
                 } else if (slug === 'free-dissertation-outline-generator' || slug === 'free-thesis-statement-generator') {
-                    prompt = `Generate a massively comprehensive academic outline and thesis statement. Topic: ${customForm.topic || toolInput || 'General Academic Topic'}. Argument: ${customForm.argument || 'N/A'}. Supporting points: ${customForm.point1 || ''}, ${customForm.point2 || ''}. Break it down into extreme detail, covering every possible sub-topic, methodology, literature review section, and core arguments. The output should be extremely extensive and highly detailed (aim for a massive, 1500+ word exploration of the structure):`;
+                    prompt = `Generate a massively comprehensive academic outline and thesis statement. Topic: ${customForm.topic || toolInput || 'General Academic Topic'}. Argument: ${customForm.argument || 'N/A'}. Supporting points: ${customForm.point1 || ''}, ${customForm.point2 || ''}. Break it down into extreme detail, covering sub-topics, methodology, literature review section, and core arguments. The output should be extensive:\n`;
                 } else if (slug === 'referencing-tool') {
                     prompt = `Create a properly formatted academic citation in multiple styles (APA, MLA, Chicago, Harvard). Source Details -> Type: ${customForm.type || 'Website'}, Author: ${customForm.authorFirst || ''} ${customForm.authorLast || ''}, Title: ${customForm.title || toolInput || 'Unknown Title'}, Date: ${customForm.date || ''}, Publisher/URL: ${customForm.url || ''}. Format it perfectly and provide all 4 styles clearly.`;
                 } else if (slug === 'free-plagiarism-checker') {
                     prompt = `Act as an advanced academic plagiarism checker. Analyze the following text (or simulated document upload). Provide a highly detailed report showing an estimated 'Originality Score' (percentage), flag any sentences that appear highly generic or potentially lifted from web sources in a structured list, and summarize the authenticity of the text. Do NOT generate an essay. Just analyze the text originality thoroughly:\n\n${toolInput}`;
                 } else {
-                    prompt = `Process the following text comprehensively and provide a highly detailed, extremely lengthy response (aim for ~1500 words):\n\n${toolInput}`;
+                    prompt = `Process the following text comprehensively and provide a detailed structured response (aim for ~800 words):\n\n${toolInput}`;
                 }
 
                 let aiOutput = '';
@@ -349,7 +369,7 @@ export const DynamicPage: React.FC = () => {
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            model: 'qwen/qwen3.8-27b', // Extremely fast global model
+                            model: 'llama-3.1-8b-instant', // Extremely fast global model
                             messages: [{ role: 'user', content: prompt }],
                             temperature: 0.7
                         })
@@ -567,7 +587,7 @@ export const DynamicPage: React.FC = () => {
                                 </div>
 
                                 {toolError && (
-                                    <div className="w-full mt-6 p-4 bg-red-50 text-red-500 font-bold border border-red-100 rounded-lg text-center">
+                                    <div className="w-full mt-6 p-4 bg-red-50 text-red-500 font-bold border border-red-100 rounded-lg text-center break-words">
                                         {toolError}
                                     </div>
                                 )}
@@ -611,7 +631,7 @@ export const DynamicPage: React.FC = () => {
                                     </button>
 
                                     {toolError && (
-                                        <div className="w-full mt-6 p-4 bg-red-50 text-red-500 font-bold border border-red-100 rounded-lg text-center">
+                                        <div className="w-full mt-6 p-4 bg-red-50 text-red-500 font-bold border border-red-100 rounded-lg text-center break-words">
                                             {toolError}
                                         </div>
                                     )}
@@ -657,11 +677,16 @@ export const DynamicPage: React.FC = () => {
                                     disabled={isToolProcessing}
                                     className="bg-[#fea520] hover:bg-[#e36100] disabled:bg-gray-300 disabled:cursor-not-allowed text-[#000a1e] px-8 py-4 rounded font-black text-lg transition-colors shadow-md mx-auto"
                                 >
-                                    {isToolProcessing ? 'Processing Outline...' : content.actionButton}
+                                    {isToolProcessing ? (
+                                        <span className="flex items-center space-x-2">
+                                            <svg className="animate-spin h-5 w-5 text-[#000a1e]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                            <span>{loadingText}</span>
+                                        </span>
+                                    ) : content.actionButton}
                                 </button>
 
                                 {toolError && (
-                                    <div className="w-full mt-8 p-4 bg-red-50 text-red-500 font-bold border border-red-100 rounded-lg text-center">
+                                    <div className="w-full mt-8 p-4 bg-red-50 text-red-500 font-bold border border-red-100 rounded-lg text-center break-words">
                                         {toolError}
                                     </div>
                                 )}
@@ -699,7 +724,12 @@ export const DynamicPage: React.FC = () => {
                                             disabled={isToolProcessing || !toolInput.trim()}
                                             className="bg-[#fea520] hover:bg-[#e36100] disabled:bg-gray-300 disabled:cursor-not-allowed text-[#000a1e] px-6 py-2 rounded font-bold text-sm transition-colors shadow-sm"
                                         >
-                                            {isToolProcessing ? 'Processing...' : content.actionButton || 'Process'}
+                                            {isToolProcessing ? (
+                                                <span className="flex items-center space-x-2">
+                                                    <svg className="animate-spin h-4 w-4 text-[#000a1e]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                                    <span>{loadingText}</span>
+                                                </span>
+                                            ) : content.actionButton || 'Process'}
                                         </button>
                                     </div>
                                 </div>
