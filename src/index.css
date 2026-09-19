@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --color-primary: #000a1e;
+  --color-primary-container: #002147;
+  --color-on-primary-container: #708ab5;
+  --color-secondary: #865300;
+  --color-secondary-container: #fea520;
+  --color-on-secondary-container: #694000;
+  --color-surface: #f8f9ff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #eef4ff;
+  --color-surface-container: #e4efff;
+  --color-surface-container-high: #dbe9ff;
+  --color-surface-container-highest: #d1e4ff;
+  --color-surface-variant: #d1e4ff;
+  --color-on-surface: #011d35;
+  --color-on-surface-variant: #44474e;
+  --color-outline: #74777f;
+  --color-outline-variant: #c4c6cf;
+}
+
+body {
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.bg-dots {
+  background-image: radial-gradient(#d1e4ff 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+}
+
+.bg-mesh {
+  background-image: radial-gradient(at 40% 20%, hsla(28, 100%, 74%, 0.12) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, hsla(213, 100%, 94%, 0.45) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, hsla(213, 100%, 94%, 0.45) 0px, transparent 50%);
+}
+
+.shadow-ambient {
+  box-shadow: 0 4px 24px rgba(0, 33, 71, 0.06);
+}
+
+.shadow-soft {
+  box-shadow: 0 12px 36px rgba(0, 33, 71, 0.1);
+}
+
+.shadow-glass {
+  box-shadow: 0 8px 32px 0 rgba(0, 33, 71, 0.08);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 25s linear infinite;
+}

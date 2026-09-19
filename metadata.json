@@ -1,0 +1,6 @@
+{
+  "name": "AcademiaPro - Academic Support & Consultation",
+  "description": "Bespoke academic support, interactive cost estimation, expert consultants, and smart writing tools.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
