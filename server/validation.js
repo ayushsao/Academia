@@ -28,7 +28,8 @@ export const orderSchema = z.object({
     turnitinReport: z.boolean().optional(),
     topExpert: z.boolean().optional(),
     abstractPage: z.boolean().optional(),
-    totalAmount: z.number().min(0).optional()
+    totalAmount: z.number().min(0).optional(),
+    transactionId: z.string().optional()
 }).strict(); // Reject extra fields
 
 export const contactSchema = z.object({

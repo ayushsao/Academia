@@ -56,6 +56,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [topExpert, setTopExpert] = useState<boolean>(false);
   const [abstractPage, setAbstractPage] = useState<boolean>(false);
 
+  const [transactionId, setTransactionId] = useState<string>('');
   const [orderNumber, setOrderNumber] = useState<string>('');
 
   const addOrder = useStore(state => state.addOrder);
@@ -169,6 +170,11 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       return;
     }
 
+    if (!transactionId || transactionId.trim().length < 5) {
+      alert("Please enter a valid Transaction ID / UTR Number to confirm your payment.");
+      return;
+    }
+
     setIsSubmitting(true);
     let uploadedFileNames: string[] = [];
 
@@ -206,6 +212,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
         topExpert,
         abstractPage,
         totalAmount: grandTotal,
+        transactionId: transactionId.trim()
       };
 
       const res = await fetch(`${API}/orders`, {
@@ -251,7 +258,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
             name: user.name,
             email: user.email,
             subject: `New Order Placed: ${data.order?.orderId}`,
-            message: `User ${user.name} placed a new order for ${service} (${subject}). Topic: ${topicTitle}. Total: £${grandTotal}`
+            message: `User ${user.name} placed a new order for ${service} (${subject}). Topic: ${topicTitle}. Total: £${grandTotal}\n\nTransaction ID (Payment Reference): ${transactionId}`
           },
           EmailJSConfig.publicKey as string
         );
@@ -513,11 +520,67 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 </div>
               </div>
 
-              {/* Escrow Guarantee Notice */}
-              <div className="bg-[#dbe9ff]/70 rounded-xl p-4 border border-[#d1e4ff] flex items-start gap-3">
-                <ShieldCheck className="w-5 h-5 text-[#002147] flex-shrink-0 mt-0.5" />
-                <div className="text-xs text-[#002147] leading-relaxed">
-                  <strong>Protected Payment:</strong> Your payment is held securely and only released to the writer once you approve the final paper.
+              {/* Payment Info Section */}
+              <div className="bg-[#f8f9ff] rounded-xl p-5 border border-[#d1e4ff] space-y-4">
+                <div className="flex items-start gap-3">
+                  <ShieldCheck className="w-5 h-5 text-[#002147] flex-shrink-0 mt-0.5" />
+                  <div className="text-xs text-[#002147] leading-relaxed">
+                    <strong>Secure Manual Payment:</strong> Scan the UPI QR code (India) OR use PayPal (International). Enter your Transaction/Reference ID below to instantly verify your order.
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* UPI Block (India) */}
+                  <div className="bg-white p-4 rounded-xl border border-[#d1e4ff] flex flex-col items-center text-center shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 bg-emerald-50 text-emerald-700 text-[9px] font-extrabold px-2 py-1 rounded-bl-xl border-b border-l border-emerald-100 uppercase tracking-wider">India</div>
+
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Scan to Pay (UPI)</p>
+                    <div className="p-1 border border-gray-100 rounded-xl bg-white shadow-sm mb-3">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(`upi://pay?pa=academiapro@ybl&pn=AcademiaPro&am=${grandTotal * 106}&cu=INR`)}`}
+                        alt="UPI QR Code"
+                        className="w-24 h-24 object-contain"
+                      />
+                    </div>
+                    <p className="text-xl font-extrabold text-[#000a1e] mb-1">₹ {(grandTotal * 106).toLocaleString('en-IN')}</p>
+                    <p className="text-[10px] text-emerald-600 font-bold mb-3">£ {grandTotal} Converted (1£ = ₹106)</p>
+
+                    <div className="w-full">
+                      <span className="text-[10px] font-semibold text-gray-500 block mb-1">Or Send to Direct UPI ID:</span>
+                      <span className="font-mono text-xs bg-[#eef4ff] text-[#002147] px-2 py-1 rounded-md border border-[#d1e4ff] select-all w-full block truncate">academiapro@ybl</span>
+                    </div>
+                  </div>
+
+                  {/* PayPal Block (International) */}
+                  <div className="bg-[#f0f8ff] p-4 rounded-xl border border-[#b8daff] flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 bg-blue-100 text-[#003087] text-[9px] font-extrabold px-2 py-1 rounded-bl-xl border-b border-l border-blue-200 uppercase tracking-wider">Global</div>
+
+                    <svg className="w-8 h-8 mb-3" fill="#003087" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106z"></path><path d="M21.573 6.534c.03-.15.054-.294.077-.437a3.84 3.84 0 0 0-.022-.246c-1.353 6.942-5.467 8.357-10.428 8.357H9.01c-.524 0-.968.382-1.05.9l-1.12 7.106-.057.362A.64.64 0 0 0 7.416 23.3h3.585c.524 0 .968-.382 1.05-.9l.865-5.473a1.055 1.055 0 0 1 1.05-.888h.619c2.868 0 5.253-.434 6.79-1.921 1.4-1.353 2.062-3.411 1.704-5.836a5.534 5.534 0 0 0-1.506-1.748z" fill="#009cde"></path></svg>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Pay via PayPal</p>
+                    <p className="text-2xl font-extrabold text-[#003087] mb-3">£ {grandTotal}</p>
+
+                    <a href={`https://paypal.me/yourusername/${grandTotal}GBP`} target="_blank" rel="noopener noreferrer"
+                      className="bg-[#003087] hover:bg-[#001c52] text-white px-5 py-2.5 rounded-lg text-xs font-bold shadow-sm transition-colors cursor-pointer w-full mb-3 inline-block">
+                      Pay Automatically ↗
+                    </a>
+
+                    <div className="w-full">
+                      <span className="text-[10px] font-semibold text-gray-500 block mb-1">Or manual transfer to:</span>
+                      <span className="font-mono text-xs bg-white text-[#003087] px-2 py-1 rounded-md border border-[#b8daff] select-all w-full block truncate">your.email@gmail.com</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#44474e] uppercase mb-1.5">Enter Transaction ID / UTR Number / PayPal Ref *</label>
+                  <input
+                    type="text"
+                    value={transactionId}
+                    onChange={(e) => setTransactionId(e.target.value)}
+                    placeholder="e.g. 123456789012 or PAY-1234..."
+                    className="w-full bg-white border border-[#d1e4ff] rounded-xl p-3 text-sm font-semibold text-[#000a1e] focus:border-[#fea520] outline-none transition-colors shadow-sm"
+                    required
+                  />
                 </div>
               </div>
             </div>

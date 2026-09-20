@@ -54,7 +54,7 @@ router.post('/', authenticateUser, validateInput(orderSchema), async (req, res) 
         const {
             service, subject, academicLevel, pages, deadline,
             topicTitle, instructions, files,
-            turnitinReport, topExpert, abstractPage
+            turnitinReport, topExpert, abstractPage, transactionId
         } = req.body;
 
         const basePrice = getBaseRate(service);
@@ -81,6 +81,7 @@ router.post('/', authenticateUser, validateInput(orderSchema), async (req, res) 
             topExpert: Boolean(topExpert),
             abstractPage: Boolean(abstractPage),
             totalAmount: serverComputedAmount,
+            transactionId: transactionId || '',
         });
 
         res.status(201).json({ order });

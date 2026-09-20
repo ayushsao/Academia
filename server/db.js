@@ -44,6 +44,7 @@ const orderSchema = new mongoose.Schema({
   status: { type: String, default: 'Pending', enum: ['Pending', 'In Progress', 'Completed', 'Cancelled'] },
   assignedTo: { type: String, default: '' },
   adminNotes: { type: String, default: '' },
+  transactionId: { type: String, default: '' },
 }, { timestamps: true });
 
 const contactSchema = new mongoose.Schema({

@@ -43,7 +43,7 @@ interface Order {
     topExpert?: boolean;
     abstractPage?: boolean;
     totalAmount: number; status: string; assignedTo?: string;
-    adminNotes?: string; createdAt: string; updatedAt: string;
+    adminNotes?: string; transactionId?: string; createdAt: string; updatedAt: string;
 }
 interface User { _id: string; name: string; email: string; role: string; createdAt: string; lastLogin?: string; order_count: number; total_spent: number; }
 interface Contact { _id: string; name: string; email: string; phone?: string; subject: string; message: string; status: string; createdAt: string; }
@@ -222,6 +222,7 @@ const OrderDetailDrawer = ({
                                 ['Pages', `${order.pages} pages (~${order.pages * 250} words)`],
                                 ['Deadline', order.deadline],
                                 ['Total Amount', `£${order.totalAmount}`],
+                                ['Transaction ID', order.transactionId || 'Not Provided'],
                             ] as [string, string][]).map(([k, v]) => (
                                 <div key={k}>
                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{k}</p>
