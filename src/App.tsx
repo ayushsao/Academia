@@ -7,6 +7,8 @@ import { useStore } from './store/useStore';
 
 import { DynamicPage } from './pages/DynamicPage';
 
+import { ChatWidget } from './components/ChatWidget';
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const user = useStore((state) => state.user);
     if (!user) {
@@ -32,6 +34,7 @@ export default function App() {
                 <Route path="/admin" element={<AdminPanel />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            <ChatWidget />
         </BrowserRouter>
     );
 }
