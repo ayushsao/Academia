@@ -18,61 +18,84 @@ router.post('/process', toolsLimiter, async (req, res) => {
         const inceptionApiKey = process.env.INCEPTION_API_KEY || process.env.VITE_INCEPTION_API_KEY;
         if (inceptionApiKey) {
             try {
-                const inceptionResponse = await fetch('https://api.inceptionlabs.ai/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${inceptionApiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: 'mercury-2.5',
-                        reasoning_effort: 'low',
-                        messages: [{ role: 'user', content: prompt }]
-                    })
-                });
+                let inceptionResponse;
+                for (let attempt = 1; attempt <= 3; attempt++) {
+                    inceptionResponse = await fetch('https://api.inceptionlabs.ai/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${inceptionApiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: 'mercury-2.5',
+                            reasoning_effort: 'high',
+                            messages: [{ role: 'user', content: prompt }]
+                        })
+                    });
 
-                if (inceptionResponse.ok) {
+                    if (inceptionResponse.ok) break;
+                    if ((inceptionResponse.status === 503 || inceptionResponse.status === 429) && attempt < 3) {
+                        await new Promise(r => setTimeout(r, attempt * 1500));
+                        continue;
+                    }
+                }
+
+                if (inceptionResponse && inceptionResponse.ok) {
                     const inceptionData = await inceptionResponse.json();
                     if (inceptionData.choices && inceptionData.choices[0].message.content) {
                         return res.json({ result: inceptionData.choices[0].message.content });
                     }
+                } else if (inceptionResponse) {
+                    const errText = await inceptionResponse.text();
+                    console.error("Inception AI Error:", errText);
                 }
             } catch (err) {
-                console.error("Inception AI Error:", err.message);
+                console.error("Inception API Request Error:", err.message);
             }
         }
 
-        // 2. FALLBACK ENGINE: GOOGLE GEMINI
-        const geminiApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-        if (!geminiApiKey) {
-            return res.status(500).json({ error: 'Gemini API Key is not configured.' });
+        // 2. FALLBACK ENGINE: GROQ AI
+        const groqApiKey = process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY;
+        if (!groqApiKey) {
+            return res.status(500).json({ error: 'Alternative API Key is not configured.' });
         }
 
-        let response;
+        let groqResponse;
         for (let attempt = 1; attempt <= 3; attempt++) {
-            response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiApiKey}`, {
+            groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${groqApiKey}`
+                },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }]
+                    model: 'llama-3.1-70b-versatile',
+                    max_tokens: 6000,
+                    temperature: 0.7,
+                    messages: [{ role: 'user', content: prompt }]
                 })
             });
 
-            if (response.ok) break;
-
-            if ((response.status === 503 || response.status === 429) && attempt < 3) {
+            if (groqResponse.ok) break;
+            if ((groqResponse.status === 503 || groqResponse.status === 429) && attempt < 3) {
                 await new Promise(r => setTimeout(r, attempt * 1500));
                 continue;
             }
         }
 
-        if (!response || !response.ok) return res.status(500).json({ error: "Gemini Fallback Connection Failed." });
+        if (!groqResponse || !groqResponse.ok) {
+            if (groqResponse) {
+                const errorBody = await groqResponse.text();
+                console.error("Groq API Error:", errorBody);
+            }
+            return res.status(500).json({ error: "All AI Engines Failed." });
+        }
 
-        const data = await response.json();
-        if (data.candidates && data.candidates[0].content.parts[0].text) {
-            return res.json({ result: data.candidates[0].content.parts[0].text });
+        const data = await groqResponse.json();
+        if (data.choices && data.choices[0].message.content) {
+            return res.json({ result: data.choices[0].message.content });
         } else {
-            return res.status(500).json({ error: 'Gemini fallback response format invalid.' });
+            return res.status(500).json({ error: 'Fallback response format invalid.' });
         }
     } catch (err) {
         console.error('Tools error:', err);
