@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
-const API = ((import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api')).replace(/\/+$/, '');
+const API = String((import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api')).trim().replace(/\/+$/, '');
 
 // ─── API helpers ─────────────────────────────────────────────────────────────
 async function apiFetch(path: string, opts: RequestInit = {}, token?: string) {

@@ -299,8 +299,9 @@ export const DynamicPage: React.FC = () => {
                 }
             } else if (slug !== 'free-grammar-checker') {
 
-                const baseApi = (import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api');
-                const API_URL = baseApi.replace(/\/+$/, '');
+                const baseApi = String((import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api')).trim();
+                let API_URL = baseApi.replace(/\/+$/, '');
+                if (!API_URL.includes('localhost') && API_URL.startsWith('http://')) API_URL = API_URL.replace('http://', 'https://');
                 const res = await fetch(`${API_URL}/tools/process`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

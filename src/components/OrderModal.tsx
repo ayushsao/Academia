@@ -13,7 +13,7 @@ import { ServiceType, SubjectType } from '../types';
 import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
 
-const API = ((import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api')).replace(/\/+$/, '');
+const API = String((import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api')).trim().replace(/\/+$/, '');
 
 interface OrderModalProps {
   isOpen: boolean;
