@@ -57,6 +57,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ access_token: tokenResponse.access_token }),
+        credentials: 'include',
         signal: controller.signal,
       });
       clearTimeout(timeout);
@@ -100,6 +101,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
+        credentials: 'include',
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Authentication failed');

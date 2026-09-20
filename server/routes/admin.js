@@ -13,19 +13,26 @@ const router = Router();
 async function ensureDefaultAdmin() {
     const count = await Admin.countDocuments();
     if (count === 0) {
-        const hash = await bcrypt.hash('admin123', 10);
+        const hash = await bcrypt.hash('admin123', 12);
         await Admin.create({ username: 'admin', password: hash });
-        console.log('[Admin] Default admin created → username: admin | password: admin123');
+        console.log('[Admin] Default admin created → username: admin | password: [HIDDEN]');
     }
 }
 ensureDefaultAdmin().catch(console.error);
 
 // POST /api/admin/login
-router.post('/login', async (req, res) => {
+import { rateLimit } from 'express-rate-limit';
+import { validateInput, adminLoginSchema } from '../validation.js';
+
+const adminAuthLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5, // Strict limit for admin login
+    message: { error: 'Too many admin authentication attempts. Please try again later.' }
+});
+
+router.post('/login', adminAuthLimiter, validateInput(adminLoginSchema), async (req, res) => {
     try {
         const { username, password } = req.body;
-        if (!username || !password)
-            return res.status(400).json({ error: 'Username and password are required.' });
 
         const admin = await Admin.findOne({ username });
         if (!admin) return res.status(401).json({ error: 'Invalid credentials.' });
@@ -34,9 +41,10 @@ router.post('/login', async (req, res) => {
         if (!match) return res.status(401).json({ error: 'Invalid credentials.' });
 
         const token = jwt.sign({ id: admin._id, username: admin.username, role: 'admin' }, ADMIN_SECRET, { expiresIn: '12h' });
+        res.cookie('admin_token', token, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 12 * 60 * 60 * 1000 });
         res.json({ token, admin: { id: admin._id, username: admin.username } });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Admin login failed.' });
     }
 });
 
@@ -85,7 +93,7 @@ router.get('/stats', authenticateAdmin, async (req, res) => {
             unreadContacts, recentRevenue
         });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Internal server error.' });
     }
 });
 
@@ -120,7 +128,7 @@ router.get('/orders', authenticateAdmin, async (req, res) => {
 
         res.json({ orders: formatted, total, page: Number(page), limit: Number(limit) });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Internal server error.' });
     }
 });
 
@@ -145,7 +153,7 @@ router.patch('/orders/:id', authenticateAdmin, async (req, res) => {
             order: { ...order.toObject(), user_name: order.userId?.name, user_email: order.userId?.email }
         });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Internal server error.' });
     }
 });
 
@@ -156,7 +164,7 @@ router.delete('/orders/:id', authenticateAdmin, async (req, res) => {
         if (!order) return res.status(404).json({ error: 'Order not found.' });
         res.json({ message: 'Order deleted.' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Internal server error.' });
     }
 });
 
@@ -190,7 +198,7 @@ router.get('/users', authenticateAdmin, async (req, res) => {
 
         res.json({ users: enriched, total, page: Number(page), limit: Number(limit) });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Internal server error.' });
     }
 });
 
@@ -202,7 +210,7 @@ router.delete('/users/:id', authenticateAdmin, async (req, res) => {
         await Order.deleteMany({ userId: req.params.id });
         res.json({ message: 'User and their orders deleted.' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Internal server error.' });
     }
 });
 
@@ -212,7 +220,7 @@ router.get('/contacts', authenticateAdmin, async (req, res) => {
         const contacts = await Contact.find().sort({ createdAt: -1 });
         res.json({ contacts });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Internal server error.' });
     }
 });
 
@@ -222,7 +230,7 @@ router.patch('/contacts/:id', authenticateAdmin, async (req, res) => {
         await Contact.findByIdAndUpdate(req.params.id, { status: req.body.status });
         res.json({ message: 'Updated.' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Internal server error.' });
     }
 });
 
@@ -234,7 +242,7 @@ router.get('/managers', authenticateAdmin, async (req, res) => {
         const admins = await Admin.find().select('-password');
         res.json({ admins });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Internal server error.' });
     }
 });
 
@@ -251,7 +259,7 @@ router.post('/managers', authenticateAdmin, async (req, res) => {
 
         res.status(201).json({ admin: { id: admin._id, username: admin.username, email: admin.email }, plainPassword });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Internal server error.' });
     }
 });
 
@@ -262,7 +270,7 @@ router.delete('/managers/:id', authenticateAdmin, async (req, res) => {
         await Admin.findByIdAndDelete(req.params.id);
         res.json({ message: 'Admin deleted successfully.' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Internal server error.' });
     }
 });
 
@@ -275,7 +283,7 @@ router.post('/track', async (req, res) => {
         await PageView.create({ page: page || '/', userAgent, referrer });
         res.json({ ok: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Internal server error.' });
     }
 });
 
@@ -312,7 +320,7 @@ router.get('/analytics', authenticateAdmin, async (req, res) => {
 
         res.json({ totalViews, weeklyViews, topPages, dailyViews, topReferrers });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Internal server error.' });
     }
 });
 
@@ -332,7 +340,7 @@ router.get('/settings', authenticateAdmin, async (req, res) => {
         if (!obj.whatsapp_number) obj.whatsapp_number = '+447700900000';
         res.json(obj);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Internal server error.' });
     }
 });
 
@@ -349,7 +357,7 @@ router.patch('/settings', authenticateAdmin, async (req, res) => {
         }
         res.json({ message: 'Settings updated.' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Internal server error.' });
     }
 });
 

@@ -11,7 +11,8 @@ import {
   CheckCircle2,
   FileSearch,
   PenTool,
-  CheckSquare
+  CheckSquare,
+  Crown
 } from 'lucide-react';
 import { ServiceType, SubjectType } from '../types';
 
@@ -244,11 +245,10 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     <div className="absolute -bottom-1 right-2 bg-[#1d8eff] rounded-full p-0.5"><CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 text-white" /></div>
                   </div>
 
-                  <div className="absolute bottom-[10%] right-[5%] md:right-[12%] w-[75px] h-[75px] md:w-[85px] md:h-[85px] bg-white rounded-full p-1 shadow-lg z-20 flex items-center justify-center border border-gray-200">
-                    <div className="w-full h-full border-2 border-gray-500 rounded-full flex flex-col items-center justify-center text-gray-700 relative overflow-hidden">
-                      <span className="text-[6px] md:text-[7px] font-bold tracking-widest absolute top-2 curve-text text-center px-1">CRAFTED BY<br />HUMAN BRAIN</span>
-                      <span className="text-3xl md:text-4xl font-black mt-3 md:mt-2 opacity-30">AI</span>
-                      <div className="absolute w-full h-[2px] md:h-[3px] bg-[#d53867] transform -rotate-45"></div>
+                  <div className="absolute bottom-[10%] right-[5%] md:right-[12%] w-[75px] h-[75px] md:w-[85px] md:h-[85px] bg-[#000a1e] rounded-full p-1 shadow-2xl z-20 flex items-center justify-center border-4 border-[#fea520]/30 transform hover:scale-110 transition-transform">
+                    <div className="w-full h-full border-2 border-[#fea520] rounded-full flex flex-col items-center justify-center text-[#fea520] relative overflow-hidden shadow-[inset_0_0_15px_rgba(254,165,32,0.3)]">
+                      <Crown className="w-7 h-7 md:w-8 md:h-8 text-[#fea520] mb-0.5" fill="currentColor" strokeWidth={1} />
+                      <span className="text-[7px] md:text-[8px] font-black tracking-widest text-center leading-none">PREMIUM</span>
                     </div>
                   </div>
                 </div>

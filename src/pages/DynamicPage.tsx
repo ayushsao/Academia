@@ -298,99 +298,16 @@ export const DynamicPage: React.FC = () => {
                     setToolOutput('No grammar errors found. Your text looks great!');
                 }
             } else if (slug !== 'free-grammar-checker') {
-                const geminiApiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
-                if (!geminiApiKey) {
-                    throw new Error('Gemini API key is not configured in .env file.');
-                }
 
-                let prompt = '';
-                if (slug === 'free-paraphrasing-tool') {
-                    prompt = `Paraphrase the following text clearly and professionally while maintaining its original meaning. If the text is short, expand on it to provide deeply detailed context. Generate a comprehensive response:\n\n${toolInput}`;
-                } else if (slug === 'free-essay-typer' || slug === 'ai-essay-writer') {
-                    prompt = `Write a highly detailed, comprehensive academic essay on the following topic/prompt. Provide rich sections, an introduction, body paragraphs with academic examples, and a strong conclusion. **CRITICAL REQUIREMENT: The essay MUST be approximately 800 words long. Do not write a short summary, write a full 800+ word academic paper.**\n\n${toolInput}`;
-                } else if (slug === 'ai-humanizer') {
-                    prompt = `Rewrite the following text so that it sounds completely natural, human, and conversational, removing any robotic AI tone. Keep the output detailed and lengthy:\n\n${toolInput}`;
-                } else if (slug === 'free-dissertation-outline-generator' || slug === 'free-thesis-statement-generator') {
-                    prompt = `Generate a massively comprehensive academic outline and thesis statement. Topic: ${customForm.topic || toolInput || 'General Academic Topic'}. Argument: ${customForm.argument || 'N/A'}. Supporting points: ${customForm.point1 || ''}, ${customForm.point2 || ''}. Break it down into extreme detail, covering sub-topics, methodology, literature review section, and core arguments. The output should be extensive:\n`;
-                } else if (slug === 'referencing-tool') {
-                    prompt = `Create a properly formatted academic citation in multiple styles (APA, MLA, Chicago, Harvard). Source Details -> Type: ${customForm.type || 'Website'}, Author: ${customForm.authorFirst || ''} ${customForm.authorLast || ''}, Title: ${customForm.title || toolInput || 'Unknown Title'}, Date: ${customForm.date || ''}, Publisher/URL: ${customForm.url || ''}. Format it perfectly and provide all 4 styles clearly.`;
-                } else if (slug === 'free-plagiarism-checker') {
-                    prompt = `Act as an advanced academic plagiarism checker. Analyze the following text (or simulated document upload). Provide a highly detailed report showing an estimated 'Originality Score' (percentage), flag any sentences that appear highly generic or potentially lifted from web sources in a structured list, and summarize the authenticity of the text. Do NOT generate an essay. Just analyze the text originality thoroughly:\n\n${toolInput}`;
-                } else {
-                    prompt = `Process the following text comprehensively and provide a detailed structured response (aim for ~800 words):\n\n${toolInput}`;
-                }
-
-                let aiOutput = '';
-                try {
-                    // 1. PRIMARY ENGINE: INCEPTION LABS AI
-                    const inceptionApiKey = (import.meta as any).env.VITE_INCEPTION_API_KEY || 'sk_64856c8924e2ef2340749318732a331f';
-
-                    const inceptionResponse = await fetch('https://api.inceptionlabs.ai/v1/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${inceptionApiKey}`
-                        },
-                        body: JSON.stringify({
-                            model: 'mercury-2.5',
-                            reasoning_effort: 'low',
-                            messages: [{ role: 'user', content: prompt }]
-                        })
-                    });
-
-                    if (!inceptionResponse.ok) {
-                        const err = await inceptionResponse.text();
-                        throw new Error(`Inception API status ${inceptionResponse.status}: ${err.slice(0, 50)}`);
-                    }
-
-                    const inceptionData = await inceptionResponse.json();
-                    if (inceptionData.choices && inceptionData.choices[0].message.content) {
-                        aiOutput = inceptionData.choices[0].message.content;
-                    } else {
-                        throw new Error("Inception AI generated an empty response.");
-                    }
-
-                } catch (inceptionError) {
-                    // 2. FALLBACK ENGINE: GOOGLE GEMINI
-                    console.warn("Primary Inception AI failed (", inceptionError, ") -> Routing to Gemini Fallback...");
-
-                    let response;
-                    let errorData = '';
-
-                    for (let attempt = 1; attempt <= 3; attempt++) {
-                        response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiApiKey}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                contents: [{ parts: [{ text: prompt }] }]
-                            })
-                        });
-
-                        if (response.ok) break;
-
-                        errorData = await response.text();
-                        if ((response.status === 503 || response.status === 429) && attempt < 3) {
-                            await new Promise(r => setTimeout(r, attempt * 1500));
-                            continue;
-                        }
-
-                        if (!response.ok) {
-                            throw new Error(`Gemini status ${response.status}`);
-                        }
-                    }
-
-                    if (!response || !response.ok) throw new Error("Gemini Fallback Connection Failed");
-
-                    const data = await response.json();
-                    if (data.candidates && data.candidates[0].content.parts[0].text) {
-                        aiOutput = data.candidates[0].content.parts[0].text;
-                    } else {
-                        throw new Error('Gemini fallback response format invalid.');
-                    }
-                }
-
-                // Commit final output (either from Inception or Gemini)
-                setToolOutput(aiOutput);
+                const API_URL = (import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api');
+                const res = await fetch(`${API_URL}/tools/process`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: toolInput })
+                });
+                const resData = await res.json();
+                if (!res.ok) throw new Error(resData.error || 'AI Processing Failed.');
+                setToolOutput(resData.result);
 
             }
         } catch (error: any) {

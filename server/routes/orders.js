@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { Order } from '../db.js';
 import { authenticateUser } from '../middleware.js';
+import { validateInput, orderSchema } from '../validation.js';
 
 const router = Router();
 
@@ -14,40 +15,77 @@ router.get('/', authenticateUser, async (req, res) => {
         const orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 });
         res.json({ orders });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Failed to fetch orders.' });
     }
 });
 
+const getBaseRate = (srv) => {
+    switch (srv) {
+        case 'Take My Online Exam': return 50;
+        case 'Take My Online Class': return 45;
+        case 'Ghost Writer': return 30;
+        case 'MBA Essay Writing Service': return 28;
+        case 'Data Analysis & SPSS':
+        case 'Programming Assignment Help': return 25;
+        case 'Dissertation & Thesis':
+        case 'Dissertation Help':
+        case 'Thesis Help': return 22;
+        case 'Research Proposal Writing Service': return 20;
+        case 'Literature Review':
+        case 'Research Paper Writing':
+        case 'Assessment Help': return 18;
+        case 'Case Study Analysis':
+        case 'Term Paper Help': return 16;
+        case 'Academic Writing':
+        case 'Pay Someone To Do My Homework':
+        case 'Coursework Help': return 15;
+        case 'Essay Help': return 14;
+        case 'Homework Help':
+        case 'Powerpoint Presentation Services': return 12;
+        case 'Editing & Proofreading':
+        case 'Essay Editing Service': return 10;
+        default: return 15;
+    }
+};
+
 // POST /api/orders — place new order
-router.post('/', authenticateUser, async (req, res) => {
+router.post('/', authenticateUser, validateInput(orderSchema), async (req, res) => {
     try {
         const {
             service, subject, academicLevel, pages, deadline,
             topicTitle, instructions, files,
-            turnitinReport, topExpert, abstractPage, totalAmount
+            turnitinReport, topExpert, abstractPage
         } = req.body;
 
-        if (!service || !subject || !deadline || !topicTitle)
-            return res.status(400).json({ error: 'service, subject, deadline, and topicTitle are required.' });
+        const basePrice = getBaseRate(service);
+        const levelMultiplier = academicLevel === 'PhD / Doctoral' ? 1.35 : academicLevel === 'Master\'s' ? 1.15 : 1.0;
+        const calcPages = pages || 1;
+        const subtotal = Math.round(calcPages * basePrice * levelMultiplier);
+
+        let addOnsTotal = 0;
+        if (topExpert) addOnsTotal += 15;
+        if (abstractPage) addOnsTotal += 10;
+
+        const serverComputedAmount = subtotal + addOnsTotal;
 
         const order = await Order.create({
             orderId: genOrderId(),
             userId: req.user.id,
             service, subject,
             academicLevel: academicLevel || 'Undergraduate',
-            pages: pages || 1,
+            pages: calcPages,
             deadline, topicTitle,
             instructions: instructions || '',
             files: files || [],
             turnitinReport: Boolean(turnitinReport),
             topExpert: Boolean(topExpert),
             abstractPage: Boolean(abstractPage),
-            totalAmount: totalAmount || 0,
+            totalAmount: serverComputedAmount,
         });
 
         res.status(201).json({ order });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Failed to create order.' });
     }
 });
 
@@ -58,7 +96,7 @@ router.get('/:id', authenticateUser, async (req, res) => {
         if (!order) return res.status(404).json({ error: 'Order not found.' });
         res.json({ order });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Internal server error.' });
     }
 });
 

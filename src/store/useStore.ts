@@ -35,7 +35,7 @@ export const useStore = create<AppState>()(
       user: null,
       token: null,
       orders: [],
-      login: (email, name, token, id) => set({ user: { email, name, id }, token: token || null }),
+      login: (email, name, token, id) => set({ user: { email, name, id }, token: null }),
       logout: () => set({ user: null, token: null, orders: [] }),
       addOrder: (order) => set((state) => ({ orders: [order, ...state.orders] })),
       updateOrderStatus: (id, status) => set((state) => ({

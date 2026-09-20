@@ -10,7 +10,8 @@ export const Dashboard: React.FC = () => {
     const [orderModalOpen, setOrderModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'loyalty' | 'resources'>('orders');
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        try { await fetch('' + (import.meta as any).env.VITE_API_URL + '/auth/logout', { method:'POST', credentials:'include' }); } catch(e) {}
         logout();
         navigate('/');
     };
