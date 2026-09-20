@@ -922,7 +922,7 @@ const AdminsTab = ({ token }: { token: string }) => {
             // Send Email over EmailJS
             const EmailJSConfig = {
                 serviceId: (import.meta as any).env.VITE_EMAILJS_SERVICE_ID || 'service_089l13d',
-                templateId: (import.meta as any).env.VITE_EMAILJS_TEMPLATE_ID || 'template_omo2hya',
+                templateId: (import.meta as any).env.VITE_EMAILJS_ADMIN_TEMPLATE_ID || 'template_omo2hya',
                 publicKey: (import.meta as any).env.VITE_EMAILJS_PUBLIC_KEY || 'u1Lnz6UEF9jlDevVZ'
             };
             const emailjs = (await import('@emailjs/browser')).default;
@@ -930,15 +930,20 @@ const AdminsTab = ({ token }: { token: string }) => {
                 EmailJSConfig.serviceId as string,
                 EmailJSConfig.templateId as string,
                 {
-                    name: 'Co-Founder',
+                    to_name: 'Co-Founder',
+                    to_email: inviteEmail,
+                    admin_username: data.admin.username,
+                    admin_password: data.plainPassword,
+                    login_url: `${window.location.origin}/admin`,
+                    // Fallback attributes for older templates
                     email: inviteEmail,
-                    subject: 'Admin Access Granted for AssignmentMinds',
-                    message: `You have been granted Admin Access.\n\nPlease go to ${window.location.origin}/admin and login:\nUsername: ${data.admin.username} \nPassword: ${data.plainPassword}\n\nPlease keep these safe.`
+                    message: `You have been granted Admin Access.\n\nPlease go to ${window.location.origin}/admin and login:\nUsername: ${data.admin.username} \nPassword: ${data.plainPassword}\n\nPlease keep these safe.`,
+                    app_url: window.location.origin
                 },
                 EmailJSConfig.publicKey as string
             );
 
-            alert('Admin invited successfully! An email with credentials has been sent.');
+            alert(`Admin invited successfully!\n\nPlease save these credentials and share them with the new admin safely. An email was also attempted via EmailJS.\n\nUsername: ${data.admin.username}\nPassword: ${data.plainPassword}`);
             setInviteEmail('');
             load();
         } catch (e: any) { alert('Failed to invite admin: ' + e.message); }

@@ -129,6 +129,23 @@ app.use((err, req, res, _next) => {
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 const DEPLOY_VERSION = '2026-09-19-v3-https-fix';
+
+// ── Self-Ping to prevent sleep (Render Free Tier) ───────────────────────────
+const PING_INTERVAL = 14 * 60 * 1000; // 14 mins
+setInterval(() => {
+    const url = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+    if (url.startsWith('http')) {
+        const clientName = url.startsWith('https') ? 'https' : 'http';
+        import(clientName).then((client) => {
+            client.get(`${url}/api/health`, (res) => {
+                console.log(`[Self-Ping] Keep-alive ping sent to ${url}. Status: ${res.statusCode}`);
+            }).on('error', (err) => {
+                console.error(`[Self-Ping] Error: ${err.message}`);
+            });
+        });
+    }
+}, PING_INTERVAL);
+
 connectDB().then(() => {
     app.listen(PORT, () => {
         console.log(`\n🎓 AcademiaPro Backend  →  http://localhost:${PORT}`);

@@ -38,7 +38,8 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
           // Sending these as fallbacks just in case an older template is triggered
           to_name: userName || 'Student',
           to_email: userEmail,
-          message: "Welcome to AssignmentMinds! Your account has been created successfully."
+          message: "Welcome to AssignmentMinds! Your account has been created successfully.",
+          app_url: window.location.origin
         },
         env.VITE_EMAILJS_PUBLIC_KEY || 'u1Lnz6UEF9jlDevVZ'
       );
@@ -52,7 +53,8 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
     setApiError('');
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20000);
+      // Increased timeout to 60 seconds so Render free tier has time to spin up
+      const timeout = setTimeout(() => controller.abort(), 60000);
       const res = await fetch(`${API}/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -64,7 +66,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Google login failed');
 
-      // TEMPORARILY: Fire welcome email on ALL Google logins to prove EmailJS pipeline works
+      // Reverted: Fire welcome email using EmailJS on Google logins
       await sendWelcomeEmail(data.user.name, data.user.email);
 
       login(data.user.email, data.user.name, data.token, data.user.id);
@@ -107,7 +109,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
       if (!res.ok) throw new Error(data.error || 'Authentication failed');
       login(data.user.email, data.user.name, data.token, data.user.id);
 
-      // -- Send Welcome Email on Signup --
+      // Reverted: Send Welcome Email on manual Signup
       if (activeTab === 'signup') {
         await sendWelcomeEmail(data.user.name, data.user.email);
       }
