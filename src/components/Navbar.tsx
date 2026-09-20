@@ -35,8 +35,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
   const [selectedWriter, setSelectedWriter] = useState<WriterData | null>(null);
 
   const user = useStore(state => state.user);
+  const orders = useStore(state => state.orders);
   const logout = useStore(state => state.logout);
   const navigate = useNavigate();
+
+  const activeOrderCount = orders ? orders.filter(o => o.status !== 'Completed' && o.status !== 'Cancelled').length : 0;
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -249,9 +252,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
             </button>
           )}
 
-          <button onClick={onOpenOrder} className="text-[#2d2d2d] hover:text-[#fea520] transition-colors p-2 relative">
+          <button onClick={() => { if (user) { navigate('/dashboard'); } else { onOpenSignIn(); } }} className="text-[#2d2d2d] hover:text-[#fea520] transition-colors p-2 relative">
             <ShoppingCart className="w-6 h-6" />
-            <span className="absolute top-0 right-0 bg-[#fea520] text-[#000a1e] text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center -translate-y-1 translate-x-1 shadow-sm">0</span>
+            <span className="absolute top-0 right-0 bg-[#fea520] text-[#000a1e] text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center -translate-y-1 translate-x-1 shadow-sm">{activeOrderCount}</span>
           </button>
 
           <button onClick={onOpenDrawer} className="text-[#000a1e] hover:text-[#fea520] transition-colors p-2 ml-2">
@@ -261,9 +264,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
 
         {/* Mobile Menu Toggle */}
         <div className="flex lg:hidden items-center gap-3">
-          <button onClick={onOpenOrder} className="text-[#2d2d2d] p-1 relative">
+          <button onClick={() => { if (user) { navigate('/dashboard'); } else { onOpenSignIn(); } }} className="text-[#2d2d2d] p-1 relative">
             <ShoppingCart className="w-5 h-5" />
-            <span className="absolute top-0 right-0 bg-[#fea520] text-[#000a1e] text-[9px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center -translate-y-1 translate-x-1 shadow-sm">0</span>
+            <span className="absolute top-0 right-0 bg-[#fea520] text-[#000a1e] text-[9px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center -translate-y-1 translate-x-1 shadow-sm">{activeOrderCount}</span>
           </button>
           <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-[#000a1e] p-1">
             <Menu className="w-7 h-7" />
