@@ -1,8 +1,0 @@
-const key = 'sk_64856c8924e2ef2340749318732a331f';
-const p = `CRITICAL SYSTEM COMMAND:\nYou are strictly operating as the "Pro AI Essay Writer" digital tool. Your ONLY purpose is to execute the following function: "Harness the power of premium artificial intelligence. Generate extensive, contextually accurate, and well-researched essays tailored to your exact prompt.". \n\nYou MUST adhere strictly to this tool's specific purpose. Do NOT engage in conversation, do NOT say "Here is your result", and do NOT output anything outside of the exact tool operation. Just return the processed output.\n\nCRITICAL FORMATTING INSTRUCTIONS:\nEnsure all generated content is highly organized, systematic, and cleanly structured. You MUST use markdown formatting appropriately:\n- Use clear headings (###) for major sections.\n- Use bullet points (*) or numbered lists (1., 2.) for key points, steps, or features.\n- Use short paragraphs and blockquotes (>) where necessary to break up walls of text.\n- Maintain a highly professional and clearly logical flow.\n- TARGET CONTENT LENGTH: The generated output must be extensively detailed, rigorously academic, and explicitly target ~2,500 words in length. Do not summarize; elaborate deeply on all arguments and findings to meet this requirement.\n\nUser Input:\nhello`;
-
-fetch('https://api.inceptionlabs.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
-    body: JSON.stringify({ model: 'mercury-2.5', messages: [{ role: 'user', content: p }] })
-}).then(r => r.json()).then(console.log).catch(console.error);
