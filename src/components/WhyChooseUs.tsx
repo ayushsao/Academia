@@ -87,7 +87,7 @@ export const WhyChooseUs: React.FC = () => {
 
                 {/* Yellow Top CTA */}
                 <div className="flex justify-center mb-10 text-center">
-                    <button className="bg-[#ffcb05] text-[#2d2d2d] font-bold text-[15px] px-8 py-2.5 shadow-sm transition-colors cursor-pointer rounded-sm hover:bg-[#eebc04]">
+                    <button className="bg-[#ffcb05] text-[#2d2d2d] font-bold text-[15px] px-8 py-2.5 shadow-sm transition-colors cursor-pointer rounded-[12px] hover:bg-[#eebc04]">
                         Get your Assignments Done!
                     </button>
                 </div>

@@ -118,7 +118,7 @@ const AdminLogin = ({ onLogin }: { onLogin: (t: string) => void }) => {
                         />
                     </div>
                     <button type="submit" disabled={loading}
-                        className="w-full bg-[#fea520] hover:bg-[#e09510] disabled:opacity-60 text-[#000a1e] font-extrabold py-3.5 rounded-xl transition-all shadow-lg hover:shadow-[0_0_20px_rgba(254,165,32,0.4)] flex items-center justify-center gap-2">
+                        className="w-full bg-[#fea520] hover:bg-[#e09510] disabled:opacity-60 text-[#000a1e] font-extrabold py-3.5 rounded-[12px] transition-all shadow-lg hover:shadow-[0_0_20px_rgba(254,165,32,0.4)] flex items-center justify-center gap-2">
                         {loading ? <><div className="w-4 h-4 border-2 border-[#000a1e]/30 border-t-[#000a1e] rounded-full animate-spin" />Authenticating...</> : 'Login to Dashboard'}
                     </button>
                     <p className="text-center text-white/20 text-xs pt-2">Default: admin / admin123</p>
@@ -204,7 +204,7 @@ const OrderDetailDrawer = ({
                             </div>
                             {order.user_email && (
                                 <a href={`mailto:${order.user_email}?subject=Re: Your Order ${order.orderId}`}
-                                    className="ml-auto bg-[#000a1e] text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-[#002147] transition-colors flex items-center gap-1.5">
+                                    className="ml-auto bg-[#000a1e] text-white text-xs font-bold px-3 py-1.5 rounded-[12px] hover:bg-[#002147] transition-colors flex items-center gap-1.5">
                                     <Mail className="w-3.5 h-3.5" /> Email
                                 </a>
                             )}
@@ -318,7 +318,7 @@ const OrderDetailDrawer = ({
                 {/* Sticky Save Footer */}
                 <div className="flex-shrink-0 bg-white border-t border-gray-100 px-6 py-4">
                     <button onClick={handleSave} disabled={saving}
-                        className="w-full bg-[#000a1e] hover:bg-[#002147] text-white px-6 py-3.5 rounded-xl font-extrabold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-60 shadow-lg">
+                        className="w-full bg-[#000a1e] hover:bg-[#002147] text-white px-6 py-3.5 rounded-[12px] font-extrabold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-60 shadow-lg">
                         {saving
                             ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving Changes...</>
                             : saved ? <><Check className="w-4 h-4 text-emerald-400" />Changes Saved!</>
@@ -509,7 +509,7 @@ const UsersTab = ({ token }: { token: string }) => {
                         onChange={e => { setSearch(e.target.value); setPage(1); }}
                         className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#002147]/20 shadow-sm" />
                 </div>
-                <button onClick={load} className="bg-white border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-50 shadow-sm"><RefreshCw className="w-4 h-4 text-gray-500" /></button>
+                <button onClick={load} className="bg-white border border-gray-200 rounded-[12px] px-4 py-3 hover:bg-gray-50 shadow-sm"><RefreshCw className="w-4 h-4 text-gray-500" /></button>
             </div>
 
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -589,7 +589,7 @@ const ContactsTab = ({ token }: { token: string }) => {
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <h3 className="font-bold text-[#000a1e]">Contact Submissions <span className="text-gray-400 font-normal text-sm">({contacts.length} total)</span></h3>
-                <button onClick={load} className="bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm hover:bg-gray-50 shadow-sm flex items-center gap-2">
+                <button onClick={load} className="bg-white border border-gray-200 rounded-[12px] px-4 py-2.5 text-sm hover:bg-gray-50 shadow-sm flex items-center gap-2">
                     <RefreshCw className="w-3.5 h-3.5" /> Refresh
                 </button>
             </div>
@@ -624,7 +624,7 @@ const ContactsTab = ({ token }: { token: string }) => {
                                 <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 rounded-xl p-4">{c.message}</p>
                                 <div className="flex gap-3">
                                     <a href={`mailto:${c.email}?subject=Re: ${c.subject}`}
-                                        className="bg-[#000a1e] text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-[#002147] transition-colors">
+                                        className="bg-[#000a1e] text-white px-5 py-2.5 rounded-[12px] text-sm font-bold flex items-center gap-2 hover:bg-[#002147] transition-colors">
                                         <Mail className="w-4 h-4" /> Reply via Email
                                     </a>
                                     {c.status === 'unread' && (
@@ -886,7 +886,7 @@ const SettingsTab = ({ token }: { token: string }) => {
             </div>
 
             <button onClick={handleSave} disabled={saving}
-                className="bg-[#000a1e] hover:bg-[#002147] text-white px-8 py-3.5 rounded-xl font-extrabold text-sm flex items-center gap-2 transition-all disabled:opacity-60 shadow-lg">
+                className="bg-[#000a1e] hover:bg-[#002147] text-white px-8 py-3.5 rounded-[12px] font-extrabold text-sm flex items-center gap-2 transition-all disabled:opacity-60 shadow-lg">
                 {saving ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</>
                     : saved ? <><Check className="w-4 h-4 text-emerald-400" />Saved!</>
                         : <><Save className="w-4 h-4" />Save Settings</>}
@@ -969,7 +969,7 @@ const AdminsTab = ({ token }: { token: string }) => {
                     <input type="email" placeholder="Co-founder's email address..." value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} required
                         className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-[#fea520]" />
                     <button type="submit" disabled={inviting}
-                        className="bg-[#000a1e] hover:bg-[#002147] text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all disabled:opacity-60 flex items-center gap-2">
+                        className="bg-[#000a1e] hover:bg-[#002147] text-white px-6 py-2.5 rounded-[12px] font-bold text-sm transition-all disabled:opacity-60 flex items-center gap-2">
                         {inviting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Mail className="w-4 h-4" />} Invite
                     </button>
                 </form>
@@ -1067,7 +1067,7 @@ export const AdminPanel: React.FC = () => {
 
                 <div className="px-4 py-5 border-t border-white/5">
                     <button onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-white/40 hover:text-white hover:bg-white/5 transition-all">
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-[12px] text-sm font-semibold text-white/40 hover:text-white hover:bg-white/5 transition-all">
                         <LogOut className="w-5 h-5" /> Logout
                     </button>
                 </div>
