@@ -71,7 +71,7 @@ router.post('/process', toolsLimiter, async (req, res) => {
                             'Authorization': `Bearer ${groqApiKey}`
                         },
                         body: JSON.stringify({
-                            model: 'llama-3.1-70b-versatile',
+                            model: 'llama-3.3-70b-versatile',
                             max_tokens: 6000,
                             temperature: 0.7,
                             messages: [{ role: 'user', content: prompt }]
