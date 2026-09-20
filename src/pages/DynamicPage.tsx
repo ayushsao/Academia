@@ -300,12 +300,34 @@ export const DynamicPage: React.FC = () => {
             } else if (slug !== 'free-grammar-checker') {
 
                 const baseApi = String((import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api')).trim();
+                let finalPrompt = toolInput;
+                if (!finalPrompt.trim() && Object.keys(customForm).length > 0) {
+                    finalPrompt = Object.entries(customForm)
+                        .filter(([k, v]) => typeof v === 'string' && v.trim())
+                        .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`)
+                        .join('\n');
+                } else if (Object.keys(customForm).length > 0) {
+                    finalPrompt += '\n\n' + Object.entries(customForm)
+                        .filter(([k, v]) => typeof v === 'string' && v.trim())
+                        .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`)
+                        .join('\n');
+                }
+
+                let lengthInstruction = '';
+                if (slug && (slug.includes('thesis') || slug.includes('dissertation') || slug.includes('essay-writing') || slug.includes('research') || slug.includes('case-study') || slug.includes('coursework')) && !slug.includes('outline') && !slug.includes('statement')) {
+                    lengthInstruction = '\n- TARGET CONTENT LENGTH: The generated output must be extensively detailed, rigorously academic, and explicitly target ~2,500 words in length. Do not summarize; elaborate deeply on all arguments and findings to meet this requirement.';
+                }
+
+                if (slug && content.title) {
+                    finalPrompt = `CRITICAL SYSTEM COMMAND:\nYou are strictly operating as the "${content.title}" digital tool. Your ONLY purpose is to execute the following function: "${content.desc}". \n\nYou MUST adhere strictly to this tool's specific purpose. Do NOT engage in conversation, do NOT say "Here is your result", and do NOT output anything outside of the exact tool operation. Just return the processed output.\n\nCRITICAL FORMATTING INSTRUCTIONS:\nEnsure all generated content is highly organized, systematic, and cleanly structured. You MUST use markdown formatting appropriately:\n- Use clear headings (###) for major sections.\n- Use bullet points (*) or numbered lists (1., 2.) for key points, steps, or features.\n- Use short paragraphs and blockquotes (>) where necessary to break up walls of text.\n- Maintain a highly professional and clearly logical flow.${lengthInstruction}\n\nUser Input:\n${finalPrompt}`;
+                }
+
                 let API_URL = baseApi.replace(/\/+$/, '');
                 if (!API_URL.includes('localhost') && API_URL.startsWith('http://')) API_URL = API_URL.replace('http://', 'https://');
                 const res = await fetch(`${API_URL}/tools/process`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: toolInput })
+                    body: JSON.stringify({ prompt: finalPrompt })
                 });
                 const resData = await res.json();
                 if (!res.ok) throw new Error(resData.error || 'AI Processing Failed.');
