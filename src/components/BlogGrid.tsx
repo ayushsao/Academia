@@ -82,7 +82,7 @@ export const BlogGrid: React.FC = () => {
                                 </p>
 
                                 <div className="mt-auto flex justify-end pb-2">
-                                    <button className="text-[#fea520] font-semibold text-[13px] flex items-center gap-1.5 hover:underline">
+                                    <button onClick={() => window.location.href = '#'} className="text-[#fea520] font-semibold text-[13px] flex items-center gap-1.5 hover:underline">
                                         Read More <ArrowUpRight className="w-4 h-4" />
                                     </button>
                                 </div>
@@ -99,6 +99,7 @@ export const BlogGrid: React.FC = () => {
                                 whileInView={{ opacity: 1, scale: 1 }}
                                 viewport={{ once: true }}
                                 transition={{ delay: 0.1 * idx }}
+                                onClick={() => window.location.href = '#'}
                                 className="bg-white border border-gray-100 rounded-lg shadow-[0_4px_16px_rgb(0,0,0,0.05)] p-3 flex flex-col cursor-pointer group hover:shadow-md transition-all"
                             >
                                 <div className="w-full h-[140px] md:h-[160px] overflow-hidden rounded-md mb-3 relative border border-gray-100">
@@ -121,7 +122,7 @@ export const BlogGrid: React.FC = () => {
 
                 {/* Bottom View More Button */}
                 <div className="mt-14 flex justify-center">
-                    <button className="bg-[#ffcb05] hover:bg-[#eebc04] text-[#2d2d2d] font-bold text-[14.5px] px-8 py-2.5 rounded shadow-sm transition-colors cursor-pointer">
+                    <button onClick={() => window.location.href = '#'} className="bg-[#ffcb05] hover:bg-[#eebc04] text-[#2d2d2d] font-bold text-[14.5px] px-8 py-2.5 rounded shadow-sm transition-colors cursor-pointer">
                         View More Blogs
                     </button>
                 </div>

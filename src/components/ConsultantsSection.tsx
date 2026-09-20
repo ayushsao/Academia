@@ -162,7 +162,7 @@ export const ConsultantsSection: React.FC<ConsultantsSectionProps> = ({ onConsul
 
                   {/* Action Buttons */}
                   <div className="flex gap-2 mt-auto">
-                    <button className="flex-1 border border-gray-200 text-[#444] text-[13px] font-semibold py-2 rounded-md hover:bg-gray-50 transition-colors">
+                    <button onClick={() => onConsult({ id: writer.id.toString(), name: writer.name, field: 'Academic Writer', university: '', rating: writer.rating, ordersCompleted: parseInt(writer.orders), bio: writer.bio, degrees: [], status: 'Available', image: writer.image })} className="flex-1 border border-gray-200 text-[#444] text-[13px] font-semibold py-2 rounded-md hover:bg-gray-50 transition-colors">
                       About Writer
                     </button>
                     <button onClick={() => onConsult({ id: writer.id.toString(), name: writer.name, field: 'Academic Writer', university: '', rating: writer.rating, ordersCompleted: parseInt(writer.orders), bio: writer.bio, degrees: [], status: 'Available', image: writer.image })} className="flex-1 bg-[#ffcb05] hover:bg-[#ffb600] text-[#000a1e] text-[13px] font-bold py-2 rounded-md transition-colors">

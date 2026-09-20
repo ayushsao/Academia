@@ -108,7 +108,7 @@ export const AcademicToolsSection: React.FC<AcademicToolsSectionProps> = ({ onOp
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3 }}
                 className="bg-white rounded-[15px] border border-gray-100 shadow-[0_4px_25px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] transition-shadow overflow-hidden flex flex-col cursor-pointer"
-                onClick={() => onOpenTool('essay-grader')}
+                onClick={() => onOpenTool(tool.id as ToolType)}
               >
                 {/* Top Image Section */}
                 <div className="w-full h-48 md:h-[200px] overflow-hidden p-3 pb-0">

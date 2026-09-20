@@ -190,7 +190,7 @@ export default function App() {
         </ScrollReveal>
 
         <ScrollReveal>
-          <SamplesShowcase />
+          <SamplesShowcase onOpenAction={() => setSignInModalOpen(true)} />
         </ScrollReveal>
 
         <ScrollReveal>

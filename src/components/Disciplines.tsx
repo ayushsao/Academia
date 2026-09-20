@@ -89,7 +89,12 @@ const CustomIcons = {
   )
 };
 
-export const Disciplines: React.FC = () => {
+interface DisciplinesProps {
+  onSelectDiscipline: (discipline: any) => void;
+  onViewAll?: () => void;
+}
+
+export const Disciplines: React.FC<DisciplinesProps> = ({ onSelectDiscipline }) => {
 
   const col1Modules = [
     { title: 'Operation Management', icon: CustomIcons.Ops, iconColor: 'text-[#f5a623]', bgColor: 'bg-[#fff7e6]' },
@@ -122,6 +127,7 @@ export const Disciplines: React.FC = () => {
             return (
               <div
                 key={i}
+                onClick={() => onSelectDiscipline({ name: mod.title, code: '', icon: '', description: '' })}
                 className="bg-white border border-gray-100 rounded-[14px] p-4 md:p-5 shadow-[0_2px_12px_rgb(0,0,0,0.03)] hover:shadow-[0_6px_20px_rgb(0,0,0,0.08)] transition-all flex items-center gap-4 cursor-pointer min-h-[90px] w-full group"
               >
                 <div className={`w-[54px] h-[54px] rounded-[16px] flex items-center justify-center shrink-0 ${mod.bgColor} group-hover:scale-110 transition-transform duration-300`}>

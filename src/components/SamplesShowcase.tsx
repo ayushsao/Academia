@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronLeft, Paperclip } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export const SamplesShowcase: React.FC = () => {
+interface SamplesShowcaseProps {
+    onOpenAction?: () => void;
+}
+
+export const SamplesShowcase: React.FC<SamplesShowcaseProps> = ({ onOpenAction }) => {
     const [startIndex, setStartIndex] = useState(0);
     const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
@@ -130,7 +134,7 @@ export const SamplesShowcase: React.FC = () => {
 
                                     {/* Action Button & Pen Graphic */}
                                     <div className="relative flex justify-center mt-auto pb-2">
-                                        <button className="bg-[#ffe0e6] font-bold text-[#444] text-[12px] px-4 py-2 rounded-md hover:bg-[#ffcddb] transition-colors shadow-sm">
+                                        <button onClick={onOpenAction} className="bg-[#ffe0e6] font-bold text-[#444] text-[12px] px-4 py-2 rounded-md hover:bg-[#ffcddb] transition-colors shadow-sm">
                                             View Full Sample
                                         </button>
 
@@ -163,7 +167,7 @@ export const SamplesShowcase: React.FC = () => {
 
                 {/* Bottom View All Button */}
                 <div className="flex justify-center mt-8">
-                    <button className="bg-[#ffcb05] hover:bg-[#eebc04] text-[#2d2d2d] font-bold text-[15px] px-8 py-3 rounded-[4px] shadow-sm transition-colors cursor-pointer">
+                    <button onClick={onOpenAction} className="bg-[#ffcb05] hover:bg-[#eebc04] text-[#2d2d2d] font-bold text-[15px] px-8 py-3 rounded-[4px] shadow-sm transition-colors cursor-pointer">
                         View Free Samples Here!
                     </button>
                 </div>

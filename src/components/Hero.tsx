@@ -169,7 +169,10 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                   />
 
                   {/* Play Button Over Image */}
-                  <div className="absolute top-[40%] left-[25%] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer hover:scale-110 transition-transform">
+                  <div
+                    onClick={onScrollToTimeline}
+                    className="absolute top-[40%] left-[25%] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer hover:scale-110 transition-transform"
+                  >
                     <div className="w-14 h-14 rounded-full border-2 border-white/60 bg-black/20 backdrop-blur-sm flex items-center justify-center">
                       <PlayCircle className="w-8 h-8 text-white ml-1 opacity-90" />
                     </div>
