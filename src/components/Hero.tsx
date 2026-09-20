@@ -133,7 +133,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
   return (
     <section ref={containerRef} className="relative pt-12 md:pt-16 pb-24 overflow-hidden bg-white">
       {/* Faint Background Letters matching screenshot */}
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] text-[180px] font-black leading-none overflow-hidden flex flex-col justify-between whitespace-nowrap text-[#d53867]">
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] text-[180px] font-black leading-none overflow-hidden flex flex-col justify-between whitespace-nowrap text-[#fea520]">
         <div className="flex justify-between w-full"><span>FINANCIAL</span><span>MATHS</span></div>
         <div className="flex justify-between w-full"><span>ACCOUNTING</span><span>MEDICAL</span></div>
         <div className="flex justify-between w-full"><span>ASSIGNMENT</span><span>HISTORY</span></div>
@@ -185,10 +185,10 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 </div>
 
                 {/* Scored A+ Grades Floating Box */}
-                <div className="absolute bottom-10 md:bottom-16 right-4 md:right-8 bg-[#d53867] text-white p-4 md:p-5 outline outline-4 outline-white shadow-xl z-30 transform hover:scale-105 transition-transform overflow-hidden min-w-[240px]">
+                <div className="absolute bottom-10 md:bottom-16 right-4 md:right-8 bg-[#fea520] text-white p-4 md:p-5 outline outline-4 outline-white shadow-xl z-30 transform hover:scale-105 transition-transform overflow-hidden min-w-[240px]">
                   <span className="text-lg md:text-xl font-medium tracking-wide">Scored A+ Grades with</span>
                   <div className="bg-white px-3 py-2 mt-2 inline-flex items-center gap-0 shadow-inner w-fit pr-4 group rounded-sm">
-                    <div className="w-5 h-5 bg-[#d53867] text-white flex items-center justify-center text-[11px] font-black transform -rotate-12 italic z-10 transition-transform group-hover:rotate-0 shadow-sm">A</div>
+                    <div className="w-5 h-5 bg-[#fea520] text-white flex items-center justify-center text-[11px] font-black transform -rotate-12 italic z-10 transition-transform group-hover:rotate-0 shadow-sm">A</div>
                     <div className="flex flex-col z-0 -ml-px">
                       <span className="text-[#222] font-black text-sm uppercase tracking-tighter leading-none">ssignment<span className="text-[#fea520]">Minds</span></span>
                       <span className="text-[7px] text-gray-500 font-bold uppercase tracking-widest leading-none mt-[1px] pl-1">You Express, We Write</span>
@@ -210,16 +210,16 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
               >
                 <div className="text-center w-full z-20 shrink-0">
                   <h1 className="text-[28px] md:text-[36px] lg:text-[44px] font-medium text-[#333] leading-[1.1] tracking-tight max-w-[95%] mx-auto">
-                    Guaranteed <strong className="text-[#d53867] font-black">NO-AI</strong> Work, with <strong className="font-black">Free<br />Plagiarism</strong> Report
+                    Guaranteed <strong className="text-[#fea520] font-black">NO-AI</strong> Work, with <strong className="font-black">Free<br />Plagiarism</strong> Report
                   </h1>
                 </div>
 
                 {/* Image and Badges Area */}
                 <div className="relative flex-1 w-full flex items-center justify-center mt-4 mb-4">
                   {/* Radial Pink aura */}
-                  <div className="absolute w-[300px] h-[300px] bg-[#d53867]/10 rounded-full blur-[40px] pointer-events-none"></div>
-                  <div className="absolute w-[200px] h-[200px] bg-[#d53867]/15 rounded-full blur-[30px] pointer-events-none"></div>
-                  <div className="absolute w-[280px] h-[280px] rounded-full border border-[#d53867]/30 pointer-events-none"></div>
+                  <div className="absolute w-[300px] h-[300px] bg-[#fea520]/10 rounded-full blur-[40px] pointer-events-none"></div>
+                  <div className="absolute w-[200px] h-[200px] bg-[#fea520]/15 rounded-full blur-[30px] pointer-events-none"></div>
+                  <div className="absolute w-[280px] h-[280px] rounded-full border border-[#fea520]/30 pointer-events-none"></div>
 
                   <img
                     src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=800"
@@ -314,7 +314,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
               <button
                 key={idx}
                 onClick={() => setCurrentSlide(idx)}
-                className={`transition-all rounded-full ${currentSlide === idx ? 'w-6 bg-[#d53867]' : 'w-2.5 bg-[#d53867]/50 hover:bg-[#d53867]/80'} h-2.5`}
+                className={`transition-all rounded-full ${currentSlide === idx ? 'w-6 bg-[#fea520]' : 'w-2.5 bg-[#fea520]/50 hover:bg-[#fea520]/80'} h-2.5`}
                 aria-label={`Go to slide ${idx + 1}`}
               />
             ))}
@@ -330,7 +330,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
             className="bg-white rounded-[1.5rem] shadow-[0_15px_40px_rgba(0,0,0,0.06)] p-6 sm:p-8 border border-white/80 w-full max-w-md relative transition-shadow hover:shadow-lg overflow-hidden"
           >
             {/* 51% OFF Ribbon (From Pic 2) */}
-            <div className="absolute top-5 -right-12 bg-[#d53867] text-white py-1 px-12 transform rotate-45 flex flex-col items-center justify-center shadow-md">
+            <div className="absolute top-5 -right-12 bg-[#fea520] text-white py-1 px-12 transform rotate-45 flex flex-col items-center justify-center shadow-md">
               <span className="text-[9px] font-bold tracking-widest uppercase opacity-90 leading-none mb-0.5">Up to</span>
               <span className="text-sm font-black leading-none">51% OFF</span>
             </div>

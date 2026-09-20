@@ -75,14 +75,14 @@ export const FaqSection: React.FC = () => {
                         return (
                             <div
                                 key={idx}
-                                className={`bg-white border rounded-[3px] overflow-hidden transition-all duration-300 ${isOpen ? 'border-[#d53867] shadow-sm' : 'border-gray-200/80 shadow-sm'}`}
+                                className={`bg-white border rounded-[3px] overflow-hidden transition-all duration-300 ${isOpen ? 'border-[#fea520] shadow-sm' : 'border-gray-200/80 shadow-sm'}`}
                             >
                                 <button
                                     onClick={() => setOpenIdx(isOpen ? null : idx)}
                                     className="w-full px-5 py-3.5 flex items-center justify-between bg-white text-left text-[#444] font-medium text-[14px] md:text-[14.5px] hover:text-[#2d2d2d] transition-colors"
                                 >
                                     {faq.question}
-                                    <ChevronDown className={`w-4 h-4 ml-4 shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180 text-[#d53867]' : 'text-gray-500'}`} strokeWidth={2} />
+                                    <ChevronDown className={`w-4 h-4 ml-4 shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180 text-[#fea520]' : 'text-gray-500'}`} strokeWidth={2} />
                                 </button>
                                 <AnimatePresence>
                                     {isOpen && (

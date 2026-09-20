@@ -39,7 +39,7 @@ export const BlogGrid: React.FC = () => {
                         By High Quality Assignment experts on university, academics, admission, assignment, <br className="hidden md:block" />
                         <span className="relative inline-block mt-1">
                             writing skills & tips, and many more
-                            <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-[140px] h-[2px] bg-[#d53867]"></span>
+                            <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-[140px] h-[2px] bg-[#fea520]"></span>
                         </span>
                     </p>
                 </div>
@@ -74,7 +74,7 @@ export const BlogGrid: React.FC = () => {
                                 <div className="text-[12px] text-gray-500 font-semibold mb-3">
                                     17 Aug 2026 &nbsp;&bull;&nbsp; 23 minutes read &nbsp;&bull;&nbsp; 35629 Views
                                 </div>
-                                <h3 className="text-xl md:text-[22px] font-bold text-[#2d2d2d] mb-4 leading-snug group-hover:text-[#d53867] transition-colors">
+                                <h3 className="text-xl md:text-[22px] font-bold text-[#2d2d2d] mb-4 leading-snug group-hover:text-[#fea520] transition-colors">
                                     175+ Trending ABM Research Topics For Students
                                 </h3>
                                 <p className="text-[#555] text-[13.5px] leading-relaxed mb-6">
@@ -82,7 +82,7 @@ export const BlogGrid: React.FC = () => {
                                 </p>
 
                                 <div className="mt-auto flex justify-end pb-2">
-                                    <button className="text-[#d53867] font-semibold text-[13px] flex items-center gap-1.5 hover:underline">
+                                    <button className="text-[#fea520] font-semibold text-[13px] flex items-center gap-1.5 hover:underline">
                                         Read More <ArrowUpRight className="w-4 h-4" />
                                     </button>
                                 </div>
@@ -109,7 +109,7 @@ export const BlogGrid: React.FC = () => {
                                     />
                                 </div>
                                 <div className="px-2 pb-2">
-                                    <h4 className="font-bold text-[#2d2d2d] text-[14px] leading-tight line-clamp-3 group-hover:text-[#d53867] transition-colors">
+                                    <h4 className="font-bold text-[#2d2d2d] text-[14px] leading-tight line-clamp-3 group-hover:text-[#fea520] transition-colors">
                                         {card.title}
                                     </h4>
                                 </div>

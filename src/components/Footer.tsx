@@ -9,7 +9,7 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = () => {
   return (
-    <footer className="w-full bg-[#2a2a2a] text-[#c9c9c9] relative pt-16 pb-8 border-t-[8px] border-[#d53867]">
+    <footer className="w-full bg-[#2a2a2a] text-[#c9c9c9] relative pt-16 pb-8 border-t-[8px] border-[#fea520]">
 
       <div className="max-w-[1360px] mx-auto px-6 md:px-12">
 

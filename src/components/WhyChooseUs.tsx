@@ -6,12 +6,12 @@ const Illustrations = {
     Pricing: () => (
         <svg viewBox="0 0 200 120" className="w-[180px] h-[120px] mx-auto text-[#2d2d2d]" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="50" y="70" width="100" height="20" rx="3" fill="#e8f3ee" />
-            <rect x="40" y="90" width="120" height="20" rx="3" fill="#d53867" />
+            <rect x="40" y="90" width="120" height="20" rx="3" fill="#fea520" />
             <path d="M100 40 l40 -20 l-40 -20 l-40 20 z" fill="#1e5eb8" />
             <rect x="80" y="40" width="40" height="20" fill="#1e5eb8" />
             <circle cx="100" cy="20" r="12" fill="#ffcb05" />
             <path d="M100 12v16M92 20h16" stroke="#c09600" strokeWidth="2" />
-            <path d="M60 100 Q 140 100 140 30" stroke="#d53867" strokeWidth="2" strokeDasharray="4 4" fill="none" />
+            <path d="M60 100 Q 140 100 140 30" stroke="#fea520" strokeWidth="2" strokeDasharray="4 4" fill="none" />
         </svg>
     ),
     Timely: () => (
@@ -28,8 +28,8 @@ const Illustrations = {
         <svg viewBox="0 0 200 120" className="w-[180px] h-[120px] mx-auto text-[#2d2d2d]" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="60" y="60" width="80" height="40" rx="5" fill="#1e5eb8" />
             <circle cx="100" cy="40" r="25" fill="#ffcb05" />
-            <path d="M75 40 A25 25 0 0 1 125 40" stroke="#d53867" strokeWidth="4" />
-            <circle cx="125" cy="40" r="4" fill="#d53867" />
+            <path d="M75 40 A25 25 0 0 1 125 40" stroke="#fea520" strokeWidth="4" />
+            <circle cx="125" cy="40" r="4" fill="#fea520" />
             <rect x="75" y="65" width="50" height="15" rx="2" fill="#fff" />
             <circle cx="40" cy="30" r="15" fill="#e8f3ee" />
             <circle cx="160" cy="30" r="15" fill="#e8f3ee" />
@@ -99,7 +99,7 @@ export const WhyChooseUs: React.FC = () => {
                     </h2>
 
                     <div className="max-w-4xl mx-auto mb-2 text-[#666] text-[13px] md:text-[14px] leading-relaxed relative">
-                        Being the leading assignment writing service provider in the UK, Instant Assignment Help understands the problems that students go through every day during their academic careers. It's not only preparing assignments but also studying for examinations, doing part-time jobs, taking part in extra-curricular activities and a k... <span className="text-[#d53867] cursor-pointer hover:underline">Know more</span>
+                        Being the leading assignment writing service provider in the UK, Instant Assignment Help understands the problems that students go through every day during their academic careers. It's not only preparing assignments but also studying for examinations, doing part-time jobs, taking part in extra-curricular activities and a k... <span className="text-[#fea520] cursor-pointer hover:underline">Know more</span>
                     </div>
                 </div>
 
@@ -116,7 +116,7 @@ export const WhyChooseUs: React.FC = () => {
                     {/* Left Chevron */}
                     <button
                         onClick={prevSlide}
-                        className="hidden md:flex text-gray-500 hover:text-[#d53867] transition-colors p-2"
+                        className="hidden md:flex text-gray-500 hover:text-[#fea520] transition-colors p-2"
                     >
                         <ChevronLeft className="w-8 h-8 font-light" strokeWidth={1} />
                     </button>
@@ -134,7 +134,7 @@ export const WhyChooseUs: React.FC = () => {
                                     animate={{ opacity: 1, scale: isCenter ? 1.05 : 1 }}
                                     transition={{ duration: 0.3 }}
                                     className={`bg-white rounded-[10px] sm:min-h-[300px] flex flex-col pt-6 pb-8 px-6 shadow-sm transition-all duration-300 mx-auto w-full max-w-[360px]
-                                        ${isCenter ? 'border-[1.5px] border-[#d53867] z-20 shadow-md transform scale-105' : 'border border-gray-100 opacity-90 z-10'}
+                                        ${isCenter ? 'border-[1.5px] border-[#fea520] z-20 shadow-md transform scale-105' : 'border border-gray-100 opacity-90 z-10'}
                                     `}
                                 >
                                     {/* Illustration Area */}
@@ -143,7 +143,7 @@ export const WhyChooseUs: React.FC = () => {
                                     </div>
 
                                     {/* Text Content */}
-                                    <h3 className={`text-[15px] font-bold mb-3 ${isCenter ? 'text-[#d53867]' : 'text-[#d53867]'}`}>
+                                    <h3 className={`text-[15px] font-bold mb-3 ${isCenter ? 'text-[#fea520]' : 'text-[#fea520]'}`}>
                                         {item.title}
                                     </h3>
                                     <p className="text-[12.5px] text-[#555] leading-relaxed">
@@ -158,7 +158,7 @@ export const WhyChooseUs: React.FC = () => {
                     {/* Right Chevron */}
                     <button
                         onClick={nextSlide}
-                        className="hidden md:flex text-gray-500 hover:text-[#d53867] transition-colors p-2"
+                        className="hidden md:flex text-gray-500 hover:text-[#fea520] transition-colors p-2"
                     >
                         <ChevronRight className="w-8 h-8 font-light" strokeWidth={1} />
                     </button>

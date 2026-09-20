@@ -95,13 +95,13 @@ export const Disciplines: React.FC = () => {
     { title: 'Operation Management', icon: CustomIcons.Ops, iconColor: 'text-[#f5a623]', bgColor: 'bg-[#fff7e6]' },
     { title: 'Travel & Tourism', icon: CustomIcons.Travel, iconColor: 'text-[#4a90e2]', bgColor: 'bg-[#eef5fd]' },
     { title: 'Political Science', icon: CustomIcons.PolSci, iconColor: 'text-[#f76b6b]', bgColor: 'bg-[#fdeaea]' },
-    { title: 'Finance', icon: CustomIcons.Finance, iconColor: 'text-[#d53867]', bgColor: 'bg-[#fce8ed]' },
+    { title: 'Finance', icon: CustomIcons.Finance, iconColor: 'text-[#fea520]', bgColor: 'bg-[#fce8ed]' },
     { title: 'MBA', icon: CustomIcons.MBA, iconColor: 'text-[#4ed572]', bgColor: 'bg-[#f0fcf3]' },
     { title: 'Psychology', icon: CustomIcons.Psychology, iconColor: 'text-[#f89b4b]', bgColor: 'bg-[#fff6ef]' },
   ];
 
   const col2Modules = [
-    { title: 'Information Technology', icon: CustomIcons.IT, iconColor: 'text-[#d53867]', bgColor: 'bg-[#fce8ed]' },
+    { title: 'Information Technology', icon: CustomIcons.IT, iconColor: 'text-[#fea520]', bgColor: 'bg-[#fce8ed]' },
     { title: 'CRM', icon: CustomIcons.CRM, iconColor: 'text-[#6c757d]', bgColor: 'bg-[#f1f3f5]' },
     { title: 'Law', icon: CustomIcons.Law, iconColor: 'text-[#ff8a65]', bgColor: 'bg-[#fff3f0]' },
     { title: 'History', icon: CustomIcons.History, iconColor: 'text-[#f07b5a]', bgColor: 'bg-[#fff3f0]' },
@@ -152,8 +152,8 @@ export const Disciplines: React.FC = () => {
           <p className="text-sm md:text-[15px] text-gray-600 mb-5 font-medium">
             We Provide Top-Class Assistance in Following Modules
           </p>
-          <div className="relative w-[320px] h-[1px] bg-[#d53867]/30 flex justify-center mx-auto">
-            <div className="absolute top-1/2 -translate-y-1/2 w-14 h-1 bg-[#d53867]"></div>
+          <div className="relative w-[320px] h-[1px] bg-[#fea520]/30 flex justify-center mx-auto">
+            <div className="absolute top-1/2 -translate-y-1/2 w-14 h-1 bg-[#fea520]"></div>
           </div>
         </div>
 
@@ -179,7 +179,7 @@ export const Disciplines: React.FC = () => {
                 whileInView={{ y: 0, opacity: 1 }}
                 className="absolute top-8 -right-3 md:-right-6 bg-white p-3 rounded-2xl shadow-xl flex items-center justify-center border border-pink-50"
               >
-                <div className="w-10 h-10 rounded-xl bg-[#fff1f4] flex items-center justify-center text-[#d53867]">
+                <div className="w-10 h-10 rounded-xl bg-[#fff1f4] flex items-center justify-center text-[#fea520]">
                   <ListChecks className="w-5 h-5" />
                 </div>
               </motion.div>

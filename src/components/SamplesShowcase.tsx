@@ -58,8 +58,8 @@ export const SamplesShowcase: React.FC = () => {
                     <p className="text-sm md:text-base text-gray-600 mb-5">
                         Access thousands of free samples on all subject topics now
                     </p>
-                    <div className="relative w-64 h-[1px] bg-[#d53867]/30 flex justify-center mx-auto">
-                        <div className="absolute top-1/2 -translate-y-1/2 w-10 h-1 bg-[#d53867]"></div>
+                    <div className="relative w-64 h-[1px] bg-[#fea520]/30 flex justify-center mx-auto">
+                        <div className="absolute top-1/2 -translate-y-1/2 w-10 h-1 bg-[#fea520]"></div>
                     </div>
                 </div>
 
@@ -99,7 +99,7 @@ export const SamplesShowcase: React.FC = () => {
                                         Type: {sample.type}
                                     </h3>
 
-                                    <div className="w-full h-[1px] bg-[#d53867] mb-4 opacity-50"></div>
+                                    <div className="w-full h-[1px] bg-[#fea520] mb-4 opacity-50"></div>
 
                                     {/* Data Rows */}
                                     <div className="flex flex-col flex-1 text-[13px] text-[#444] font-medium">

@@ -93,8 +93,8 @@ export const ConsultantsSection: React.FC<ConsultantsSectionProps> = ({ onConsul
         </h2>
 
         {/* Decorative Divider */}
-        <div className="relative w-72 h-[1px] bg-[#d53867]/30 flex justify-center mb-16">
-          <div className="absolute top-1/2 -translate-y-1/2 w-12 h-1 bg-[#d53867]"></div>
+        <div className="relative w-72 h-[1px] bg-[#fea520]/30 flex justify-center mb-16">
+          <div className="absolute top-1/2 -translate-y-1/2 w-12 h-1 bg-[#fea520]"></div>
         </div>
 
         {/* Carousel Container */}
@@ -103,7 +103,7 @@ export const ConsultantsSection: React.FC<ConsultantsSectionProps> = ({ onConsul
           {/* Left Arrow Button */}
           <button
             onClick={prevSlide}
-            className="absolute left-0 md:-left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-[#d53867] hover:bg-[#b02b52] rounded-full flex items-center justify-center text-white z-30 shadow-md transition-colors"
+            className="absolute left-0 md:-left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-[#fea520] hover:bg-[#b02b52] rounded-full flex items-center justify-center text-white z-30 shadow-md transition-colors"
           >
             <ChevronLeft className="w-6 h-6 ml-0.5" />
           </button>
@@ -125,7 +125,7 @@ export const ConsultantsSection: React.FC<ConsultantsSectionProps> = ({ onConsul
                       className="w-14 h-14 rounded-full object-cover shadow-sm border border-gray-100"
                     />
                     <div>
-                      <h4 className="font-semibold text-[#d53867] text-[17px] mb-1">{writer.name}</h4>
+                      <h4 className="font-semibold text-[#fea520] text-[17px] mb-1">{writer.name}</h4>
                       <div className="flex items-center gap-1 bg-[#e4fae9] text-[#2ebd59] px-2.5 py-0.5 rounded-full text-xs font-bold w-max">
                         <Check className="w-3 h-3" />
                         Verified
@@ -151,7 +151,7 @@ export const ConsultantsSection: React.FC<ConsultantsSectionProps> = ({ onConsul
                       <span className="text-[11px] text-gray-500 font-medium">{writer.rating} Star Rating</span>
                     </div>
                     <div className="text-right flex flex-col items-end">
-                      <div className="flex items-center gap-1 text-[#d53867] font-bold text-sm mb-0.5">
+                      <div className="flex items-center gap-1 text-[#fea520] font-bold text-sm mb-0.5">
                         {/* Book Icon Match */}
                         <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M4 4v16a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2H6a2 2 0 00-2 2zm14 0v16H8V4h10z" /><path d="M10 6h6v2h-6zM10 10h6v2h-6zM10 14h6v2h-6zM6 4h1v16H6z" /></svg>
                         {writer.orders}
@@ -178,7 +178,7 @@ export const ConsultantsSection: React.FC<ConsultantsSectionProps> = ({ onConsul
           {/* Right Arrow Button */}
           <button
             onClick={nextSlide}
-            className="absolute right-0 md:-right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-[#d53867] hover:bg-[#b02b52] rounded-full flex items-center justify-center text-white z-30 shadow-md transition-colors"
+            className="absolute right-0 md:-right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-[#fea520] hover:bg-[#b02b52] rounded-full flex items-center justify-center text-white z-30 shadow-md transition-colors"
           >
             <ChevronRight className="w-6 h-6 mr-0.5" />
           </button>

@@ -6,22 +6,22 @@ export const StatsBar: React.FC = () => {
     {
       value: '182532+',
       label: 'DELIVERED ORDERS',
-      icon: <Package className="w-9 h-9 text-[#d53867]" strokeWidth={1.5} />
+      icon: <Package className="w-9 h-9 text-[#fea520]" strokeWidth={1.5} />
     },
     {
       value: '60000+',
       label: 'HAPPY CLIENTS',
-      icon: <Handshake className="w-9 h-9 text-[#d53867]" strokeWidth={1.5} />
+      icon: <Handshake className="w-9 h-9 text-[#fea520]" strokeWidth={1.5} />
     },
     {
       value: '4.8/5',
       label: 'CLIENT RATING',
-      icon: <Star className="w-9 h-9 text-[#d53867] fill-yellow-400 stroke-[#d53867]" strokeWidth={1.5} />
+      icon: <Star className="w-9 h-9 text-[#fea520] fill-yellow-400 stroke-[#fea520]" strokeWidth={1.5} />
     },
     {
       value: '4500+',
       label: 'PH.D. EXPERTS',
-      icon: <GraduationCap className="w-9 h-9 text-[#d53867]" strokeWidth={1.5} />
+      icon: <GraduationCap className="w-9 h-9 text-[#fea520]" strokeWidth={1.5} />
     },
   ];
 
@@ -33,7 +33,7 @@ export const StatsBar: React.FC = () => {
 
       {/* Dotted pattern absolute element on top right */}
       <div className="absolute top-10 right-10 opacity-10">
-        <div className="w-32 h-24" style={{ backgroundImage: 'radial-gradient(#d53867 2px, transparent 2px)', backgroundSize: '12px 12px' }}></div>
+        <div className="w-32 h-24" style={{ backgroundImage: 'radial-gradient(#fea520 2px, transparent 2px)', backgroundSize: '12px 12px' }}></div>
       </div>
 
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 relative z-10 w-full flex flex-col items-center">
@@ -44,8 +44,8 @@ export const StatsBar: React.FC = () => {
         </h2>
 
         {/* Decorative Divider */}
-        <div className="relative w-64 h-[1px] bg-[#d53867]/30 flex justify-center mb-14">
-          <div className="absolute top-1/2 -translate-y-1/2 w-10 h-1 bg-[#d53867]"></div>
+        <div className="relative w-64 h-[1px] bg-[#fea520]/30 flex justify-center mb-14">
+          <div className="absolute top-1/2 -translate-y-1/2 w-10 h-1 bg-[#fea520]"></div>
         </div>
 
         {/* Stats Grid */}
@@ -63,7 +63,7 @@ export const StatsBar: React.FC = () => {
 
               {/* Data Content */}
               <div className="flex flex-col items-center justify-center w-full min-h-[60px]">
-                <span className="text-[26px] lg:text-[28px] xl:text-[32px] font-black text-[#d53867] leading-none mb-1 text-center">
+                <span className="text-[26px] lg:text-[28px] xl:text-[32px] font-black text-[#fea520] leading-none mb-1 text-center">
                   {stat.value}
                 </span>
                 <span className="text-[11px] lg:text-[12px] font-bold text-[#333] uppercase tracking-wider text-center mt-1">

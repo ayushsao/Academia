@@ -25,7 +25,7 @@ export const CtaBanner: React.FC<CtaBannerProps> = ({ onOrderClick }) => {
             {/* Center Content */}
             <div className="relative z-20 text-center px-4 flex flex-col items-center justify-center min-h-[160px]">
                 <h2 className="text-[26px] md:text-[34px] font-extrabold text-[#2d2d2d] leading-snug tracking-tight mb-5">
-                    JOIN <span className="text-[#d53867]">10,000+</span> STUDENTS<br />
+                    JOIN <span className="text-[#fea520]">10,000+</span> STUDENTS<br />
                     WHO TRUST US
                 </h2>
 

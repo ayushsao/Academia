@@ -83,21 +83,21 @@ export const PopupFunnel: React.FC = () => {
                                 <div className="bg-white rounded-[14px] p-6 h-full flex flex-col items-center text-center relative overflow-hidden">
 
                                     <h2 className="text-[22px] font-extrabold text-[#111] leading-tight mb-1">
-                                        Grab your seasonal deal <span className="text-[#d53867]">NOW!</span>
+                                        Grab your seasonal deal <span className="text-[#fea520]">NOW!</span>
                                     </h2>
                                     <p className="text-[12px] font-bold text-gray-600 mb-6">
-                                        Massive <span className="text-[#d53867]">Discounts</span> + Top-Quality <span className="text-[#d53867]">Assignments</span>
+                                        Massive <span className="text-[#fea520]">Discounts</span> + Top-Quality <span className="text-[#fea520]">Assignments</span>
                                     </p>
 
                                     {/* Offer Text */}
                                     <div className="relative w-full flex flex-col items-center justify-center mb-6 mt-2">
                                         <span className="text-[14px] font-bold text-gray-700">Get Up to</span>
-                                        <span className="text-[42px] font-black text-[#d53867] leading-none drop-shadow-sm mt-1">51% OFF</span>
+                                        <span className="text-[42px] font-black text-[#fea520] leading-none drop-shadow-sm mt-1">51% OFF</span>
                                     </div>
 
                                     {/* Promocode Box */}
                                     <div className="relative w-full mb-4">
-                                        <div className="bg-[#d53867] text-white font-bold text-[15px] py-2.5 px-4 rounded-[6px] border-2 border-dashed border-white shadow-[0_0_0_2px_#d53867] tracking-wider w-[90%] flex items-center justify-center mx-auto">
+                                        <div className="bg-[#fea520] text-white font-bold text-[15px] py-2.5 px-4 rounded-[6px] border-2 border-dashed border-white shadow-[0_0_0_2px_#fea520] tracking-wider w-[90%] flex items-center justify-center mx-auto">
                                             Use Code : INSTANT25
                                         </div>
                                         <div className="absolute -right-1 top-1/2 -translate-y-1/2 bg-white rounded-full p-1 shadow-sm border border-gray-100 z-10 rotate-90">
@@ -131,7 +131,7 @@ export const PopupFunnel: React.FC = () => {
                                         // Dispatch a standard custom event that Home.tsx listens to
                                         window.dispatchEvent(new CustomEvent('open-order-modal'));
                                     }}
-                                    className="w-full bg-[#d53867] text-white font-bold py-4 rounded-xl text-[16px] hover:bg-[#b02c53] transition-colors shadow-lg hover:shadow-xl hover:-translate-y-0.5 transform duration-200"
+                                    className="w-full bg-[#fea520] text-white font-bold py-4 rounded-xl text-[16px] hover:bg-[#b02c53] transition-colors shadow-lg hover:shadow-xl hover:-translate-y-0.5 transform duration-200"
                                 >
                                     Claim Discount & Order Now
                                 </button>

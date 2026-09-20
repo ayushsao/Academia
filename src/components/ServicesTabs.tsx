@@ -118,8 +118,8 @@ export const ServicesTabs: React.FC = () => {
                 </h2>
 
                 {/* Decorative Divider */}
-                <div className="relative w-72 h-[1px] bg-[#d53867]/30 flex justify-center mb-16 mx-auto">
-                    <div className="absolute top-1/2 -translate-y-1/2 w-12 h-1 bg-[#d53867]"></div>
+                <div className="relative w-72 h-[1px] bg-[#fea520]/30 flex justify-center mb-16 mx-auto">
+                    <div className="absolute top-1/2 -translate-y-1/2 w-12 h-1 bg-[#fea520]"></div>
                 </div>
 
                 {/* Main Content Layout */}
@@ -132,7 +132,7 @@ export const ServicesTabs: React.FC = () => {
 
                         <div className="bg-white rounded-2xl shadow-[0_5px_30px_rgba(0,0,0,0.06)] p-3 lg:p-4 border border-gray-50 flex flex-col gap-3">
                             <h4 className="text-[14px] font-bold py-2 px-3 flex items-center gap-2 text-[#333] mb-1">
-                                <span className="transform -rotate-12 bg-pink-50 p-1.5 rounded text-[#d53867]"><PenTool className="w-4 h-4" /></span>
+                                <span className="transform -rotate-12 bg-pink-50 p-1.5 rounded text-[#fea520]"><PenTool className="w-4 h-4" /></span>
                                 We Offer Academic Assistance In:
                             </h4>
                             {services.map((service, idx) => {
@@ -142,9 +142,9 @@ export const ServicesTabs: React.FC = () => {
                                     <button
                                         key={idx}
                                         onClick={() => setActiveTab(idx)}
-                                        className={`flex items-center gap-3 p-3.5 lg:p-4 rounded-xl text-left transition-all font-bold text-[15px] border ${isActive ? 'bg-[#fff1f4] border-[#d53867] text-[#d53867]' : 'bg-white border-gray-200 text-[#444] hover:border-[#d53867] hover:text-[#d53867]'}`}
+                                        className={`flex items-center gap-3 p-3.5 lg:p-4 rounded-xl text-left transition-all font-bold text-[15px] border ${isActive ? 'bg-[#fff1f4] border-[#fea520] text-[#fea520]' : 'bg-white border-gray-200 text-[#444] hover:border-[#fea520] hover:text-[#fea520]'}`}
                                     >
-                                        <Icon className={`w-6 h-6 stroke-[1.5] ${isActive ? 'text-[#d53867]' : 'text-gray-400'}`} />
+                                        <Icon className={`w-6 h-6 stroke-[1.5] ${isActive ? 'text-[#fea520]' : 'text-gray-400'}`} />
                                         <span>{service.title}</span>
                                     </button>
                                 )
@@ -172,7 +172,7 @@ export const ServicesTabs: React.FC = () => {
                                 transition={{ duration: 0.2 }}
                                 className="relative z-10 flex flex-col h-full"
                             >
-                                <h3 className="text-[22px] md:text-[24px] font-bold text-[#d53867] mb-4">
+                                <h3 className="text-[22px] md:text-[24px] font-bold text-[#fea520] mb-4">
                                     {services[activeTab].contentTitle}
                                 </h3>
 

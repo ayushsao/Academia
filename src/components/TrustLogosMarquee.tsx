@@ -16,7 +16,7 @@ export const TrustLogosMarquee: React.FC = () => {
             <div className="max-w-[1300px] mx-auto px-4 md:px-8 relative hidden md:block">
 
                 {/* Floating Pink Card Layout */}
-                <div className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-20 w-80 bg-[#d53867] text-white p-5 rounded-2xl shadow-xl flex items-center gap-4">
+                <div className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-20 w-80 bg-[#fea520] text-white p-5 rounded-2xl shadow-xl flex items-center gap-4">
                     <div className="shrink-0 text-white opacity-90 border-[1.5px] border-white/40 p-2 rounded-xl">
                         <svg className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg>
                     </div>
@@ -43,7 +43,7 @@ export const TrustLogosMarquee: React.FC = () => {
 
             {/* Mobile View (No overlap, just stacked) */}
             <div className="md:hidden flex flex-col items-center">
-                <div className="w-[90%] bg-[#d53867] text-white p-5 rounded-2xl shadow-md flex items-center gap-4 mb-8">
+                <div className="w-[90%] bg-[#fea520] text-white p-5 rounded-2xl shadow-md flex items-center gap-4 mb-8">
                     <div className="shrink-0 border-[1.5px] border-white/40 p-2 rounded-xl">
                         <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg>
                     </div>

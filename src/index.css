@@ -1,4 +1,5 @@
 ﻿@import "tailwindcss";
+
 @theme {
   --font-sans: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --color-primary: #000a1e;
@@ -27,10 +28,11 @@ body {
 }
 
 .glass-panel {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 8px 32px rgba(0, 10, 30, 0.05), inset 0 1px 0 rgba(255, 255, 255, 1);
 }
 
 .bg-dots {
@@ -39,26 +41,26 @@ body {
 }
 
 .bg-mesh {
-  background-image: radial-gradient(at 40% 20%, hsla(28, 100%, 74%, 0.12) 0px, transparent 50%),
+  background-image: radial-gradient(at 40% 20%, hsla(37, 98%, 56%, 0.12) 0px, transparent 50%),
     radial-gradient(at 80% 0%, hsla(213, 100%, 94%, 0.45) 0px, transparent 50%),
     radial-gradient(at 0% 50%, hsla(213, 100%, 94%, 0.45) 0px, transparent 50%);
 }
 
 .shadow-ambient {
-  box-shadow: 0 4px 24px rgba(0, 33, 71, 0.06);
+  box-shadow: 0 4px 24px rgba(0, 10, 30, 0.04);
 }
 
 .shadow-soft {
-  box-shadow: 0 12px 36px rgba(0, 33, 71, 0.1);
+  box-shadow: 0 12px 36px rgba(0, 10, 30, 0.08);
 }
 
 .shadow-glass {
-  box-shadow: 0 8px 32px 0 rgba(0, 33, 71, 0.08);
+  box-shadow: 0 16px 40px -4px rgba(0, 10, 30, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -68,22 +70,53 @@ body {
 ::-webkit-scrollbar-thumb {
   background-color: #cbd5e1;
   border-radius: 9999px;
+  transition: all 0.3s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #94a3b8;
+  background-color: #fea520;
 }
 
 @keyframes marquee {
-  0% { transform: translateX(0%); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0%);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 .animate-marquee {
   animation: marquee 25s linear infinite;
 }
 
-button, a, input, select, textarea {
+button,
+a,
+input,
+select,
+textarea {
   touch-action: manipulation;
 }
-html, body { overflow-x: hidden; width: 100%; position: relative; }
+
+html,
+body {
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
+}
+
+.premium-card {
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.premium-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 20px 40px -10px rgba(0, 10, 30, 0.08);
+  border-color: rgba(254, 165, 32, 0.4);
+}
+
+.title-gradient {
+  background: linear-gradient(135deg, #000a1e 0%, #002147 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

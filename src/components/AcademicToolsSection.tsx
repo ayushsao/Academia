@@ -84,8 +84,8 @@ export const AcademicToolsSection: React.FC<AcademicToolsSectionProps> = ({ onOp
           <h2 className="text-[24px] md:text-[28px] lg:text-[32px] font-bold text-[#2d2d2d] mb-4 tracking-tight">
             Our FREE Tools That Make Academic Journey Easier!
           </h2>
-          <div className="relative w-64 h-[1px] bg-[#d53867]/30 flex justify-center mx-auto">
-            <div className="absolute top-1/2 -translate-y-1/2 w-10 h-1 bg-[#d53867]"></div>
+          <div className="relative w-64 h-[1px] bg-[#fea520]/30 flex justify-center mx-auto">
+            <div className="absolute top-1/2 -translate-y-1/2 w-10 h-1 bg-[#fea520]"></div>
           </div>
         </div>
 
@@ -94,7 +94,7 @@ export const AcademicToolsSection: React.FC<AcademicToolsSectionProps> = ({ onOp
           {/* Floating Left Arrow */}
           <button
             onClick={prevSlide}
-            className="absolute -left-2 md:-left-6 top-1/2 -translate-y-1/2 w-10 h-10 md:w-11 md:h-11 bg-[#d53867] hover:bg-[#b02b52] rounded-full flex items-center justify-center text-white z-20 shadow-[0_5px_15px_rgba(213,56,103,0.3)] transition-colors"
+            className="absolute -left-2 md:-left-6 top-1/2 -translate-y-1/2 w-10 h-10 md:w-11 md:h-11 bg-[#fea520] hover:bg-[#b02b52] rounded-full flex items-center justify-center text-white z-20 shadow-[0_5px_15px_rgba(213,56,103,0.3)] transition-colors"
           >
             <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 ml-0.5" />
           </button>
@@ -125,7 +125,7 @@ export const AcademicToolsSection: React.FC<AcademicToolsSectionProps> = ({ onOp
                   <p className="text-[13px] md:text-[14px] text-[#555] leading-relaxed mb-6 flex-1">
                     {tool.desc}
                   </p>
-                  <span className="text-[#d53867] text-[13.5px] font-semibold flex items-center gap-1 group">
+                  <span className="text-[#fea520] text-[13.5px] font-semibold flex items-center gap-1 group">
                     Check Now <ArrowUpRight className="w-4 h-4 transform group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                   </span>
                 </div>
@@ -136,7 +136,7 @@ export const AcademicToolsSection: React.FC<AcademicToolsSectionProps> = ({ onOp
           {/* Floating Right Arrow */}
           <button
             onClick={nextSlide}
-            className="absolute -right-2 md:-right-6 top-1/2 -translate-y-1/2 w-10 h-10 md:w-11 md:h-11 bg-[#d53867] hover:bg-[#b02b52] rounded-full flex items-center justify-center text-white z-20 shadow-[0_5px_15px_rgba(213,56,103,0.3)] transition-colors"
+            className="absolute -right-2 md:-right-6 top-1/2 -translate-y-1/2 w-10 h-10 md:w-11 md:h-11 bg-[#fea520] hover:bg-[#b02b52] rounded-full flex items-center justify-center text-white z-20 shadow-[0_5px_15px_rgba(213,56,103,0.3)] transition-colors"
           >
             <ChevronRight className="w-5 h-5 md:w-6 md:h-6 mr-0.5" />
           </button>

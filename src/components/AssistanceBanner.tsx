@@ -25,11 +25,11 @@ export const AssistanceBanner: React.FC<AssistanceBannerProps> = ({ onOpenOrder 
                         Why AssignmentMinds Services?
                         {/* Perfect underline match to screenshot */}
                         <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-[160%] h-[1px] bg-gray-300">
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-1 bg-[#d53867]"></div>
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-1 bg-[#fea520]"></div>
                         </div>
                     </h2>
                     <p className="text-[#555] text-[14px] mt-6 leading-relaxed px-4 md:px-0">
-                        Every student of any academic level dreams of scoring high grades in class and making an impression in front of their professor, but hardly any get that chance. This is when AssignmentMinds comes into the picture and aids students in scoring their dream grades through the best assignment writing service UK. The experienc...<button onClick={onOpenOrder} className="text-[#d53867] font-medium hover:underline ml-1">Know more</button>
+                        Every student of any academic level dreams of scoring high grades in class and making an impression in front of their professor, but hardly any get that chance. This is when AssignmentMinds comes into the picture and aids students in scoring their dream grades through the best assignment writing service UK. The experienc...<button onClick={onOpenOrder} className="text-[#fea520] font-medium hover:underline ml-1">Know more</button>
                     </p>
                 </div>
 

@@ -389,7 +389,7 @@ export const DynamicPage: React.FC = () => {
         <div className="min-h-screen bg-gray-50 flex flex-col font-sans relative z-0">
             {/* Ambient Background Globs & Giant Text Watermark */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none z-[-1] opacity-70">
-                <div className="absolute top-[-5%] left-[-10%] w-[500px] h-[500px] bg-[#d53867] rounded-full blur-[200px] opacity-[0.12] mix-blend-multiply"></div>
+                <div className="absolute top-[-5%] left-[-10%] w-[500px] h-[500px] bg-[#fea520] rounded-full blur-[200px] opacity-[0.12] mix-blend-multiply"></div>
                 <div className="absolute top-[35%] right-[-10%] w-[600px] h-[600px] bg-[#fea520] rounded-full blur-[200px] opacity-[0.12] mix-blend-multiply"></div>
             </div>
 

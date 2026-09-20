@@ -39,7 +39,7 @@ export const ReviewsSection: React.FC = () => {
             Find out what students from{' '}
             <span className="relative inline-block">
               all over the globe say
-              <span className="absolute -bottom-1.5 left-0 w-full h-[1.5px] bg-[#d53867]"></span>
+              <span className="absolute -bottom-1.5 left-0 w-full h-[1.5px] bg-[#fea520]"></span>
             </span>
             {' '}about our online academic writing services.
           </p>
@@ -49,7 +49,7 @@ export const ReviewsSection: React.FC = () => {
         <div className="flex items-center justify-between xl:justify-center xl:gap-8">
 
           {/* Left Chevron */}
-          <button className="hidden sm:flex text-gray-500 hover:text-[#d53867] transition-colors p-2 shrink-0">
+          <button className="hidden sm:flex text-gray-500 hover:text-[#fea520] transition-colors p-2 shrink-0">
             <ChevronLeft className="w-8 h-8 font-light" strokeWidth={1} />
           </button>
 
@@ -65,7 +65,7 @@ export const ReviewsSection: React.FC = () => {
                 className="bg-white border border-gray-100 rounded-[6px] shadow-[0_2px_15px_rgb(0,0,0,0.04)] px-6 lg:px-8 pb-8 pt-10 relative flex flex-col items-center text-center hover:shadow-[0_4px_20px_rgb(0,0,0,0.08)] transition-shadow"
               >
                 {/* Pink Floating Quote Badge */}
-                <div className="absolute -top-[1.2rem] left-1/2 -translate-x-1/2 bg-[#d53867] w-[2.4rem] h-[2.4rem] rounded-full flex items-center justify-center text-white shadow-sm border-[4px] border-white">
+                <div className="absolute -top-[1.2rem] left-1/2 -translate-x-1/2 bg-[#fea520] w-[2.4rem] h-[2.4rem] rounded-full flex items-center justify-center text-white shadow-sm border-[4px] border-white">
                   <span className="font-serif text-[2.5rem] leading-[0] translate-y-2.5">“</span>
                 </div>
 
@@ -95,7 +95,7 @@ export const ReviewsSection: React.FC = () => {
           </div>
 
           {/* Right Chevron */}
-          <button className="hidden sm:flex text-gray-500 hover:text-[#d53867] transition-colors p-2 shrink-0">
+          <button className="hidden sm:flex text-gray-500 hover:text-[#fea520] transition-colors p-2 shrink-0">
             <ChevronRight className="w-8 h-8 font-light" strokeWidth={1} />
           </button>
 
