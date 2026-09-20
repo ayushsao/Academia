@@ -299,7 +299,8 @@ export const DynamicPage: React.FC = () => {
                 }
             } else if (slug !== 'free-grammar-checker') {
 
-                const API_URL = (import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api');
+                const baseApi = (import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api');
+                const API_URL = baseApi.replace(/\/+$/, '');
                 const res = await fetch(`${API_URL}/tools/process`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
