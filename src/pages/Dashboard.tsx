@@ -1,14 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, LayoutDashboard, List, Coins, Layers, Plus, Bookmark, Wallet, Bell, MessageCircle, ChevronRight, User, FileText, CheckCircle, Clock, Home } from 'lucide-react';
 import { OrderModal } from '../components/OrderModal';
 
+const API = (import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api');
+
 export const Dashboard: React.FC = () => {
-    const { user, orders, logout } = useStore();
+    const { user, token, orders, logout, setOrders } = useStore();
     const navigate = useNavigate();
     const [orderModalOpen, setOrderModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'loyalty' | 'resources'>('orders');
+
+    
+    useEffect(() => {
+        if (!token) return;
+        const loadOrders = async () => {
+            try {
+                const res = await fetch(`${API}/orders`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setOrders(data.orders || []);
+                }
+            } catch (err) {}
+        };
+        loadOrders();
+    }, [token, setOrders]);
 
     const handleLogout = async () => {
         try { await fetch('' + (import.meta as any).env.VITE_API_URL + '/auth/logout', { method:'POST', credentials:'include' }); } catch(e) {}

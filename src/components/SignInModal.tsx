@@ -66,8 +66,10 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Google login failed');
 
-      // Reverted: Fire welcome email using EmailJS on Google logins
-      await sendWelcomeEmail(data.user.name, data.user.email);
+      // Only fire welcome email for brand new users
+      if (data.isNewUser) {
+        await sendWelcomeEmail(data.user.name, data.user.email);
+      }
 
       login(data.user.email, data.user.name, data.token, data.user.id);
       onClose();
