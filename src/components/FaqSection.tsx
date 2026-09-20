@@ -56,7 +56,7 @@ export const FaqSection: React.FC = () => {
         }
     ];
 
-    const [openIdx, setOpenIdx] = useState<number | null>(null);
+    const [openIdx, setOpenIdx] = useState<number | null>(0);
 
     return (
         <section className="py-16 md:py-24 bg-[#f8f9fa] border-t border-gray-200">
@@ -69,7 +69,7 @@ export const FaqSection: React.FC = () => {
                 </div>
 
                 {/* 2-Column Grid Layout */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 items-start">
                     {faqs.map((faq, idx) => {
                         const isOpen = openIdx === idx;
                         return (
@@ -79,7 +79,7 @@ export const FaqSection: React.FC = () => {
                             >
                                 <button
                                     onClick={() => setOpenIdx(isOpen ? null : idx)}
-                                    className="w-full px-5 py-3.5 flex items-center justify-between bg-white text-left text-[#444] font-medium text-[14px] md:text-[14.5px] hover:text-[#2d2d2d] transition-colors"
+                                    className="w-full px-5 py-3.5 flex items-center justify-between bg-white text-left text-[#444] font-medium text-[14px] md:text-[14.5px] hover:text-[#2d2d2d] transition-colors focus:outline-none"
                                 >
                                     {faq.question}
                                     <ChevronDown className={`w-4 h-4 ml-4 shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180 text-[#fea520]' : 'text-gray-500'}`} strokeWidth={2} />

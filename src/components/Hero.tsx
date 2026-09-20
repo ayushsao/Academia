@@ -139,10 +139,10 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
         <div className="flex justify-between w-full"><span>ASSIGNMENT</span><span>HISTORY</span></div>
       </div>
 
-      <div className="max-w-[1280px] mx-auto px-4 relative z-10 flex flex-col lg:flex-row items-center justify-between gap-10">
+      <div className="max-w-[1280px] mx-auto px-4 relative z-10 flex flex-col lg:flex-row items-center lg:items-stretch justify-between gap-10">
 
         {/* LEFT: Dynamic Carousel Container */}
-        <div className="flex-1 w-full h-[450px] lg:h-[480px] relative overflow-hidden rounded-[30px] shadow-[0_10px_40px_rgba(213,56,103,0.08)] bg-white">
+        <div className="flex-1 w-full min-h-[450px] lg:min-h-0 relative overflow-hidden rounded-[30px] shadow-[0_10px_40px_rgba(213,56,103,0.08)] bg-white">
           <AnimatePresence mode='wait'>
 
             {/* SLIDE 0: Path to Academic Excellence */}
@@ -295,8 +295,8 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     </li>
                   </ul>
 
-                  <button onClick={() => onOpenOrder()} className="bg-[#ffcb05] hover:bg-[#ffb600] text-[#000a1e] font-bold text-[16px] md:text-[18px] px-8 py-3 rounded-md flex items-center justify-center gap-2 transition-all shadow-md w-fit">
-                    Order Now <ArrowRight className="w-5 h-5 ml-1" />
+                  <button onClick={() => onOpenOrder()} className="bg-white/10 hover:bg-white/25 backdrop-blur-md border border-white/20 text-white font-semibold text-[15px] md:text-[16px] px-7 py-3 rounded-full flex items-center justify-center gap-2 transition-all w-fit group">
+                    Order Now <ArrowRight className="w-[18px] h-[18px] group-hover:translate-x-1 transition-transform" />
                   </button>
 
                   <div className="flex flex-col gap-0.5 mt-auto pt-6 shrink-0 z-20 relative">
@@ -359,7 +359,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     <select
                       value={service}
                       onChange={(e) => setService(e.target.value as ServiceType)}
-                      className={`w-full appearance-none border-0 rounded-[12px] px-3.5 py-[14px] ${!service ? 'text-[#74777f]' : 'text-[#555]'} bg-gray-50 hover:bg-gray-100/50 focus:ring-2 focus:ring-[#002147]/20 transition-all outline-none text-[14px] font-bold shadow-[inset_0_2px_6px_rgba(0,0,0,0.01)] cursor-pointer`}
+                      className={`w-full appearance-none border-0 rounded-full px-3.5 py-[14px] ${!service ? 'text-[#74777f]' : 'text-[#555]'} bg-gray-50 hover:bg-gray-100/50 focus:ring-2 focus:ring-[#002147]/20 transition-all outline-none text-[14px] font-bold shadow-[inset_0_2px_6px_rgba(0,0,0,0.01)] cursor-pointer`}
                     >
                       <option value="" disabled>Select a Service</option>
                       <option value="Academic Writing">Academic Writing</option>
@@ -383,7 +383,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     <select
                       value={subject}
                       onChange={(e) => setSubject(e.target.value as SubjectType)}
-                      className={`w-full appearance-none border-0 rounded-[12px] px-3.5 py-[14px] ${!subject ? 'text-[#74777f]' : 'text-[#555]'} bg-gray-50 hover:bg-gray-100/50 focus:ring-2 focus:ring-[#002147]/20 transition-all outline-none text-[14px] font-bold shadow-[inset_0_2px_6px_rgba(0,0,0,0.01)] cursor-pointer`}
+                      className={`w-full appearance-none border-0 rounded-full px-3.5 py-[14px] ${!subject ? 'text-[#74777f]' : 'text-[#555]'} bg-gray-50 hover:bg-gray-100/50 focus:ring-2 focus:ring-[#002147]/20 transition-all outline-none text-[14px] font-bold shadow-[inset_0_2px_6px_rgba(0,0,0,0.01)] cursor-pointer`}
                     >
                       <option value="" disabled>Select a Subject</option>
                       <option value="Business & Mgt">Business & Mgt</option>
@@ -410,7 +410,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                   <span className="text-[13px] text-[#708ab5] font-semibold">1 Page ≈ 250 Words</span>
                 </div>
                 <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-[16px]">
-                  <div className="flex items-center bg-white rounded-[12px] overflow-hidden h-[46px] shadow-[0_2px_10px_rgb(0,0,0,0.03)] flex-shrink-0 w-[120px]">
+                  <div className="flex items-center bg-white rounded-full overflow-hidden h-[46px] shadow-[0_2px_10px_rgb(0,0,0,0.03)] flex-shrink-0 w-[120px]">
                     <button
                       type="button"
                       onClick={() => setPages(p => Math.max(0, p - 1))}
@@ -458,7 +458,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     type="date"
                     value={deadline}
                     onChange={(e) => setDeadline(e.target.value)}
-                    className="w-full border-0 rounded-[12px] px-3.5 py-[14px] bg-gray-50 text-[#000a1e] focus:ring-2 focus:ring-[#002147]/20 transition-all outline-none text-[15px] font-black shadow-[inset_0_2px_6px_rgba(0,0,0,0.01)]"
+                    className="w-full border-0 rounded-full px-3.5 py-[14px] bg-gray-50 text-[#000a1e] focus:ring-2 focus:ring-[#002147]/20 transition-all outline-none text-[15px] font-black shadow-[inset_0_2px_6px_rgba(0,0,0,0.01)]"
                   />
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-[#708ab5]">
                     <Calendar className="w-5 h-5 stroke-[1.5]" />
@@ -485,10 +485,10 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
 
                 <button
                   type="submit"
-                  className="bg-[#fea520] hover:bg-[#e39115] text-[#000a1e] font-black text-[16px] px-6 py-4 rounded-[12px] shadow-[0_4px_14px_rgba(254,165,32,0.4)] hover:shadow-[0_6px_20px_rgba(254,165,32,0.5)] transition-all w-full flex items-center justify-center gap-2 group transform hover:-translate-y-0.5"
+                  className="bg-[#000a1e] hover:bg-[#00173d] text-white font-semibold text-[16px] px-6 py-3.5 rounded-full transition-all w-full flex items-center justify-center gap-2 group"
                 >
                   <span>Get Detailed Quote</span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform stroke-[2.5]" />
+                  <ArrowRight className="w-[18px] h-[18px] group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
             </form>

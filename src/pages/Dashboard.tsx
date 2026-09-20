@@ -277,7 +277,7 @@ export const Dashboard: React.FC = () => {
                             </div>
                             <h2 className="text-2xl font-black text-[#000a1e] mb-2">Loyalty Points</h2>
                             <p className="text-gray-500 max-w-md">You've unlocked 200 loyalty points for joining AssignmentMinds! You can use these to claim discounts on future academic orders.</p>
-                            <button className="mt-8 bg-[#e37e25] hover:bg-amber-600 text-white font-bold px-8 py-3 rounded-full transition-all shadow-md">
+                            <button className="mt-8 bg-[#e37e25] hover:bg-amber-600 text-white font-bold px-8 py-3 rounded-[12px] transition-all shadow-md">
                                 Redeem Points
                             </button>
                         </div>
@@ -326,7 +326,7 @@ export const Dashboard: React.FC = () => {
                     {/* Quick Tools List */}
                     <div className="space-y-3 pt-2">
                         {['FREE TOOLS', 'ESSAY TYPER', 'REFERENCING'].map((label, idx) => (
-                            <button key={idx} className="w-full bg-[#eef0f3] hover:bg-[#e2e6eb] border border-[#e2e6eb] rounded-md py-3.5 px-4 flex items-center justify-between transition-colors shadow-sm text-[#1b2733] group">
+                            <button key={idx} className="w-full bg-[#eef0f3] hover:bg-[#e2e6eb] border border-[#e2e6eb] rounded-[12px] py-3.5 px-4 flex items-center justify-between transition-colors shadow-sm text-[#1b2733] group">
                                 <span className="font-bold text-[13px] tracking-wide">{label}</span>
                                 <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-700 transition-colors" />
                             </button>

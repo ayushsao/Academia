@@ -190,7 +190,7 @@ export const ServicesTabs: React.FC = () => {
 
                                 {/* Premium Action Button */}
                                 <div className="mt-auto">
-                                    <button className="bg-[#fea520] hover:bg-[#e39115] text-[#111] font-bold text-[15px] px-8 py-3.5 shadow-md hover:shadow-lg transition-all rounded-[6px] tracking-wide relative overflow-hidden group">
+                                    <button className="bg-[#fea520] hover:bg-[#e39115] text-[#111] font-bold text-[15px] px-8 py-3.5 shadow-md hover:shadow-lg transition-all rounded-[12px] tracking-wide relative overflow-hidden group">
                                         <span className="relative z-10">{services[activeTab].btnText}</span>
                                         <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-in-out"></div>
                                     </button>

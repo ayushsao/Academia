@@ -106,7 +106,7 @@ export const PopupFunnel: React.FC = () => {
                                     </div>
 
                                     {/* Claim Button */}
-                                    <button className="w-[90%] bg-[#ffcb05] text-[#222] font-black py-3 rounded-[6px] text-[16px] hover:bg-[#f5b800] transition-colors uppercase tracking-tight shadow-md">
+                                    <button className="w-[90%] bg-[#ffcb05] text-[#222] font-black py-3 rounded-[12px] text-[16px] hover:bg-[#f5b800] transition-colors uppercase tracking-tight shadow-md">
                                         Claim Now
                                     </button>
 

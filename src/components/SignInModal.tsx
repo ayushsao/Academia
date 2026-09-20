@@ -260,7 +260,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
                           <span className="text-sm font-bold">{activeTab === 'login' ? 'Login' : 'Signup'} With Email & Password</span>
                         </button>
 
-                        <button className="w-full flex items-center justify-center gap-3 border border-gray-200 bg-white rounded-xl py-3.5 hover:border-[#000a1e]/30 hover:bg-gray-50 hover:shadow-sm transition-all cursor-pointer text-[#000a1e] group">
+                        <button className="w-full flex items-center justify-center gap-3 border border-gray-200 bg-white rounded-[12px] py-3.5 hover:border-[#000a1e]/30 hover:bg-gray-50 hover:shadow-sm transition-all cursor-pointer text-[#000a1e] group">
                           <div className="relative group-hover:scale-110 transition-transform">
                             <Lock className="w-5 h-5 text-[#002147]" strokeWidth={2} />
                             <span className="absolute -bottom-1 -right-1 text-[7px] bg-white rounded-full font-bold px-0.5 text-gray-500">OTP</span>
