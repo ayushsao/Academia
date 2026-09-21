@@ -164,6 +164,25 @@ const OrderDetailDrawer = ({
         finally { setSaving(false); }
     };
 
+    const handleForceDownload = async (fileUrl: string, fileName: string) => {
+        try {
+            const resp = await fetch(fileUrl);
+            if (!resp.ok) throw new Error("File not found");
+            const blob = await resp.blob();
+            const localUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = localUrl;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(localUrl);
+        } catch (e) {
+            alert("Unable to download file directly (CORS or missing file). We will open it in a new tab instead.");
+            window.open(fileUrl, '_blank');
+        }
+    };
+
     return (
         <>
             {/* Backdrop */}
@@ -171,19 +190,19 @@ const OrderDetailDrawer = ({
             {/* Side Drawer */}
             <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-xl bg-white shadow-2xl flex flex-col overflow-hidden">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-[#000a1e] to-[#002147] text-white px-6 py-5 flex items-start justify-between flex-shrink-0">
+                <div className="bg-white border-b border-gray-100 px-6 py-6 flex items-start justify-between flex-shrink-0 sticky top-0 z-10">
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className="font-mono text-sm font-bold text-[#fea520]">{order.orderId}</span>
-                            {isNew && <span className="bg-[#fea520] text-[#000a1e] text-[10px] font-extrabold px-2 py-0.5 rounded-full animate-pulse">NEW</span>}
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="font-mono text-sm font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-200">{order.orderId}</span>
+                            {isNew && <span className="bg-blue-50 text-blue-600 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-blue-200">NEW</span>}
                             <StatusBadge status={order.status} />
                         </div>
-                        <h2 className="text-base font-extrabold leading-snug truncate">{order.topicTitle}</h2>
-                        <p className="text-white/40 text-xs mt-0.5">
-                            Placed {new Date(order.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        <h2 className="text-xl font-extrabold text-[#000a1e] leading-snug truncate">{order.topicTitle}</h2>
+                        <p className="text-gray-400 font-medium text-xs mt-1.5 flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5" /> Placed {new Date(order.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </p>
                     </div>
-                    <button onClick={onClose} className="ml-4 text-white/50 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors flex-shrink-0">
+                    <button onClick={onClose} className="ml-4 text-gray-400 hover:text-[#000a1e] bg-gray-50 hover:bg-gray-100 p-2.5 rounded-full transition-colors flex-shrink-0 shadow-sm border border-gray-100 hover:border-gray-200">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -263,25 +282,30 @@ const OrderDetailDrawer = ({
                     )}
 
                     {/* Uploaded Files */}
-                    <div className="bg-white rounded-2xl border border-gray-100 p-4">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Uploaded Files</p>
+                    <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Uploaded Files</p>
                         {order.files && order.files.length > 0 ? (
-                            <div className="space-y-2">
-                                {order.files.map((fileName, idx) => (
-                                    <a
-                                        key={idx}
-                                        href={`${API.replace('/api', '')}/uploads/${fileName}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center gap-3 p-3 bg-[#eef4ff] border border-[#d1e4ff] rounded-xl hover:bg-[#dbeafe] transition-colors group"
-                                    >
-                                        <div className="w-8 h-8 bg-[#002147] text-white rounded-lg flex items-center justify-center flex-shrink-0">
-                                            <FileText className="w-4 h-4" />
+                            <div className="space-y-3">
+                                {order.files.map((fileName, idx) => {
+                                    const fileUrl = `${API.replace('/api', '')}/uploads/${fileName}`;
+                                    return (
+                                        <div
+                                            key={idx}
+                                            className="flex items-center gap-4 p-4 bg-gray-50 border border-gray-100 rounded-xl hover:bg-gray-100 transition-colors group"
+                                        >
+                                            <div className="w-10 h-10 bg-white border border-gray-200 text-gray-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+                                                <FileText className="w-5 h-5" />
+                                            </div>
+                                            <span className="text-sm font-semibold text-gray-700 truncate flex-1">{fileName}</span>
+                                            <button
+                                                onClick={() => handleForceDownload(fileUrl, fileName)}
+                                                className="text-[11px] uppercase tracking-widest font-extrabold bg-white border border-gray-200 text-gray-600 px-4 py-2.5 rounded-lg hover:border-gray-300 hover:text-[#000a1e] hover:shadow-sm transition-all flexitems-center gap-1.5"
+                                            >
+                                                Download
+                                            </button>
                                         </div>
-                                        <span className="text-sm font-semibold text-[#002147] truncate flex-1">{fileName}</span>
-                                        <span className="text-xs font-bold text-[#fea520] group-hover:text-[#e09510] flex-shrink-0">Download ↗</span>
-                                    </a>
-                                ))}
+                                    )
+                                })}
                             </div>
                         ) : (
                             <div className="flex items-center gap-2 text-gray-400 py-2">
@@ -292,38 +316,40 @@ const OrderDetailDrawer = ({
                     </div>
 
                     {/* Admin Controls */}
-                    <div className="bg-[#eef4ff] rounded-2xl p-5 border border-[#d1e4ff] space-y-4">
-                        <p className="text-[10px] font-bold text-[#002147] uppercase tracking-widest">Admin Controls</p>
+                    <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200 shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)] space-y-5">
+                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                            <Settings className="w-3.5 h-3.5" /> Admin Controls
+                        </p>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Update Status</label>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Update Status</label>
                             <select value={status} onChange={e => setStatus(e.target.value)}
-                                className="w-full bg-white border border-[#d1e4ff] rounded-xl px-4 py-2.5 text-sm font-semibold text-[#000a1e] focus:outline-none focus:ring-2 focus:ring-[#002147]/20">
+                                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-[#000a1e] focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 shadow-sm">
                                 {['Pending', 'In Progress', 'Completed', 'Cancelled'].map(s => <option key={s}>{s}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Assign Writer</label>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Assign Writer</label>
                             <input type="text" value={assignedTo} onChange={e => setAssignedTo(e.target.value)}
                                 placeholder="Writer name or email..."
-                                className="w-full bg-white border border-[#d1e4ff] rounded-xl px-4 py-2.5 text-sm font-semibold text-[#000a1e] focus:outline-none focus:ring-2 focus:ring-[#002147]/20" />
+                                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-[#000a1e] focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 shadow-sm" />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Internal Admin Notes</label>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Internal Admin Notes</label>
                             <textarea rows={3} value={adminNotes} onChange={e => setAdminNotes(e.target.value)}
                                 placeholder="Not visible to student..."
-                                className="w-full bg-white border border-[#d1e4ff] rounded-xl px-4 py-2.5 text-sm text-[#000a1e] focus:outline-none focus:ring-2 focus:ring-[#002147]/20 resize-none" />
+                                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#000a1e] focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 shadow-sm resize-none" />
                         </div>
                     </div>
                 </div>
 
                 {/* Sticky Save Footer */}
-                <div className="flex-shrink-0 bg-white border-t border-gray-100 px-6 py-4">
+                <div className="flex-shrink-0 bg-white border-t border-gray-100 px-6 py-5 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
                     <button onClick={handleSave} disabled={saving}
-                        className="w-full bg-[#000a1e] hover:bg-[#002147] text-white px-6 py-3.5 rounded-[12px] font-extrabold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-60 shadow-lg">
+                        className="w-full bg-[#000a1e] hover:bg-gray-800 text-white px-6 py-4 rounded-xl font-extrabold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-60 shadow-[0_4px_14px_rgba(0,10,30,0.15)] hover:shadow-[0_6px_20px_rgba(0,10,30,0.2)]">
                         {saving
-                            ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving Changes...</>
-                            : saved ? <><Check className="w-4 h-4 text-emerald-400" />Changes Saved!</>
-                                : '💾 Save Changes'}
+                            ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</>
+                            : saved ? <><Check className="w-4 h-4 text-emerald-400" />Saved Successfully</>
+                                : <><Save className="w-4 h-4" /> Save Changes</>}
                     </button>
                 </div>
             </div>
@@ -378,9 +404,12 @@ const OrdersTab = ({ token }: { token: string }) => {
         <div className="space-y-6">
             {/* New order alert banner */}
             {newCount > 0 && (
-                <div className="bg-[#fea520] text-[#000a1e] px-5 py-3 rounded-2xl font-extrabold text-sm flex items-center gap-3 shadow-lg animate-bounce">
-                    <span className="text-xl">🔔</span>
-                    {newCount} New Order{newCount > 1 ? 's' : ''} Received! Refresh to see the latest.
+                <div className="bg-blue-50 border border-blue-200 text-blue-800 px-5 py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-3 shadow-sm animate-fade-in text-center">
+                    <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                    </span>
+                    {newCount} New Order{newCount > 1 ? 's' : ''} Received! Click 'Refresh' to see the latest.
                 </div>
             )}
             <div className="flex flex-col sm:flex-row gap-3">
@@ -424,8 +453,8 @@ const OrdersTab = ({ token }: { token: string }) => {
                                         <tr key={order.orderId} className={`hover:bg-gray-50/50 transition-colors cursor-pointer ${isNew ? 'bg-amber-50/50' : ''}`} onClick={() => setSelected(order)}>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="font-mono text-xs font-bold text-[#002147]">{order.orderId}</span>
-                                                    {isNew && <span className="bg-[#fea520] text-[#000a1e] text-[9px] font-extrabold px-1.5 py-0.5 rounded-full animate-pulse">NEW</span>}
+                                                    <span className="font-mono text-xs font-bold text-gray-700">{order.orderId}</span>
+                                                    {isNew && <span className="bg-blue-50 border border-blue-200 text-blue-600 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full">NEW</span>}
                                                 </div>
                                                 <div className="text-gray-400 text-[10px] mt-0.5">{new Date(order.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
                                             </td>
