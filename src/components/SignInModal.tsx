@@ -177,9 +177,9 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
                   <div className="absolute inset-0 bg-[#fea520] blur opacity-0 group-hover:opacity-40 transition-opacity rounded-full"></div>
                   <AcademiaLogo className="h-9 w-auto relative z-10 group-hover:scale-105 transition-transform" />
                 </div>
-                <span className="text-2xl tracking-tight">
-                  <span className="font-extrabold text-[#000a1e]">cademia</span>
-                  <span className="font-extrabold text-[#fea520]">Pro</span>
+                <span className="text-2xl tracking-tight uppercase">
+                  <span className="font-black text-[#000a1e]">Assignment</span>
+                  <span className="font-black text-[#fea520]">Minds</span>
                   <sup className="text-[10px] font-bold text-gray-400 ml-0.5">TM</sup>
                 </span>
               </div>
