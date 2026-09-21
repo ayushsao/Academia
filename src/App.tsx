@@ -7,6 +7,7 @@ import { useStore } from './store/useStore';
 
 import { DynamicPage } from './pages/DynamicPage';
 
+import { ResourcesPage } from './pages/ResourcesPage';
 import { ChatWidget } from './components/ChatWidget';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -23,6 +24,7 @@ export default function App() {
             <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/p/:slug" element={<DynamicPage />} />
+                <Route path="/resources" element={<ResourcesPage />} />
                 <Route
                     path="/dashboard"
                     element={
