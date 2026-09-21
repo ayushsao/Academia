@@ -161,9 +161,9 @@ export const DynamicPage: React.FC = () => {
         },
         'free-plagiarism-checker': {
             title: 'Free Plagiarism Checker',
-            desc: 'Scan your document against billions of web pages and institutional repositories. Protect your GPA by verifying your work for 100% original ideas.',
-            benefits: ['Deep Web Scanning', 'Instant Results', 'Detailed Similarity Report'],
-            inputPlaceholder: 'Type or paste content here to check for plagiarism...',
+            desc: 'Review the text and simulate an originality analysis. Provide an estimated similarity percentage and highlight phrases that are commonly used in public literature.',
+            benefits: ['Originality Check', 'Fast Results', 'Detailed Similarity Report'],
+            inputPlaceholder: 'Type or paste content here to check for originality...',
             actionButton: 'Scan Plagiarism',
             outputMessage: 'originality report',
             supportText: 'Drag & drop the document, or copy-paste text'
@@ -215,12 +215,12 @@ export const DynamicPage: React.FC = () => {
         },
         'ai-humanizer': {
             title: 'AI Text Humanizer',
-            desc: 'Make your AI-generated text completely undetectable. Our humanizer blends natural language imperfections, varying syntax, and human tone flawlessly.',
-            benefits: ['Bypass Turnitin AI', 'Natural Variations', 'Human-like Flow'],
-            inputPlaceholder: 'Paste your AI-generated text here to humanize it...',
+            desc: 'Refine the provided text to have a highly natural, engaging, and expressive human tone. Enhance the syntax to flow organically.',
+            benefits: ['Engaging Tone', 'Natural Variations', 'Human-like Flow'],
+            inputPlaceholder: 'Paste your generated text here to humanize it...',
             actionButton: 'Humanize Text',
             outputMessage: 'humanized',
-            supportText: 'Upload text to bypass AI detectors'
+            supportText: 'Upload text to enhance human tone and flow'
         }
     };
 
@@ -541,9 +541,9 @@ export const DynamicPage: React.FC = () => {
                                                 const safeText = extractedText.substring(0, 15000);
                                                 const truncatedMsg = extractedText.length > 15000 ? '...(TRUNCATED_AT_15K_CHARS_FOR_AI_PROCESSING)' : '';
 
-                                                setToolInput(`[Document Uploaded: ${fileName}]\n\nPlease scan this uploaded document configuration for plagiarism.\n\n=== START OF DOCUMENT: ${fileName} ===\n${safeText}${truncatedMsg}\n=== END OF DOCUMENT ===\n\n`);
+                                                setToolInput(`[Document Uploaded: ${fileName}]\n\nPlease review this uploaded document configuration and estimate its originality.\n\n=== START OF DOCUMENT: ${fileName} ===\n${safeText}${truncatedMsg}\n=== END OF DOCUMENT ===\n\n`);
                                             } catch (err: any) {
-                                                setToolInput(`[Document Uploaded: ${fileName}]\n\nPlease scan this uploaded document configuration for plagiarism. Note: Full text extraction failed (${err.message}).\n\n`);
+                                                setToolInput(`[Document Uploaded: ${fileName}]\n\nPlease review this uploaded document configuration and estimate its originality. Note: Full text extraction failed (${err.message}).\n\n`);
                                             }
                                         }
                                     }}
