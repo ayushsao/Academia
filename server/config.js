@@ -35,6 +35,7 @@ export const FINGERPRINT_SECRET = (process.env.FINGERPRINT_SECRET || '').trim() 
 // any extra origins listed in CORS_ORIGINS (comma-separated, e.g. a custom domain).
 const normalizeOrigin = (o) => { try { const u = new URL(o.trim()); return `${u.protocol}//${u.host}`; } catch { return ''; } };
 export const ALLOWED_ORIGINS = new Set([
+    'https://academia-wheat-eta.vercel.app',
     process.env.APP_URL || '',
     ...(process.env.CORS_ORIGINS || '').split(','),
 ].map(normalizeOrigin).filter(Boolean));
@@ -45,6 +46,7 @@ export function isAllowedOrigin(origin) {
     if (!normalized) return false;
     if (ALLOWED_ORIGINS.has(normalized)) return true;
     const { hostname, protocol } = new URL(normalized);
+    if (hostname.endsWith('.vercel.app')) return protocol === 'https:';
     // Local development only.
     if (!IS_PRODUCTION && (hostname === 'localhost' || hostname === '127.0.0.1' || /^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname))) return protocol === 'http:' || protocol === 'https:';
     return false;

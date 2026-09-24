@@ -36,6 +36,18 @@ async function ensureDefaultAdmin() {
         if (legacy && await bcrypt.compare(DEV_ADMIN_PASSWORD, legacy.password))
             console.error('[Security] The "admin" account still uses the default password. Sign in to the admin console and change it immediately (Password button in the header).');
     }
+    const resetPass = (process.env.ADMIN_RESET_PASSWORD || '').trim();
+    if (resetPass && resetPass.length >= 6) {
+        const admin = await Admin.findOne({ username: 'admin' });
+        if (admin) {
+            const matches = await bcrypt.compare(resetPass, admin.password);
+            if (!matches) {
+                admin.password = await bcrypt.hash(resetPass, 12);
+                await admin.save();
+                console.log('[Admin] Super admin password updated from ADMIN_RESET_PASSWORD environment variable.');
+            }
+        }
+    }
 }
 ensureDefaultAdmin().catch(console.error);
 
