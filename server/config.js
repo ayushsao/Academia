@@ -61,7 +61,7 @@ export function securityWarnings() {
         if (!ALLOWED_ORIGINS.size) list.push('Neither APP_URL nor CORS_ORIGINS is set, so browsers cannot call the API.');
         if (process.env.RAZORPAY_KEY_ID && !process.env.RAZORPAY_WEBHOOK_SECRET) list.push('RAZORPAY_WEBHOOK_SECRET is not set; Razorpay webhooks will be rejected.');
         const exposed = Object.keys(process.env).filter(k => k.startsWith('VITE_') && /SECRET|PRIVATE|PASSWORD|API_KEY/i.test(k) && k !== 'VITE_EMAILJS_PUBLIC_KEY');
-        if (exposed.length) list.push(`${exposed.join(', ')} ${exposed.length === 1 ? 'is' : 'are'} prefixed VITE_; server secrets must not use that prefix (it is reserved for values that ship to browsers).`);
+        if (exposed.length) list.push(`${exposed.join(', ')} ${exposed.length === 1 ? 'is' : 'are'} set on the server with the VITE_ prefix. On the server, name them without it (e.g. INCEPTION_API_KEY); remove any the server doesn't use, and never set secret keys as VITE_* on Vercel — those ship to browsers.`);
     }
     return list;
 }

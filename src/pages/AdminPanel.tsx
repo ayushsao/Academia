@@ -89,7 +89,7 @@ const AdminLogin = ({ onLogin }: { onLogin: (t: string) => void }) => {
         e.preventDefault();
         setLoading(true); setError('');
         try {
-            const data = await apiFetch('/admin/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+            const data = await apiFetch('/admin/login', { method: 'POST', body: JSON.stringify({ username: username.trim(), password }) });
             localStorage.setItem('ap_admin_token', data.token);
             onLogin(data.token);
         } catch (err: any) { setError(err.message); }
@@ -119,6 +119,8 @@ const AdminLogin = ({ onLogin }: { onLogin: (t: string) => void }) => {
                         <input
                             type="text" value={username} onChange={e => setUsername(e.target.value)} required
                             placeholder="Enter admin username"
+                            // Stop mobile keyboards turning "admin" into "Admin" or "correcting" it.
+                            autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete="username" name="username"
                             className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-[#fea520]/50 focus:ring-2 focus:ring-[#fea520]/20 placeholder:text-white/20 font-medium"
                         />
                     </div>
@@ -126,7 +128,7 @@ const AdminLogin = ({ onLogin }: { onLogin: (t: string) => void }) => {
                         <label className="block text-xs font-bold text-white/60 uppercase tracking-widest mb-2">Password</label>
                         <input
                             type="password" value={password} onChange={e => setPassword(e.target.value)} required
-                            placeholder="Enter password"
+                            placeholder="Enter password" autoComplete="current-password" name="password"
                             className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-[#fea520]/50 focus:ring-2 focus:ring-[#fea520]/20 placeholder:text-white/20 font-medium"
                         />
                     </div>
@@ -1037,11 +1039,12 @@ export const AdminPanel: React.FC = () => {
         );
     }
 
+    // Fixed-height shell: the sidebar stays put (scrolling its own nav) and only the content column scrolls.
     return (
-        <div className="min-h-screen bg-[#f4f6fb] flex">
+        <div className="h-screen bg-[#f4f6fb] flex overflow-hidden">
             {/* Sidebar */}
-            <aside className={`fixed lg:relative inset-y-0 left-0 z-40 w-64 bg-[#000a1e] flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-                <div className="px-6 py-7 border-b border-white/5">
+            <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-64 h-screen shrink-0 bg-[#000a1e] flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+                <div className="px-6 py-5 border-b border-white/5 shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-[#fea520]/10 border border-[#fea520]/30 flex items-center justify-center">
                             <Shield className="w-5 h-5 text-[#fea520]" />
@@ -1053,16 +1056,16 @@ export const AdminPanel: React.FC = () => {
                     </div>
                 </div>
 
-                <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+                <nav className="flex-1 min-h-0 px-3 py-4 space-y-1 overflow-y-auto overscroll-contain [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.18)_transparent]">
                     {navItems.map(item => (
                         <button key={item.id} onClick={() => { setTab(item.id); setSidebarOpen(false); }}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${current?.id === item.id ? 'bg-[#fea520] text-[#000a1e]' : 'text-white/50 hover:text-white hover:bg-white/5'}`}>
+                            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${current?.id === item.id ? 'bg-[#fea520] text-[#000a1e]' : 'text-white/50 hover:text-white hover:bg-white/5'}`}>
                             {item.icon}{item.label}
                         </button>
                     ))}
                 </nav>
 
-                <div className="px-4 py-5 border-t border-white/5">
+                <div className="px-4 py-4 border-t border-white/5 shrink-0">
                     <div className="px-4 pb-3 text-xs text-white/40 truncate">Signed in as <span className="text-white/70 font-semibold">{access.username}</span></div>
                     <button onClick={handleLogout}
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-[12px] text-sm font-semibold text-white/40 hover:text-white hover:bg-white/5 transition-all">
@@ -1075,7 +1078,7 @@ export const AdminPanel: React.FC = () => {
             {sidebarOpen && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
             {/* Main content */}
-            <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 flex flex-col min-w-0 h-screen">
                 {/* Topbar */}
                 <header className="bg-white border-b border-gray-100 px-4 sm:px-6 py-4 flex items-center justify-between gap-3 shadow-sm sticky top-0 z-20">
                     <div className="flex items-center gap-4 min-w-0">
@@ -1096,7 +1099,7 @@ export const AdminPanel: React.FC = () => {
                 </header>
 
                 {/* Page content */}
-                <main className="flex-1 p-6 lg:p-8 overflow-auto">
+                <main className="flex-1 min-h-0 overflow-y-auto p-6 lg:p-8">
                     {!current && <p className="text-sm text-gray-500">Your role doesn’t have access to any console sections yet. Ask a Super Admin to update it.</p>}
                     {current?.id === 'dashboard' && <MarketplaceDashboard token={token} onNavigate={(t) => navItems.some(i => i.id === t) && setTab(t as TabId)} />}
                     {current?.id === 'overview' && <OverviewTab token={token} />}

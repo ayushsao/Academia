@@ -57,19 +57,21 @@ import { validateInput, adminLoginSchema, adminPasswordSchema } from '../validat
 
 const adminAuthLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 5, // Limit each IP to 5 admin login requests per windowMs
+    max: 10, // per IP; accounts also lock after repeated failures from any IP (services/abuse.js)
     message: { error: 'Too many admin authentication attempts. Please try again later.' }
 });
 
 router.post('/login', adminAuthLimiter, validateInput(adminLoginSchema), async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { password } = req.body;
+        // Usernames are matched trimmed and case-insensitively (mobile keyboards capitalise and autocorrect).
+        const username = String(req.body.username).trim();
 
         const throttleKey = `admin:${String(username).toLowerCase()}`;
         try { await assertNotLocked(throttleKey); }
         catch (err) { if (err instanceof AbuseError) return res.status(err.status).json({ error: err.message }); throw err; }
 
-        const admin = await Admin.findOne({ username });
+        const admin = await Admin.findOne({ username }).collation({ locale: "en", strength: 2 });
         const match = await bcrypt.compare(password, admin?.password || DUMMY_HASH);
         if (!admin || !match) {
             await recordLoginFailure(throttleKey);
