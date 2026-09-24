@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Search, ShoppingCart, Menu, ChevronDown, User, LogOut } from 'lucide-react';
+import { AcademiaLogo } from './AcademiaLogo';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { useNavigate, Link } from 'react-router-dom';
@@ -64,12 +65,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
 
         {/* Logo */}
         <div className="flex items-center gap-0 cursor-pointer group" onClick={() => navigate('/')}>
-          <div className="w-10 h-10 bg-[#fea520] transform -rotate-12 rounded-lg flex items-center justify-center shadow-sm z-10 transition-transform group-hover:rotate-0">
-            <div className="w-8 h-8 bg-white rounded transform rotate-12 flex items-center justify-center p-1 group-hover:rotate-0 transition-transform">
-              <span className="text-[#000a1e] font-black text-2xl leading-none italic block transform -rotate-12 group-hover:rotate-0 transition-transform">A</span>
-            </div>
-          </div>
-          <div className="flex flex-col z-0 -ml-0.5">
+          <AcademiaLogo className="h-11 w-auto z-10 transition-transform duration-300 group-hover:scale-105" />
+          <div className="flex flex-col z-0 ml-0.5">
             <span className="text-2xl font-black text-[#000a1e] uppercase tracking-tight leading-none">ssignment<span className="text-[#fea520]">Minds</span></span>
             <span className="text-[10px] sm:text-[11px] font-bold text-gray-500 tracking-wider pl-1.5 uppercase">Achieve Your Potential</span>
           </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { AcademiaLogo } from './AcademiaLogo';
 import {
   ArrowRight,
   PlayCircle,
@@ -420,7 +421,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                       </div>
                     </div>
                     <div className="bg-white px-2.5 py-1 rounded-md shadow-xs inline-flex items-center gap-1.5 shrink-0">
-                      <div className="w-4 h-4 bg-[#fea520] text-white flex items-center justify-center text-xs font-black rounded -rotate-6">A</div>
+                      <AcademiaLogo className="h-6 w-auto" />
                       <div className="flex flex-col">
                         <span className="text-[#222] font-black text-[13px] uppercase tracking-tighter leading-none">Assignment<span className="text-[#fea520]">Minds</span></span>
                         <span className="text-[6px] text-gray-500 font-bold uppercase tracking-widest leading-none mt-0.5">You Express, We Write</span>

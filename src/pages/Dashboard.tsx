@@ -3,6 +3,7 @@ import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, LayoutDashboard, List, Coins, Layers, Plus, Bookmark, Wallet, Bell, MessageCircle, ChevronRight, User, FileText, CheckCircle, Clock, Home } from 'lucide-react';
 import { OrderModal } from '../components/OrderModal';
+import { AcademiaLogo } from '../components/AcademiaLogo';
 
 import { API } from '../lib/api';
 
@@ -47,8 +48,8 @@ export const Dashboard: React.FC = () => {
             <header className="bg-gradient-to-r from-[#e37e25] to-[#f4933a] shadow-md px-6 py-3 flex items-center justify-between sticky top-0 z-40">
                 {/* Logo Area */}
                 <div className="flex items-center gap-0 cursor-pointer group" onClick={() => navigate('/')}>
-                    <div className="w-9 h-9 bg-[#000a1e] rounded-full flex items-center justify-center font-black text-[#fea520] text-2xl z-10 transition-transform group-hover:scale-110">
-                        A
+                    <div className="w-10 h-10 bg-[#000a1e] rounded-full flex items-center justify-center z-10 transition-transform group-hover:scale-110">
+                        <AcademiaLogo isDark className="h-7 w-auto" />
                     </div>
                     <div className="flex flex-col z-0 -ml-0.5">
                         <span className="text-2xl font-black text-white uppercase tracking-tight leading-none">ssignment<span className="text-[#000a1e]">Minds</span>™</span>
