@@ -51,9 +51,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
 
   const navLinks = [
     { label: 'Services', hasDropdown: true },
-    { label: 'Resources', hasDropdown: false },
+    { label: 'Resources', hasDropdown: false, to: '/resources' },
     { label: 'Hire Writers', hasDropdown: true },
-    { label: 'Blogs', hasDropdown: false },
+    { label: 'Reviews', hasDropdown: false, to: '/reviews' },
+    { label: 'Blogs', hasDropdown: false, to: '/p/blogs' },
     { label: 'Academic Tools', hasDropdown: true },
   ];
 
@@ -78,7 +79,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
         <div className="hidden lg:flex items-center gap-6 xl:gap-8">
           {navLinks.map((link, idx) => (
             <div key={idx} className="group relative flex items-center gap-1 text-[#2d2d2d] hover:text-[#fea520] font-medium text-sm transition-colors py-4">
-              <span onClick={() => { if (!link.hasDropdown) navigate(`/p/${link.label.toLowerCase().replace(/ /g, '-')}`) }} className="cursor-pointer">{link.label}</span>
+              <span onClick={() => { if (!link.hasDropdown) navigate(link.to || `/p/${link.label.toLowerCase().replace(/ /g, '-')}`); }} className="cursor-pointer">{link.label}</span>
               {link.hasDropdown && <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-[#fea520] transition-colors cursor-pointer" />}
 
               {/* SERVICES MEGA MENU */}
@@ -155,12 +156,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
 
               {/* Academic Tools Dropdown Menu */}
               {link.hasDropdown && link.label === 'Academic Tools' && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-0 w-72 bg-white rounded-b-xl rounded-t-sm shadow-[0_10px_40px_rgba(0,0,0,0.1)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-0 w-80 bg-white rounded-b-xl rounded-t-sm shadow-[0_10px_40px_rgba(0,0,0,0.1)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                   <div className="w-full flex flex-col pt-1 bg-white rounded-b-xl border border-gray-100 overflow-hidden">
                     {[
                       'Free Paraphrasing Tool',
                       'Free Grammar Checker',
                       'Free Plagiarism Checker',
+                      'Turnitin Plagiarism Checker',
+                      'Inception AI Research Assistant',
                       'Free Essay Typer',
                       'Free Dissertation Outline\nGenerator',
                       'Free Thesis Statement Generator',
@@ -209,6 +212,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                         </div>
                       </div>
                     ))}
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                    <Link to="/hire-writers" className="text-xs font-bold text-[#002147] hover:text-[#e36100] transition-colors">Browse all verified writers →</Link>
+                    <Link to="/become-a-writer" className="flex items-center gap-2 text-xs font-bold text-[#002147] bg-[#002147]/5 hover:bg-[#002147]/10 px-3 py-2 rounded-lg transition-colors">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#fea520]" /> Are you an academic expert? Join as a writer
+                    </Link>
                   </div>
                 </div>
               )}
@@ -290,7 +300,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                     onClick={() => {
                       if (!link.hasDropdown) {
                         setMobileMenuOpen(false);
-                        navigate(`/p/${link.label.toLowerCase().replace(/ /g, '-')}`);
+                        navigate((link as any).to || `/p/${link.label.toLowerCase().replace(/ /g, '-')}`);
                       } else {
                         setMobileExpandedMenu(mobileExpandedMenu === link.label ? null : link.label);
                       }
@@ -306,6 +316,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                         'Free Paraphrasing Tool',
                         'Free Grammar Checker',
                         'Free Plagiarism Checker',
+                        'Turnitin Plagiarism Checker',
+                        'Inception AI Research Assistant',
                         'Free Essay Typer',
                         'Free Dissertation Outline\nGenerator',
                         'Free Thesis Statement Generator',
@@ -344,6 +356,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                           </div>
                         </div>
                       ))}
+                      <div onClick={() => { setMobileMenuOpen(false); navigate('/become-a-writer'); }} className="mt-1 p-2.5 rounded-lg bg-[#002147] text-white text-xs font-bold text-center cursor-pointer">
+                        Join as a writer
+                      </div>
                     </div>
                   )}
 

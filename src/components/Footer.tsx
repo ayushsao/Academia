@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Phone, Mail, MessageCircle, ArrowUp } from 'lucide-react';
 
 interface FooterProps {
@@ -36,11 +37,13 @@ export const Footer: React.FC<FooterProps> = () => {
             <h4 className="font-bold text-white text-[15px] uppercase tracking-wide mb-6">Our Company</h4>
             <ul className="flex flex-col gap-3.5 text-[13.5px] font-medium">
               <li><a className="hover:text-white transition-colors" href="#">About Us</a></li>
-              <li><a className="hover:text-white transition-colors" href="#">Reviews</a></li>
+              <li><Link className="hover:text-white transition-colors" to="/reviews">Reviews</Link></li>
               <li><a className="hover:text-white transition-colors" href="#">Contact Us</a></li>
               <li><a className="hover:text-white transition-colors" href="#">Blogs</a></li>
               <li><a className="hover:text-white transition-colors" href="#">Experts</a></li>
               <li><a className="hover:text-white transition-colors" href="#">Samples</a></li>
+              <li><a className="hover:text-white transition-colors" href="/hire-writers">Find a Writer</a></li>
+              <li><a className="hover:text-white transition-colors text-[#fea520]" href="/become-a-writer">Become a Writer</a></li>
             </ul>
           </div>
 
@@ -145,7 +148,7 @@ export const Footer: React.FC<FooterProps> = () => {
               © Copyright 2026 @ AssignmentMinds. All Rights Reserved
             </p>
             <p className="text-white font-medium mt-2 md:mt-0">
-              Assignment Help Rated <span className="font-bold">4.8/5</span> based on <span className="underline decoration-yellow-500 underline-offset-2">5768 Reviews</span>
+              Assignment Help Rated <span className="font-bold">4.8/5</span> based on <Link to="/reviews" className="underline decoration-yellow-500 underline-offset-2 hover:text-[#fea520] transition-colors">5768 Reviews</Link>
             </p>
           </div>
         </div>

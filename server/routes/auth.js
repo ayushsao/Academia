@@ -2,13 +2,16 @@ import { Router } from 'express';
 import { createRequire } from 'module';
 import https from 'https';
 import { rateLimit } from 'express-rate-limit';
-import { User } from '../db.js';
-import { JWT_SECRET, authenticateUser } from '../middleware.js';
+import crypto from 'crypto';
+import { User, Writer } from '../db.js';
+import { AbuseError, assertNotLocked, recordLoginFailure, clearLoginFailures } from '../services/abuse.js';
+import { authenticateUser, issueUserSession } from '../middleware.js';
 import { validateInput, signupSchema, loginSchema } from '../validation.js';
 
 const require = createRequire(import.meta.url);
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+// Hash of a random value, compared against when the email is unknown (equal timing).
+const DUMMY_HASH = bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), 12);
 
 const router = Router();
 
@@ -86,8 +89,7 @@ router.post('/google', authLimiter, async (req, res) => {
             await user.save();
         }
 
-        const token = jwt.sign({ id: user._id, email: user.email, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-        res.cookie('auth_token', token, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 7 * 24 * 60 * 60 * 1000 });
+        const token = issueUserSession(res, user);
         res.json({ token, isNewUser, user: { id: user._id, name: user.name, email: user.email, role: user.role, picture: payload.picture } });
     } catch (err) {
         console.error('Google Auth Error:', err);
@@ -110,8 +112,7 @@ router.post('/signup', authLimiter, validateInput(signupSchema), async (req, res
         const hash = await bcrypt.hash(password, 12);
         const user = await User.create({ name, email: email.toLowerCase(), password: hash });
 
-        const token = jwt.sign({ id: user._id, email: user.email, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-        res.cookie('auth_token', token, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 7 * 24 * 60 * 60 * 1000 });
+        const token = issueUserSession(res, user);
         res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
     } catch (err) {
         // Prevent leaking mongodb errors
@@ -124,20 +125,25 @@ router.post('/login', authLimiter, validateInput(loginSchema), async (req, res) 
     try {
         const { email, password } = req.body;
 
+        // Per-account lockout (across IPs) on top of the per-IP limiter.
+        const throttleKey = `user:${email.toLowerCase()}`;
+        try { await assertNotLocked(throttleKey); }
+        catch (err) { if (err instanceof AbuseError) return res.status(err.status).json({ error: err.message }); throw err; }
+
         const user = await User.findOne({ email: email.toLowerCase() });
-        if (!user) {
-            // Constant time comparison (dummy) can prevent timing attacks, but just return generic error
+        // Compare against a dummy hash for unknown emails so response timing doesn't reveal which accounts exist.
+        const match = await bcrypt.compare(password, user?.password || DUMMY_HASH);
+        if (!user || !match) {
+            const writer = user?.role === 'WRITER' ? await Writer.findOne({ userId: user._id }).select('_id').lean() : null;
+            await recordLoginFailure(throttleKey, { writerId: writer?._id, userId: user?._id });
             return res.status(401).json({ error: 'Invalid email or password.' });
         }
-
-        const match = await bcrypt.compare(password, user.password);
-        if (!match) return res.status(401).json({ error: 'Invalid email or password.' });
+        await clearLoginFailures(throttleKey);
 
         user.lastLogin = new Date();
         await user.save();
 
-        const token = jwt.sign({ id: user._id, email: user.email, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-        res.cookie('auth_token', token, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 7 * 24 * 60 * 60 * 1000 });
+        const token = issueUserSession(res, user);
         res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
     } catch (err) {
         res.status(500).json({ error: 'Login failed due to a server error.' });

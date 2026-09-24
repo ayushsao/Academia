@@ -6,6 +6,7 @@ import { OrderModal } from '../components/OrderModal';
 import { SignInModal } from '../components/SignInModal';
 import { SideDrawer } from '../components/SideDrawer';
 import { Calculator, ArrowRight, CheckCircle2, FileText, Lock, Award } from 'lucide-react';
+import { API } from '../lib/api';
 
 export const DynamicPage: React.FC = () => {
     const { slug } = useParams<{ slug: string }>();
@@ -221,6 +222,51 @@ export const DynamicPage: React.FC = () => {
             actionButton: 'Humanize Text',
             outputMessage: 'humanized',
             supportText: 'Upload text to enhance human tone and flow'
+        },
+        'turnitin-plagiarism-checker': {
+            title: 'Turnitin Plagiarism & AI Checker',
+            desc: 'Scan your draft against Turnitin-standard academic databases, 99+ billion archived web pages, and university repositories. Receive an estimated similarity breakdown and AI originality score.',
+            benefits: ['Turnitin-Level Precision', 'AI Content Detection', 'Detailed Similarity Breakdown'],
+            inputPlaceholder: 'Type or paste content here to run a Turnitin originality and similarity check, or upload a document...',
+            actionButton: 'Scan with Turnitin',
+            outputMessage: 'Turnitin originality report',
+            supportText: 'Upload (.pdf, .docx, .txt) or copy-paste text to scan with Turnitin standards'
+        },
+        'turnitin': {
+            title: 'Turnitin Plagiarism & AI Checker',
+            desc: 'Scan your draft against Turnitin-standard academic databases, 99+ billion archived web pages, and university repositories. Receive an estimated similarity breakdown and AI originality score.',
+            benefits: ['Turnitin-Level Precision', 'AI Content Detection', 'Detailed Similarity Breakdown'],
+            inputPlaceholder: 'Type or paste content here to run a Turnitin originality and similarity check, or upload a document...',
+            actionButton: 'Scan with Turnitin',
+            outputMessage: 'Turnitin originality report',
+            supportText: 'Upload (.pdf, .docx, .txt) or copy-paste text to scan with Turnitin standards'
+        },
+        'inception-ai-research-assistant': {
+            title: 'Inception AI Research Assistant',
+            desc: 'Harness the cutting-edge Inception Labs Mercury-2.5 academic AI model. Formulate thesis arguments, synthesize complex literature, evaluate research methodologies, and write publication-grade analyses.',
+            benefits: ['Powered by Inception Labs Mercury-2.5', 'Doctoral-Standard Synthesis', 'Peer-Reviewed Literature Framing'],
+            inputPlaceholder: 'Enter your research question, thesis topic, or assignment instructions for Inception AI...',
+            actionButton: 'Generate with Inception AI',
+            outputMessage: 'Inception AI academic analysis',
+            supportText: 'Provide detailed instructions or research prompts for Inception AI'
+        },
+        'inception-ai-writer': {
+            title: 'Inception AI Writer',
+            desc: 'Harness the cutting-edge Inception Labs Mercury-2.5 academic AI model. Formulate thesis arguments, synthesize complex literature, evaluate research methodologies, and write publication-grade analyses.',
+            benefits: ['Powered by Inception Labs Mercury-2.5', 'Doctoral-Standard Synthesis', 'Peer-Reviewed Literature Framing'],
+            inputPlaceholder: 'Enter your research question, thesis topic, or assignment instructions for Inception AI...',
+            actionButton: 'Generate with Inception AI',
+            outputMessage: 'Inception AI academic analysis',
+            supportText: 'Provide detailed instructions or research prompts for Inception AI'
+        },
+        'inception': {
+            title: 'Inception AI Research Assistant',
+            desc: 'Harness the cutting-edge Inception Labs Mercury-2.5 academic AI model. Formulate thesis arguments, synthesize complex literature, evaluate research methodologies, and write publication-grade analyses.',
+            benefits: ['Powered by Inception Labs Mercury-2.5', 'Doctoral-Standard Synthesis', 'Peer-Reviewed Literature Framing'],
+            inputPlaceholder: 'Enter your research question, thesis topic, or assignment instructions for Inception AI...',
+            actionButton: 'Generate with Inception AI',
+            outputMessage: 'Inception AI academic analysis',
+            supportText: 'Provide detailed instructions or research prompts for Inception AI'
         }
     };
 
@@ -259,11 +305,12 @@ export const DynamicPage: React.FC = () => {
         setIsToolProcessing(false);
     }, [slug]);
 
-    const isToolPage = slug && (slug.includes('tool') || slug.includes('checker') || slug.includes('typer') || slug.includes('generator') || slug.includes('summarizer') || slug.includes('writer') || slug.includes('humanizer') || slug.includes('calculator'));
+    const isToolPage = slug && (slug.includes('tool') || slug.includes('checker') || slug.includes('typer') || slug.includes('generator') || slug.includes('summarizer') || slug.includes('writer') || slug.includes('humanizer') || slug.includes('calculator') || slug.includes('turnitin') || slug.includes('inception'));
 
     const handleProcessTool = async () => {
+        const isPlagiarismScan = slug === 'free-plagiarism-checker' || Boolean(slug?.includes('turnitin'));
         const isFormEmpty = !toolInput.trim() && Object.values(customForm).filter(v => typeof v === 'string' && v.trim()).length === 0;
-        if (isFormEmpty && slug !== 'free-plagiarism-checker') return;
+        if (isFormEmpty && !isPlagiarismScan) return;
 
         setIsToolProcessing(true);
         setToolError('');
@@ -299,7 +346,7 @@ export const DynamicPage: React.FC = () => {
                 }
             } else if (slug !== 'free-grammar-checker') {
 
-                const baseApi = String((import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api')).trim();
+                const baseApi = API;
                 let finalPrompt = toolInput;
                 if (!finalPrompt.trim() && Object.keys(customForm).length > 0) {
                     finalPrompt = Object.entries(customForm)
@@ -480,7 +527,7 @@ export const DynamicPage: React.FC = () => {
                             </p>
                         </div>
 
-                        {slug === 'free-plagiarism-checker' ? (
+                        {slug === 'free-plagiarism-checker' || slug?.includes('turnitin') ? (
                             <div className="w-full bg-white rounded-xl border border-gray-200 shadow-sm min-h-[400px] flex flex-col p-8 md:p-12 relative overflow-hidden">
                                 <div className="flex flex-col md:flex-row items-center gap-6 mb-8 w-full border-b pb-8">
                                     <div className="w-20 h-20 rounded-full bg-emerald-50 border-2 border-emerald-100 flex items-center justify-center shrink-0">
@@ -495,7 +542,7 @@ export const DynamicPage: React.FC = () => {
                                 <textarea
                                     value={toolInput}
                                     onChange={(e) => setToolInput(e.target.value)}
-                                    placeholder="Paste your document text here to check for plagiarism, or upload a file..."
+                                    placeholder={content.inputPlaceholder || "Paste your document text here to check for plagiarism, or upload a file..."}
                                     className="w-full h-48 p-4 border border-gray-200 rounded-lg mb-6 resize-none outline-none focus:border-[#fea520]"
                                 ></textarea>
 
@@ -561,7 +608,7 @@ export const DynamicPage: React.FC = () => {
                                         disabled={isToolProcessing}
                                         className="bg-[#000a1e] hover:bg-[#002147] text-white px-8 py-3 rounded-lg font-bold transition-all shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed"
                                     >
-                                        {isToolProcessing ? 'Scanning...' : 'Scan Plagiarism'}
+                                        {isToolProcessing ? 'Scanning...' : (content.actionButton || 'Scan Plagiarism')}
                                     </button>
                                 </div>
 

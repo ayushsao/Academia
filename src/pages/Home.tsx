@@ -34,6 +34,7 @@ import { SamplesShowcase } from '../components/SamplesShowcase';
 import { BlogGrid } from '../components/BlogGrid';
 import { FloatingElements } from '../components/FloatingElements';
 import { PopupFunnel } from '../components/PopupFunnel';
+import { JoinAsWriterSection } from '../components/JoinAsWriterSection';
 import { Consultant, Discipline, ServiceType, SubjectType } from '../types';
 
 export default function App() {
@@ -53,6 +54,10 @@ export default function App() {
     subject?: SubjectType;
     pages?: number;
     deadline?: string;
+    academicLevel?: 'Undergraduate' | 'Master\'s' | 'PhD / Doctoral' | 'Professional';
+    topicTitle?: string;
+    instructions?: string;
+    files?: string[];
   }>({});
 
   const [activeSection, setActiveSection] = useState<string>('academic-support');
@@ -68,6 +73,10 @@ export default function App() {
     subject?: SubjectType;
     pages?: number;
     deadline?: string;
+    academicLevel?: 'Undergraduate' | 'Master\'s' | 'PhD / Doctoral' | 'Professional';
+    topicTitle?: string;
+    instructions?: string;
+    files?: string[];
   }) => {
     if (prefill && Object.keys(prefill).length > 0) {
       setOrderPrefill(prefill);
@@ -221,6 +230,10 @@ export default function App() {
 
         <ScrollReveal>
           <ReviewsSection />
+        </ScrollReveal>
+
+        <ScrollReveal>
+          <JoinAsWriterSection />
         </ScrollReveal>
 
         <ScrollReveal>

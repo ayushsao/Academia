@@ -67,7 +67,12 @@ export interface Review {
   date: string;
   rating: number;
   text: string;
-  platform: 'MY ASSIGNMENT HELP' | 'SITEJABBER' | 'REVIEWS.io';
+  platform: 'MY ASSIGNMENT HELP' | 'SITEJABBER' | 'REVIEWS.io' | 'TRUSTPILOT' | 'STUDENT CHOICE';
+  subject?: string;
+  location?: string;
+  level?: string;
+  grade?: string;
+  verified?: boolean;
 }
 
 export interface OrderState {

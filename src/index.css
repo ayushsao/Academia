@@ -120,3 +120,13 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+/* Writer forms: keep autofilled fields white instead of the browser's blue tint. */
+.fk-input:-webkit-autofill,
+.fk-input:-webkit-autofill:hover,
+.fk-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+  -webkit-text-fill-color: #1d1d1f;
+  caret-color: #1d1d1f;
+  transition: background-color 9999s ease-out 0s;
+}

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { Order } from '../db.js';
 import { authenticateUser } from '../middleware.js';
 import { validateInput, orderSchema } from '../validation.js';
+import { ownedFileNames, streamOrderFile, customerCanAccess } from '../services/orderFiles.js';
 
 const router = Router();
 
@@ -76,7 +77,7 @@ router.post('/', authenticateUser, validateInput(orderSchema), async (req, res) 
             pages: calcPages,
             deadline, topicTitle,
             instructions: instructions || '',
-            files: files || [],
+            files: await ownedFileNames(files || [], req.user.id),   // only the caller's own uploads
             turnitinReport: Boolean(turnitinReport),
             topExpert: Boolean(topExpert),
             abstractPage: Boolean(abstractPage),
@@ -91,6 +92,14 @@ router.post('/', authenticateUser, validateInput(orderSchema), async (req, res) 
 });
 
 // GET /api/orders/:id — single order
+// GET /api/orders/files/:name — download one of the caller's own order files.
+router.get('/files/:name', authenticateUser, async (req, res) => {
+    try {
+        if (!await customerCanAccess(req.user.id, req.params.name)) return res.status(404).json({ error: 'File not found.' });
+        await streamOrderFile(res, req.params.name);
+    } catch { if (!res.headersSent) res.status(500).json({ error: 'Could not load file.' }); }
+});
+
 router.get('/:id', authenticateUser, async (req, res) => {
     try {
         const order = await Order.findOne({ orderId: req.params.id, userId: req.user.id });

@@ -4,11 +4,24 @@ import {
     Search, RefreshCw, Trash2, ChevronDown, X, Check, Eye,
     TrendingUp, AlertCircle, Clock, CheckCircle2, XCircle,
     Shield, Mail, DollarSign, FileText, Menu, Award,
-    BarChart2, Settings, Tag, Globe, Save, Activity
+    BarChart2, Settings, Tag, Globe, Save, Activity,
+    PenTool, History, CheckSquare, Crown, ClipboardList, Gauge, Megaphone, ShieldAlert, FileEdit, KeyRound
 } from 'lucide-react';
 
-// ─── Config ──────────────────────────────────────────────────────────────────
-const API = String((import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api')).trim().replace(/\/+$/, '');
+import AdminWritersTab from './marketplace/admin/AdminWritersTab';
+import AdminApplicationsTab from './marketplace/admin/AdminApplicationsTab';
+import AdminAuditLogsTab from './marketplace/admin/AdminAuditLogsTab';
+import AdminMembershipTab from './marketplace/admin/membership/AdminMembershipTab';
+import AdminAssignmentsTab from './marketplace/admin/assignments/AdminAssignmentsTab';
+import AdminTeamTab from './marketplace/admin/AdminTeamTab';
+import MarketplaceDashboard from './marketplace/admin/MarketplaceDashboard';
+import RecruitmentTab from './marketplace/admin/RecruitmentTab';
+import { hasPermission, type AdminAccess } from './marketplace/admin/access';
+import TrustSafetyTab from './marketplace/admin/TrustSafetyTab';
+import SiteContentTab from './marketplace/admin/SiteContentTab';
+import AdminPasswordDialog from './marketplace/admin/AdminPasswordDialog';
+
+import { API } from '../lib/api';
 
 // ─── API helpers ─────────────────────────────────────────────────────────────
 async function apiFetch(path: string, opts: RequestInit = {}, token?: string) {
@@ -166,20 +179,20 @@ const OrderDetailDrawer = ({
 
     const handleForceDownload = async (fileUrl: string, fileName: string) => {
         try {
-            const resp = await fetch(fileUrl);
+            // Order files are private: fetched with the admin token, never via a public URL.
+            const resp = await fetch(fileUrl, { headers: { Authorization: `Bearer ${token}` } });
             if (!resp.ok) throw new Error("File not found");
             const blob = await resp.blob();
             const localUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = localUrl;
-            a.download = fileName;
+            a.download = fileName.replace(/^[0-9a-f]{32}-/, '');
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(localUrl);
         } catch (e) {
-            alert("Unable to download file directly (CORS or missing file). We will open it in a new tab instead.");
-            window.open(fileUrl, '_blank');
+            alert("This file couldn’t be downloaded. It may have been removed.");
         }
     };
 
@@ -287,7 +300,7 @@ const OrderDetailDrawer = ({
                         {order.files && order.files.length > 0 ? (
                             <div className="space-y-3">
                                 {order.files.map((fileName, idx) => {
-                                    const fileUrl = `${API.replace('/api', '')}/uploads/${fileName}`;
+                                    const fileUrl = `${API}/admin/orders/files/${encodeURIComponent(fileName)}`;
                                     return (
                                         <div
                                             key={idx}
@@ -925,150 +938,76 @@ const SettingsTab = ({ token }: { token: string }) => {
     );
 };
 
-// ─── Founders / Admins Tab ──────────────────────────────────────────────────────────
-const AdminsTab = ({ token }: { token: string }) => {
-    const [admins, setAdmins] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [inviteEmail, setInviteEmail] = useState('');
-    const [inviting, setInviting] = useState(false);
-
-    const load = React.useCallback(async () => {
-        try {
-            const data = await apiFetch('/admin/managers', {}, token);
-            setAdmins(data.admins);
-        } catch (e: any) { alert(e.message); }
-        finally { setLoading(false); }
-    }, [token]);
-
-    React.useEffect(() => { load(); }, [load]);
-
-    const handleInvite = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!inviteEmail) return;
-        setInviting(true);
-        try {
-            const data = await apiFetch('/admin/managers', { method: 'POST', body: JSON.stringify({ email: inviteEmail }) }, token);
-
-            // Send Email over EmailJS
-            const EmailJSConfig = {
-                serviceId: (import.meta as any).env.VITE_EMAILJS_SERVICE_ID || 'service_089l13d',
-                templateId: (import.meta as any).env.VITE_EMAILJS_ADMIN_TEMPLATE_ID || 'template_omo2hya',
-                publicKey: (import.meta as any).env.VITE_EMAILJS_PUBLIC_KEY || 'u1Lnz6UEF9jlDevVZ'
-            };
-            const emailjs = (await import('@emailjs/browser')).default;
-            await emailjs.send(
-                EmailJSConfig.serviceId as string,
-                EmailJSConfig.templateId as string,
-                {
-                    to_name: 'Co-Founder',
-                    to_email: inviteEmail,
-                    admin_username: data.admin.username,
-                    admin_password: data.plainPassword,
-                    login_url: `${window.location.origin}/admin`,
-                    // Fallback attributes for older templates
-                    email: inviteEmail,
-                    message: `You have been granted Admin Access.\n\nPlease go to ${window.location.origin}/admin and login:\nUsername: ${data.admin.username} \nPassword: ${data.plainPassword}\n\nPlease keep these safe.`,
-                    app_url: window.location.origin
-                },
-                EmailJSConfig.publicKey as string
-            );
-
-            alert(`Admin invited successfully!\n\nPlease save these credentials and share them with the new admin safely. An email was also attempted via EmailJS.\n\nUsername: ${data.admin.username}\nPassword: ${data.plainPassword}`);
-            setInviteEmail('');
-            load();
-        } catch (e: any) { alert('Failed to invite admin: ' + e.message); }
-        finally { setInviting(false); }
-    };
-
-    const handleDelete = async (id: string, username: string) => {
-        if (!window.confirm(`Revoke admin access for ${username}?`)) return;
-        try {
-            await apiFetch(`/admin/managers/${id}`, { method: 'DELETE' }, token);
-            load();
-        } catch (e: any) { alert(e.message); }
-    };
-
-    if (loading) return <div className="flex justify-center py-24"><div className="w-10 h-10 border-4 border-gray-200 border-t-[#fea520] rounded-full animate-spin" /></div>;
-
-    return (
-        <div className="space-y-6">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 max-w-xl">
-                <h3 className="font-bold text-[#000a1e] mb-2 flex items-center gap-2"><Shield className="w-5 h-5 text-[#fea520]" /> Invite Co-Founder</h3>
-                <p className="text-sm text-gray-500 mb-5">Grant admin console access to another team member via email.</p>
-                <form onSubmit={handleInvite} className="flex gap-3">
-                    <input type="email" placeholder="Co-founder's email address..." value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} required
-                        className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-[#fea520]" />
-                    <button type="submit" disabled={inviting}
-                        className="bg-[#000a1e] hover:bg-[#002147] text-white px-6 py-2.5 rounded-[12px] font-bold text-sm transition-all disabled:opacity-60 flex items-center gap-2">
-                        {inviting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Mail className="w-4 h-4" />} Invite
-                    </button>
-                </form>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                    <h3 className="font-bold text-[#000a1e]">Active Admins <span className="text-gray-400 font-normal text-sm">({admins.length} total)</span></h3>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="bg-gray-50 border-b border-gray-100">
-                                <th className="text-left px-6 py-3 text-xs font-bold text-gray-400 uppercase tracking-widest">Username / Email</th>
-                                <th className="text-left px-6 py-3 text-xs font-bold text-gray-400 uppercase tracking-widest">Added On</th>
-                                <th className="text-right px-6 py-3 text-xs font-bold text-gray-400 uppercase tracking-widest">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {admins.map(admin => (
-                                <tr key={admin._id} className="hover:bg-gray-50/50 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className="font-bold text-[#000a1e]">{admin.username}</div>
-                                        {admin.email && <div className="text-xs text-gray-400">{admin.email}</div>}
-                                    </td>
-                                    <td className="px-6 py-4 text-gray-600 font-medium">{new Date(admin.createdAt || Date.now()).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4 text-right">
-                                        {admin.username !== 'admin' && (
-                                            <button onClick={() => handleDelete(admin._id, admin.username)} className="text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-colors inline-block" title="Revoke Access">
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 // ─── Main Admin Panel ─────────────────────────────────────────────────────────
+type TabId = 'dashboard' | 'overview' | 'orders' | 'users' | 'writers' | 'applications' | 'assignments' | 'memberships' | 'recruitment' | 'content' | 'trust' | 'audit' | 'contacts' | 'analytics' | 'settings' | 'admins';
+
+// Each tab lists the permissions that unlock it (any one is enough). The server
+// enforces the same permissions; this only keeps the navigation honest.
+const NAV: { id: TabId; label: string; title: string; icon: React.ReactNode; perms: string[] }[] = [
+    { id: 'dashboard', label: 'Dashboard', title: 'Marketplace Dashboard', icon: <Gauge className="w-5 h-5" />, perms: ['dashboard.view'] },
+    { id: 'overview', label: 'Orders Overview', title: 'Orders Overview', icon: <LayoutDashboard className="w-5 h-5" />, perms: ['orders.read'] },
+    { id: 'orders', label: 'Orders', title: 'Orders Management', icon: <ShoppingBag className="w-5 h-5" />, perms: ['orders.read'] },
+    { id: 'users', label: 'Users', title: 'Users Management', icon: <Users className="w-5 h-5" />, perms: ['users.manage'] },
+    { id: 'writers', label: 'Writers', title: 'Writer Management', icon: <PenTool className="w-5 h-5" />, perms: ['writers.read'] },
+    { id: 'applications', label: 'Applications', title: 'Writer Applications', icon: <CheckSquare className="w-5 h-5" />, perms: ['writers.read'] },
+    { id: 'assignments', label: 'Assignments', title: 'Assignments', icon: <ClipboardList className="w-5 h-5" />, perms: ['assignments.manage', 'payouts.manage'] },
+    { id: 'memberships', label: 'Memberships', title: 'Memberships & Payments', icon: <Crown className="w-5 h-5" />, perms: ['subscriptions.read', 'memberships.manage', 'payments.read'] },
+    { id: 'recruitment', label: 'Recruitment', title: 'Writer Recruitment', icon: <Megaphone className="w-5 h-5" />, perms: ['recruitment.read'] },
+    { id: 'content', label: 'Site Content', title: 'Site Content', icon: <FileEdit className="w-5 h-5" />, perms: ['content.manage'] },
+    { id: 'trust', label: 'Trust & Safety', title: 'Trust & Safety', icon: <ShieldAlert className="w-5 h-5" />, perms: ['risk.review'] },
+    { id: 'contacts', label: 'Messages', title: 'Contact Messages', icon: <MessageSquare className="w-5 h-5" />, perms: ['leads.manage'] },
+    { id: 'analytics', label: 'Analytics', title: 'Traffic & Analytics', icon: <BarChart2 className="w-5 h-5" />, perms: ['analytics.read'] },
+    { id: 'audit', label: 'Audit Logs', title: 'Audit Logs', icon: <History className="w-5 h-5" />, perms: ['audit.read'] },
+    { id: 'settings', label: 'Settings', title: 'Site Settings', icon: <Settings className="w-5 h-5" />, perms: ['settings.manage'] },
+    { id: 'admins', label: 'Team & Roles', title: 'Team & Roles', icon: <Shield className="w-5 h-5" />, perms: ['admins.manage'] },
+];
+
 export const AdminPanel: React.FC = () => {
     const [token, setToken] = useState<string>(() => localStorage.getItem('ap_admin_token') || '');
-    const [tab, setTab] = useState<'overview' | 'orders' | 'users' | 'contacts' | 'analytics' | 'settings' | 'admins'>('overview');
+    const [access, setAccess] = useState<AdminAccess | null>(null);
+    const [accessError, setAccessError] = useState('');
+    const [tab, setTab] = useState<TabId | null>(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [changingPassword, setChangingPassword] = useState(false);
 
-    const handleLogout = () => { localStorage.removeItem('ap_admin_token'); setToken(''); };
+    const clearSession = () => { localStorage.removeItem('ap_admin_token'); localStorage.removeItem('ap_admin_role'); setToken(''); setAccess(null); setTab(null); };
+    const handleLogout = clearSession;
 
     // Auto-logout when any API call returns 401 Unauthorized
     useEffect(() => {
-        const onUnauth = () => { localStorage.removeItem('ap_admin_token'); setToken(''); };
-        window.addEventListener('admin-unauthorized', onUnauth);
-        return () => window.removeEventListener('admin-unauthorized', onUnauth);
+        window.addEventListener('admin-unauthorized', clearSession);
+        return () => window.removeEventListener('admin-unauthorized', clearSession);
     }, []);
+
+    // The role is always read from the server, so a changed or revoked role applies on the next load.
+    useEffect(() => {
+        if (!token) return;
+        let live = true;
+        setAccessError('');
+        apiFetch('/admin/me', {}, token)
+            .then(data => { if (live) setAccess(data.admin); })
+            .catch((e: any) => { if (live) setAccessError(e.message || 'Could not load your access.'); });
+        return () => { live = false; };
+    }, [token]);
+
+    const navItems = NAV.filter(i => hasPermission(access, ...i.perms));
+    const current = navItems.find(i => i.id === tab) || navItems[0];
 
     if (!token) return <AdminLogin onLogin={setToken} />;
 
-    const navItems = [
-        { id: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-5 h-5" /> },
-        { id: 'orders', label: 'Orders', icon: <ShoppingBag className="w-5 h-5" /> },
-        { id: 'users', label: 'Users', icon: <Users className="w-5 h-5" /> },
-        { id: 'contacts', label: 'Messages', icon: <MessageSquare className="w-5 h-5" /> },
-        { id: 'analytics', label: 'Analytics', icon: <BarChart2 className="w-5 h-5" /> },
-        { id: 'settings', label: 'Settings', icon: <Settings className="w-5 h-5" /> },
-        { id: 'admins', label: 'Co-Founders', icon: <Shield className="w-5 h-5" /> },
-    ] as const;
+    if (!access) {
+        return (
+            <div className="min-h-screen bg-[#f4f6fb] flex items-center justify-center p-6">
+                {accessError ? (
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 max-w-sm text-center">
+                        <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-3" />
+                        <p className="text-sm text-gray-600 mb-5">{accessError}</p>
+                        <button onClick={handleLogout} className="bg-[#000a1e] text-white px-5 py-2.5 rounded-xl text-sm font-bold">Sign in again</button>
+                    </div>
+                ) : <div className="w-10 h-10 border-4 border-gray-200 border-t-[#fea520] rounded-full animate-spin" />}
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#f4f6fb] flex">
@@ -1081,21 +1020,22 @@ export const AdminPanel: React.FC = () => {
                         </div>
                         <div>
                             <div className="text-white font-extrabold text-sm">AssignmentMinds</div>
-                            <div className="text-white/30 text-xs">Admin Console</div>
+                            <div className="text-white/30 text-xs">{access.roleLabel} Console</div>
                         </div>
                     </div>
                 </div>
 
-                <nav className="flex-1 px-4 py-6 space-y-1">
+                <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
                     {navItems.map(item => (
                         <button key={item.id} onClick={() => { setTab(item.id); setSidebarOpen(false); }}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${tab === item.id ? 'bg-[#fea520] text-[#000a1e]' : 'text-white/50 hover:text-white hover:bg-white/5'}`}>
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${current?.id === item.id ? 'bg-[#fea520] text-[#000a1e]' : 'text-white/50 hover:text-white hover:bg-white/5'}`}>
                             {item.icon}{item.label}
                         </button>
                     ))}
                 </nav>
 
                 <div className="px-4 py-5 border-t border-white/5">
+                    <div className="px-4 pb-3 text-xs text-white/40 truncate">Signed in as <span className="text-white/70 font-semibold">{access.username}</span></div>
                     <button onClick={handleLogout}
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-[12px] text-sm font-semibold text-white/40 hover:text-white hover:bg-white/5 transition-all">
                         <LogOut className="w-5 h-5" /> Logout
@@ -1109,39 +1049,46 @@ export const AdminPanel: React.FC = () => {
             {/* Main content */}
             <div className="flex-1 flex flex-col min-w-0">
                 {/* Topbar */}
-                <header className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-20">
-                    <div className="flex items-center gap-4">
-                        <button className="lg:hidden text-gray-400 hover:text-[#000a1e]" onClick={() => setSidebarOpen(true)}><Menu className="w-5 h-5" /></button>
-                        <div>
-                            <h1 className="text-xl font-extrabold text-[#000a1e] capitalize">{
-                                tab === 'overview' ? 'Dashboard Overview'
-                                    : tab === 'contacts' ? 'Contact Messages'
-                                        : tab === 'analytics' ? 'Traffic & Analytics'
-                                            : tab === 'settings' ? 'Site Settings'
-                                                : tab.charAt(0).toUpperCase() + tab.slice(1) + ' Management'
-                            }</h1>
+                <header className="bg-white border-b border-gray-100 px-4 sm:px-6 py-4 flex items-center justify-between gap-3 shadow-sm sticky top-0 z-20">
+                    <div className="flex items-center gap-4 min-w-0">
+                        <button className="lg:hidden text-gray-400 hover:text-[#000a1e]" onClick={() => setSidebarOpen(true)} aria-label="Open menu"><Menu className="w-5 h-5" /></button>
+                        <div className="min-w-0">
+                            <h1 className="text-lg sm:text-xl font-extrabold text-[#000a1e] truncate">{current?.title || 'Admin Console'}</h1>
                             <p className="text-xs text-gray-400">AssignmentMinds Admin Console</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <div className="hidden sm:flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg">
-                            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                            <span className="text-xs font-bold">Live</span>
-                        </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                        <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold" title="Your role">
+                            <Shield className="w-3.5 h-3.5" />{access.roleLabel}
+                        </span>
+                        <button onClick={() => setChangingPassword(true)} aria-label="Change password" title="Change password" className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-50">
+                            <KeyRound className="w-3.5 h-3.5" /><span className="hidden sm:inline">Password</span>
+                        </button>
                     </div>
                 </header>
 
                 {/* Page content */}
                 <main className="flex-1 p-6 lg:p-8 overflow-auto">
-                    {tab === 'overview' && <OverviewTab token={token} />}
-                    {tab === 'orders' && <OrdersTab token={token} />}
-                    {tab === 'users' && <UsersTab token={token} />}
-                    {tab === 'contacts' && <ContactsTab token={token} />}
-                    {tab === 'analytics' && <AnalyticsTab token={token} />}
-                    {tab === 'settings' && <SettingsTab token={token} />}
-                    {tab === 'admins' && <AdminsTab token={token} />}
+                    {!current && <p className="text-sm text-gray-500">Your role doesn’t have access to any console sections yet. Ask a Super Admin to update it.</p>}
+                    {current?.id === 'dashboard' && <MarketplaceDashboard token={token} onNavigate={(t) => navItems.some(i => i.id === t) && setTab(t as TabId)} />}
+                    {current?.id === 'overview' && <OverviewTab token={token} />}
+                    {current?.id === 'orders' && <OrdersTab token={token} />}
+                    {current?.id === 'users' && <UsersTab token={token} />}
+                    {current?.id === 'writers' && <AdminWritersTab token={token} access={access} />}
+                    {current?.id === 'applications' && <AdminApplicationsTab token={token} access={access} />}
+                    {current?.id === 'assignments' && <AdminAssignmentsTab token={token} access={access} />}
+                    {current?.id === 'memberships' && <AdminMembershipTab token={token} access={access} />}
+                    {current?.id === 'recruitment' && <RecruitmentTab token={token} canSeeLeads={hasPermission(access, 'leads.manage')} onOpenLeads={() => setTab('contacts')} />}
+                    {current?.id === 'audit' && <AdminAuditLogsTab token={token} />}
+                    {current?.id === 'contacts' && <ContactsTab token={token} />}
+                    {current?.id === 'analytics' && <AnalyticsTab token={token} />}
+                    {current?.id === 'settings' && <SettingsTab token={token} />}
+                    {current?.id === 'admins' && <AdminTeamTab token={token} />}
+                    {current?.id === 'content' && <SiteContentTab token={token} />}
+                    {current?.id === 'trust' && <TrustSafetyTab token={token} access={access} />}
                 </main>
             </div>
+            {changingPassword && <AdminPasswordDialog token={token} onClose={() => setChangingPassword(false)} />}
         </div>
     );
 };

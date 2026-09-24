@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGoogleLogin } from '@react-oauth/google';
 import emailjs from '@emailjs/browser';
 
-const API = String((import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api')).trim().replace(/\/+$/, '');
+import { API } from '../lib/api';
 
 interface SignInModalProps {
   isOpen: boolean;
@@ -28,7 +28,8 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
 
   const sendWelcomeEmail = async (userName: string, userEmail: string) => {
     try {
-      const env = (import.meta as any).env;
+      // Read each variable by name: referencing the whole env object makes Vite inline every VITE_* value.
+      const env = { VITE_EMAILJS_SERVICE_ID: (import.meta as any).env.VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID: (import.meta as any).env.VITE_EMAILJS_TEMPLATE_ID, VITE_EMAILJS_PUBLIC_KEY: (import.meta as any).env.VITE_EMAILJS_PUBLIC_KEY };
       await emailjs.send(
         env.VITE_EMAILJS_SERVICE_ID || 'service_089l13d',
         env.VITE_EMAILJS_TEMPLATE_ID || 'template_omo2hya',

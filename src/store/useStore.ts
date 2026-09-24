@@ -19,10 +19,10 @@ export interface Order {
 }
 
 interface AppState {
-  user: { name: string; email: string; id?: number } | null;
+  user: { name: string; email: string; id?: number | string; role?: string } | null;
   token: string | null;
   orders: Order[];
-  login: (email: string, name: string, token?: string, id?: number) => void;
+  login: (email: string, name: string, token?: string, id?: number | string, role?: string) => void;
   logout: () => void;
   addOrder: (order: Order) => void;
   updateOrderStatus: (id: string, status: Order['status']) => void;
@@ -35,7 +35,7 @@ export const useStore = create<AppState>()(
       user: null,
       token: null,
       orders: [],
-      login: (email, name, token, id) => set({ user: { email, name, id }, token: null }),
+      login: (email, name, token, id, role) => set({ user: { email, name, id, role }, token: token || null }),
       logout: () => set({ user: null, token: null, orders: [] }),
       addOrder: (order) => set((state) => ({ orders: [order, ...state.orders] })),
       updateOrderStatus: (id, status) => set((state) => ({

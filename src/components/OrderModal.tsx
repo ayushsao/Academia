@@ -13,7 +13,7 @@ import { ServiceType, SubjectType } from '../types';
 import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
 
-const API = String((import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api')).trim().replace(/\/+$/, '');
+import { API } from '../lib/api';
 
 interface OrderModalProps {
   isOpen: boolean;
@@ -23,6 +23,10 @@ interface OrderModalProps {
     subject?: SubjectType;
     pages?: number;
     deadline?: string;
+    academicLevel?: 'Undergraduate' | 'Master\'s' | 'PhD / Doctoral' | 'Professional';
+    topicTitle?: string;
+    instructions?: string;
+    files?: string[];
   };
 }
 
@@ -42,10 +46,10 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [subject, setSubject] = useState<SubjectType | ''>(initialConfig?.subject || '');
   const [pages, setPages] = useState<number>(initialConfig?.pages || 0);
   const [deadline, setDeadline] = useState<string>(initialConfig?.deadline || getNextWeek());
-  const [academicLevel, setAcademicLevel] = useState<'Undergraduate' | 'Master\'s' | 'PhD / Doctoral' | 'Professional'>('Undergraduate');
-  const [topicTitle, setTopicTitle] = useState<string>('');
-  const [instructions, setInstructions] = useState<string>('');
-  const [files, setFiles] = useState<string[]>([]);
+  const [academicLevel, setAcademicLevel] = useState<'Undergraduate' | 'Master\'s' | 'PhD / Doctoral' | 'Professional'>(initialConfig?.academicLevel || 'Undergraduate');
+  const [topicTitle, setTopicTitle] = useState<string>(initialConfig?.topicTitle || '');
+  const [instructions, setInstructions] = useState<string>(initialConfig?.instructions || '');
+  const [files, setFiles] = useState<string[]>(initialConfig?.files || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actualFileObjects, setActualFileObjects] = useState<File[]>([]);
 
@@ -72,6 +76,10 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       setSubject(initialConfig?.subject || '');
       setPages(initialConfig?.pages || 0); // 0 pages by default if empty
       setDeadline(initialConfig?.deadline || getNextWeek());
+      if (initialConfig?.academicLevel) setAcademicLevel(initialConfig.academicLevel);
+      if (initialConfig?.topicTitle) setTopicTitle(initialConfig.topicTitle);
+      if (initialConfig?.instructions) setInstructions(initialConfig.instructions);
+      if (initialConfig?.files && initialConfig.files.length > 0) setFiles(initialConfig.files);
       setStep(1);
     }
   }, [isOpen, initialConfig]);

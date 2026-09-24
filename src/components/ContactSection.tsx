@@ -6,6 +6,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
+import { API } from '../lib/api';
 
 export const ContactSection: React.FC = () => {
     const formRef = useRef<HTMLFormElement>(null);
@@ -30,7 +31,6 @@ export const ContactSection: React.FC = () => {
                 message: formData.get('message')
             };
 
-            const API = (import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api');
             await fetch(`${API}/contact`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -38,7 +38,8 @@ export const ContactSection: React.FC = () => {
             });
 
             // Then send via EmailJS securely via API
-            const env = (import.meta as any).env;
+            // Read each variable by name: referencing the whole env object makes Vite inline every VITE_* value.
+            const env = { VITE_EMAILJS_SERVICE_ID: (import.meta as any).env.VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID: (import.meta as any).env.VITE_EMAILJS_TEMPLATE_ID, VITE_EMAILJS_PUBLIC_KEY: (import.meta as any).env.VITE_EMAILJS_PUBLIC_KEY };
             await emailjs.send(
                 env.VITE_EMAILJS_SERVICE_ID || 'service_089l13d',
                 env.VITE_EMAILJS_TEMPLATE_ID || 'template_omo2hya',

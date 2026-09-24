@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, LayoutDashboard, List, Coins, Layers, Plus, Bookmark, Wallet, Bell, MessageCircle, ChevronRight, User, FileText, CheckCircle, Clock, Home } from 'lucide-react';
 import { OrderModal } from '../components/OrderModal';
 
-const API = String((import.meta as any).env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : 'https://academia-iw7x.onrender.com/api')).trim().replace(/\/+$/, '');
+import { API } from '../lib/api';
 
 export const Dashboard: React.FC = () => {
     const { user, token, orders, logout, setOrders } = useStore();
@@ -30,7 +30,7 @@ export const Dashboard: React.FC = () => {
     }, [token, setOrders]);
 
     const handleLogout = async () => {
-        try { await fetch('' + (import.meta as any).env.VITE_API_URL + '/auth/logout', { method:'POST', credentials:'include' }); } catch(e) {}
+        try { await fetch(`${API}/auth/logout`, { method: 'POST', credentials: 'include' }); } catch (e) {}
         logout();
         navigate('/');
     };
