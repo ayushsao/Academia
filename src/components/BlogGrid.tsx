@@ -57,7 +57,7 @@ export const BlogGrid: React.FC = () => {
                         >
                             {/* Image container mimicking banner */}
                             <div className="w-full h-[250px] md:h-[300px] border border-gray-100 rounded-md overflow-hidden relative mb-5">
-                                <img
+                                <img loading="lazy" decoding="async"
                                     src={featuredImg}
                                     alt="ABM Research Topics"
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 origin-center"
@@ -103,7 +103,7 @@ export const BlogGrid: React.FC = () => {
                                 className="bg-white border border-gray-100 rounded-lg shadow-[0_4px_16px_rgb(0,0,0,0.05)] p-3 flex flex-col cursor-pointer group hover:shadow-md transition-all"
                             >
                                 <div className="w-full h-[140px] md:h-[160px] overflow-hidden rounded-md mb-3 relative border border-gray-100">
-                                    <img
+                                    <img loading="lazy" decoding="async"
                                         src={card.img}
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
                                         alt={card.title}

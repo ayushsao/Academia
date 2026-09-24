@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { Calculator } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { ScrollReveal } from '../components/ScrollReveal';
@@ -21,11 +21,6 @@ import { ReviewsSection } from '../components/ReviewsSection';
 import { ContactSection } from '../components/ContactSection';
 import { Footer } from '../components/Footer';
 import { SideDrawer } from '../components/SideDrawer';
-import { OrderModal } from '../components/OrderModal';
-import { ConsultantModal } from '../components/ConsultantModal';
-import { ToolModal } from '../components/ToolModal';
-import { DisciplineModal } from '../components/DisciplineModal';
-import { SignInModal } from '../components/SignInModal';
 import { AcademicToolsSection } from '../components/AcademicToolsSection';
 import { TopUtilityBar } from '../components/TopUtilityBar';
 import { ServicesTabs } from '../components/ServicesTabs';
@@ -36,6 +31,13 @@ import { FloatingElements } from '../components/FloatingElements';
 import { PopupFunnel } from '../components/PopupFunnel';
 import { JoinAsWriterSection } from '../components/JoinAsWriterSection';
 import { Consultant, Discipline, ServiceType, SubjectType } from '../types';
+
+// Modals are only downloaded when first opened (they render nothing while closed).
+const OrderModal = lazy(() => import('../components/OrderModal').then(m => ({ default: m.OrderModal })));
+const ConsultantModal = lazy(() => import('../components/ConsultantModal').then(m => ({ default: m.ConsultantModal })));
+const ToolModal = lazy(() => import('../components/ToolModal').then(m => ({ default: m.ToolModal })));
+const DisciplineModal = lazy(() => import('../components/DisciplineModal').then(m => ({ default: m.DisciplineModal })));
+const SignInModal = lazy(() => import('../components/SignInModal').then(m => ({ default: m.SignInModal })));
 
 export default function App() {
   // Modal & Drawer visibility states
@@ -267,34 +269,46 @@ export default function App() {
         onProceedToOrder={(cfg) => handleOpenOrder(cfg)}
       />
 
-      {/* Interactive Modals */}
-      <OrderModal
-        isOpen={orderModalOpen}
-        onClose={() => setOrderModalOpen(false)}
-        initialConfig={orderPrefill}
-      />
+      {/* Interactive Modals (loaded on first open) */}
+      <Suspense fallback={null}>
+        {orderModalOpen && (
+          <OrderModal
+            isOpen={orderModalOpen}
+            onClose={() => setOrderModalOpen(false)}
+            initialConfig={orderPrefill}
+          />
+        )}
 
-      <ConsultantModal
-        consultant={selectedConsultant}
-        onClose={() => setSelectedConsultant(null)}
-      />
+        {selectedConsultant && (
+          <ConsultantModal
+            consultant={selectedConsultant}
+            onClose={() => setSelectedConsultant(null)}
+          />
+        )}
 
-      <ToolModal
-        toolType={selectedTool}
-        onClose={() => setSelectedTool(null)}
-        onSwitchTool={(type) => setSelectedTool(type)}
-      />
+        {selectedTool && (
+          <ToolModal
+            toolType={selectedTool}
+            onClose={() => setSelectedTool(null)}
+            onSwitchTool={(type) => setSelectedTool(type)}
+          />
+        )}
 
-      <DisciplineModal
-        discipline={selectedDiscipline}
-        onClose={() => setSelectedDiscipline(null)}
-        onStartOrderForDiscipline={handleDisciplineOrderStart}
-      />
+        {selectedDiscipline && (
+          <DisciplineModal
+            discipline={selectedDiscipline}
+            onClose={() => setSelectedDiscipline(null)}
+            onStartOrderForDiscipline={handleDisciplineOrderStart}
+          />
+        )}
 
-      <SignInModal
-        isOpen={signInModalOpen}
-        onClose={() => setSignInModalOpen(false)}
-      />
+        {signInModalOpen && (
+          <SignInModal
+            isOpen={signInModalOpen}
+            onClose={() => setSignInModalOpen(false)}
+          />
+        )}
+      </Suspense>
 
       <PopupFunnel />
     </div>

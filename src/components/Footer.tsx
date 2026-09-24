@@ -91,8 +91,8 @@ export const Footer: React.FC<FooterProps> = () => {
             {/* App Block */}
             <h5 className="font-bold text-white text-[14px] mb-3">Download App</h5>
             <div className="flex gap-3">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Google Play" className="h-[30px] border border-gray-600 rounded bg-black cursor-pointer" />
-              <img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" alt="App Store" className="h-[30px] rounded cursor-pointer border border-[#888]" />
+              <img loading="lazy" decoding="async" src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Google Play" className="h-[30px] border border-gray-600 rounded bg-black cursor-pointer" />
+              <img loading="lazy" decoding="async" src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" alt="App Store" className="h-[30px] rounded cursor-pointer border border-[#888]" />
             </div>
           </div>
 

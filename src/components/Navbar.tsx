@@ -199,7 +199,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                     {WRITERS.map((writer, i) => (
                       <div key={i} onClick={() => setSelectedWriter(writer)} className="group/writer flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all cursor-pointer">
                         <div className="relative">
-                          <img src={`https://i.pravatar.cc/150?img=${writer.img}`} alt={writer.name} className="w-10 h-10 rounded-full object-cover shadow-sm bg-gray-200" />
+                          <img loading="lazy" decoding="async" src={`https://i.pravatar.cc/150?img=${writer.img}`} alt={writer.name} className="w-10 h-10 rounded-full object-cover shadow-sm bg-gray-200" />
                           <div className="absolute -bottom-1 -right-1 bg-green-500 w-3 h-3 rounded-full border-2 border-white"></div>
                         </div>
                         <div className="overflow-hidden">
@@ -349,7 +349,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                         { name: 'Alice Smith', deg: 'MBA Business', img: '9', rating: '4.9/5' },
                       ].map((writer, i) => (
                         <div key={i} onClick={() => { setMobileMenuOpen(false); onOpenOrder(); }} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-                          <img src={`https://i.pravatar.cc/150?img=${writer.img}`} alt={writer.name} className="w-8 h-8 rounded-full border border-gray-200" />
+                          <img loading="lazy" decoding="async" src={`https://i.pravatar.cc/150?img=${writer.img}`} alt={writer.name} className="w-8 h-8 rounded-full border border-gray-200" />
                           <div>
                             <p className="font-bold text-[#000a1e] text-xs leading-none">{writer.name}</p>
                             <p className="text-[10px] text-gray-500 font-semibold mt-0.5">{writer.deg} <span className="text-[#fea520]">★ {writer.rating}</span></p>
@@ -403,7 +403,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                     <div className="flex flex-col gap-2 mt-2 bg-gray-50/50 p-3 rounded-lg border border-gray-100 max-h-[300px] overflow-y-auto">
                       {WRITERS.map((writer, i) => (
                         <div key={i} onClick={() => { setMobileMenuOpen(false); setSelectedWriter(writer); }} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-                          <img src={`https://i.pravatar.cc/150?img=${writer.img}`} alt={writer.name} className="w-8 h-8 rounded-full border border-gray-200 object-cover" />
+                          <img loading="lazy" decoding="async" src={`https://i.pravatar.cc/150?img=${writer.img}`} alt={writer.name} className="w-8 h-8 rounded-full border border-gray-200 object-cover" />
                           <div>
                             <p className="font-bold text-[#000a1e] text-xs leading-none">{writer.name}</p>
                             <p className="text-[10px] text-gray-500 font-semibold mt-0.5">{writer.deg} <span className="text-[#fea520]">★ {writer.rating}</span></p>

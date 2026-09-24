@@ -496,7 +496,7 @@ export const DynamicPage: React.FC = () => {
                             {mockBlogs.map((blog, idx) => (
                                 <div key={idx} className="bg-white rounded-2xl border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden hover:shadow-[0_10px_40px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 group cursor-pointer flex flex-col">
                                     <div className="h-56 overflow-hidden relative">
-                                        <img src={blog.image} alt={blog.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        <img loading="lazy" decoding="async" src={blog.image} alt={blog.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                         <div className="absolute top-4 left-4 bg-white/90 backdrop-blur text-[#000a1e] text-xs font-bold px-3 py-1.5 rounded-full">
                                             {blog.category}
                                         </div>

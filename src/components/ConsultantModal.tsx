@@ -29,7 +29,7 @@ export const ConsultantModal: React.FC<ConsultantModalProps> = ({ consultant, on
         {/* Header */}
         <div className="bg-[#000a1e] text-white p-6 sm:p-8 flex justify-between items-start relative">
           <div className="flex items-center gap-4">
-            <img
+            <img loading="lazy" decoding="async"
               src={consultant.image}
               alt={consultant.name}
               referrerPolicy="no-referrer"

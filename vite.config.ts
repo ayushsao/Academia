@@ -28,6 +28,21 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
   return {
     plugins: [react(), tailwindcss(), forbidSecretsInBundle(env)],
+    build: {
+      rollupOptions: {
+        output: {
+          // Rarely-changing libraries in their own long-cached files, so a deploy
+          // only invalidates the app code that actually changed.
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return undefined;
+            if (/node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom|@remix-run)[\\/]/.test(id)) return 'react';
+            if (/node_modules[\\/](framer-motion|motion|motion-dom|motion-utils)[\\/]/.test(id)) return 'motion';
+            if (/node_modules[\\/]lucide-react[\\/]/.test(id)) return 'icons';
+            return undefined;
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),

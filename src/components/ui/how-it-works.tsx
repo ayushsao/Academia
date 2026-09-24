@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { LazyMotion, domAnimation, m } from "motion/react";
+import { LazyMotion, domAnimation, m } from "framer-motion";
 
 interface CardProps {
     number: string;

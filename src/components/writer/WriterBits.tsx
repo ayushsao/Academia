@@ -46,7 +46,7 @@ export function WriterAvatar({ writerId, name, hasPhoto, version, size = 48, mod
     const style = { width: size, height: size, fontSize: Math.max(12, size * 0.36) };
 
     if (url && !failed) {
-        return <img src={url} alt={name ? `${name}'s photo` : 'Writer photo'} style={style} onError={() => setFailed(true)}
+        return <img loading="lazy" decoding="async" src={url} alt={name ? `${name}'s photo` : 'Writer photo'} style={style} onError={() => setFailed(true)}
             className={cn('shrink-0 rounded-full object-cover bg-slate-100', className)} />;
     }
     return (

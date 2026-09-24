@@ -119,7 +119,7 @@ export const ConsultantsSection: React.FC<ConsultantsSectionProps> = ({ onConsul
                 >
                   {/* Header: Image & Name */}
                   <div className="flex items-center gap-4 mb-4 text-left">
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={writer.image}
                       alt={writer.name}
                       className="w-14 h-14 rounded-full object-cover shadow-sm border border-gray-100"

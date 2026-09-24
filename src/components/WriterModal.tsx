@@ -42,7 +42,7 @@ export const WriterModal: React.FC<WriterModalProps> = ({ writer, isOpen, onClos
                 <div className="px-8 pb-8">
                     <div className="flex flex-col sm:flex-row gap-6 relative -mt-16 mb-6">
                         <div className="relative">
-                            <img
+                            <img loading="lazy" decoding="async"
                                 src={`https://i.pravatar.cc/150?img=${writer.img}`}
                                 alt={writer.name}
                                 className="w-32 h-32 rounded-2xl border-4 border-white shadow-xl bg-gray-100 object-cover"

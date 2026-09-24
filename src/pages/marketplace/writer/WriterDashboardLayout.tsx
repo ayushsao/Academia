@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { Outlet, NavLink, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { MarketplaceNavbar as Navbar } from '../../../components/writer/MarketplaceNavbar';
 import { LayoutDashboard, Briefcase, DollarSign, MessageSquare, Bell, UserCircle, Settings, LogOut, FolderOpen, Lock, ExternalLink, Crown, Inbox, History } from 'lucide-react';
@@ -165,7 +165,10 @@ function LayoutInner() {
                     </nav>
                 </div>
                 <div className="relative z-10 mx-auto max-w-[1400px] p-4 sm:p-6 lg:p-8 xl:px-10">
-                    <Outlet context={{ writer, setWriter }} />
+                    {/* Pages load on demand; keep the layout in place while one loads. */}
+                    <Suspense fallback={<div className="flex justify-center py-24"><Spinner className="h-8 w-8 text-[#002147]" /></div>}>
+                        <Outlet context={{ writer, setWriter }} />
+                    </Suspense>
                 </div>
             </main>
         </div>

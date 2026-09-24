@@ -112,7 +112,7 @@ export const AcademicToolsSection: React.FC<AcademicToolsSectionProps> = ({ onOp
               >
                 {/* Top Image Section */}
                 <div className="w-full h-48 md:h-[200px] overflow-hidden p-3 pb-0">
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={tool.image}
                     alt={tool.title}
                     className="w-full h-full object-cover rounded-[10px]"

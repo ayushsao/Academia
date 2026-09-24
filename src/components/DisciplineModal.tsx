@@ -20,7 +20,7 @@ export const DisciplineModal: React.FC<DisciplineModalProps> = ({
       <div className="bg-white rounded-[2rem] shadow-2xl border border-white/80 w-full max-w-2xl overflow-hidden my-auto animate-in zoom-in-95 duration-200">
         {/* Cover image header */}
         <div className="relative h-48 sm:h-56">
-          <img
+          <img loading="lazy" decoding="async"
             src={discipline.image}
             alt={discipline.title}
             referrerPolicy="no-referrer"

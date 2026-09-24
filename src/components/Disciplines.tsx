@@ -173,7 +173,7 @@ export const Disciplines: React.FC<DisciplinesProps> = ({ onSelectDiscipline }) 
 
             <div className="relative bg-white rounded-[2rem] p-3 shadow-lg border border-gray-50">
               {/* Main Cover Image */}
-              <img
+              <img loading="lazy" decoding="async"
                 src="https://images.pexels.com/photos/1758144/pexels-photo-1758144.jpeg?auto=compress&cs=tinysrgb&w=800"
                 alt="Graduation Student"
                 className="w-full h-[450px] object-cover rounded-[1.5rem]"

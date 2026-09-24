@@ -544,7 +544,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Scan to Pay (UPI)</p>
                     <div className="p-1 border border-gray-100 rounded-xl bg-white shadow-sm mb-3">
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(`upi://pay?pa=academiapro@ybl&pn=AcademiaPro&am=${grandTotal * 106}&cu=INR`)}`}
                         alt="UPI QR Code"
                         className="w-24 h-24 object-contain"
