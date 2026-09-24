@@ -78,7 +78,7 @@ function OnboardingInner() {
     const current = SECTIONS.find(s => s.id === section);
 
     return (
-        <div className="mx-auto w-full max-w-6xl px-4 pb-24 pt-[120px] sm:px-6 lg:pt-[140px]">
+        <div className="mx-auto w-full max-w-6xl px-4 pb-24 pt-8 sm:px-6 lg:pt-12">
             {/* Header */}
             <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>

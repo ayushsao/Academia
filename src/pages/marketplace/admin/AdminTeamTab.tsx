@@ -78,7 +78,8 @@ export default function AdminTeamTab({ token }: { token: string }) {
 
     return (
         <div className="space-y-6">
-            <div className="grid gap-6 xl:grid-cols-[1fr_1.2fr]">
+            <div className="grid items-start gap-6 xl:grid-cols-[1fr_1.2fr]">
+                <div className="min-w-0 space-y-6">
                 <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                     <h3 className="flex items-center gap-2 font-bold text-[#000a1e]"><Mail className="h-4 w-4 text-[#fea520]" /> Invite a team member</h3>
                     <form onSubmit={doInvite} className="mt-4 space-y-3">
@@ -103,7 +104,34 @@ export default function AdminTeamTab({ token }: { token: string }) {
                     )}
                 </section>
 
-                <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                {msg && <p className={cn('rounded-lg px-3 py-2 text-sm', msg.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-700')}>{msg.text}</p>}
+
+                <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                    <h3 className="border-b border-gray-100 px-5 py-3 font-bold text-[#000a1e]">Team <span className="text-sm font-normal text-gray-400">({admins.length})</span></h3>
+                    <ul className="divide-y divide-gray-100">
+                        {admins.map(a => (
+                            <li key={a._id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center">
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate font-semibold text-[#000a1e]">{a.username}{a.isSelf && <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-500">You</span>}</p>
+                                    <p className="text-xs text-gray-400">Added {new Date(a.createdAt || Date.now()).toLocaleDateString()} · {a.lastLoginAt ? `last sign-in ${new Date(a.lastLoginAt).toLocaleString()}` : 'never signed in'}</p>
+                                </div>
+                                <select value={a.role} disabled={a.isSelf || busy === a._id} onChange={e => changeRole(a, e.target.value)} aria-label={`Role for ${a.username}`}
+                                    className={cn(inputClass, 'w-auto py-2 text-sm')}>
+                                    {roles.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+                                </select>
+                                {!a.isSelf && (confirmDelete === a._id ? (
+                                    <span className="flex gap-2">
+                                        <button onClick={() => remove(a)} disabled={busy === a._id} className="rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white">Remove</button>
+                                        <button onClick={() => setConfirmDelete(null)} className="rounded-lg px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100">Keep</button>
+                                    </span>
+                                ) : <button onClick={() => setConfirmDelete(a._id)} aria-label={`Remove ${a.username}`} className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>)}
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+                </div>
+
+                <section className="min-w-0 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm xl:sticky xl:top-0">
                     <h3 className="flex items-center gap-2 font-bold text-[#000a1e]"><ShieldCheck className="h-4 w-4 text-[#fea520]" /> What each role can do</h3>
                     <div className="mt-3 overflow-x-auto">
                         <table className="w-full min-w-[520px] text-xs">
@@ -119,31 +147,6 @@ export default function AdminTeamTab({ token }: { token: string }) {
                 </section>
             </div>
 
-            {msg && <p className={cn('rounded-lg px-3 py-2 text-sm', msg.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-700')}>{msg.text}</p>}
-
-            <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                <h3 className="border-b border-gray-100 px-5 py-3 font-bold text-[#000a1e]">Team <span className="text-sm font-normal text-gray-400">({admins.length})</span></h3>
-                <ul className="divide-y divide-gray-100">
-                    {admins.map(a => (
-                        <li key={a._id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center">
-                            <div className="min-w-0 flex-1">
-                                <p className="truncate font-semibold text-[#000a1e]">{a.username}{a.isSelf && <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-500">You</span>}</p>
-                                <p className="text-xs text-gray-400">Added {new Date(a.createdAt || Date.now()).toLocaleDateString()} · {a.lastLoginAt ? `last sign-in ${new Date(a.lastLoginAt).toLocaleString()}` : 'never signed in'}</p>
-                            </div>
-                            <select value={a.role} disabled={a.isSelf || busy === a._id} onChange={e => changeRole(a, e.target.value)} aria-label={`Role for ${a.username}`}
-                                className={cn(inputClass, 'w-auto py-2 text-sm')}>
-                                {roles.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
-                            </select>
-                            {!a.isSelf && (confirmDelete === a._id ? (
-                                <span className="flex gap-2">
-                                    <button onClick={() => remove(a)} disabled={busy === a._id} className="rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white">Remove</button>
-                                    <button onClick={() => setConfirmDelete(null)} className="rounded-lg px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100">Keep</button>
-                                </span>
-                            ) : <button onClick={() => setConfirmDelete(a._id)} aria-label={`Remove ${a.username}`} className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>)}
-                        </li>
-                    ))}
-                </ul>
-            </section>
         </div>
     );
 }

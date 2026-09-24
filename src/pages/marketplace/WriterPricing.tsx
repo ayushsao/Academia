@@ -48,7 +48,7 @@ export default function WriterPricing() {
     return (
         <div className="flex min-h-screen flex-col bg-[#f6f8fc] font-sans">
             <Navbar />
-            <main className="flex-grow px-4 pb-24 pt-[110px] sm:px-6 lg:pt-[130px]">
+            <main className="flex-grow px-4 pb-24 pt-10 sm:px-6 lg:pt-14">
                 <div className="mx-auto max-w-6xl">
                     <header className="mx-auto max-w-2xl text-center">
                         <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#b86e00]">For approved writers</p>

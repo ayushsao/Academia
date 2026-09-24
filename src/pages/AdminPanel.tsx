@@ -883,7 +883,8 @@ const SettingsTab = ({ token }: { token: string }) => {
     if (loading) return <div className="flex justify-center py-24"><div className="w-10 h-10 border-4 border-gray-200 border-t-[#fea520] rounded-full animate-spin" /></div>;
 
     return (
-        <div className="space-y-6 max-w-2xl">
+        <div className="space-y-6">
+            <div className="grid gap-6 lg:grid-cols-2">
             {/* Coupon / Discount */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
                 <div className="flex items-center gap-2 mb-1"><Tag className="w-5 h-5 text-[#fea520]" /><h3 className="font-bold text-[#000a1e]">Discount / Coupon Code</h3></div>
@@ -928,6 +929,7 @@ const SettingsTab = ({ token }: { token: string }) => {
                         placeholder="Leave empty to hide the announcement..."
                         className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-[#000a1e] focus:outline-none focus:ring-2 focus:ring-[#fea520]/30 resize-none" />
                 </div>
+            </div>
             </div>
 
             <button onClick={handleSave} disabled={saving}

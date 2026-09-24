@@ -92,7 +92,7 @@ export default function WriterRegister() {
     return (
         <div className="flex min-h-screen flex-col bg-[#f5f5f7] font-sans antialiased">
             <Navbar />
-            <main className="flex-grow px-4 pb-24 pt-28 sm:px-6 lg:pt-32">
+            <main className="flex-grow px-4 pb-24 pt-10 sm:px-6 lg:pt-14">
                 {/* Page heading */}
                 <header className="mx-auto mb-8 max-w-2xl text-center sm:mb-12">
                     <p className="text-[13px] font-medium text-[#86868b]">Step 1 of 6</p>

@@ -14,7 +14,7 @@ export default function WriterTerms() {
     return (
         <div className="flex min-h-screen flex-col bg-[#f6f8fc] font-sans">
             <Navbar />
-            <main className="flex-grow px-4 pb-24 pt-[110px] sm:px-6 lg:pt-[130px]">
+            <main className="flex-grow px-4 pb-24 pt-10 sm:px-6 lg:pt-14">
                 <article className="mx-auto max-w-3xl rounded-3xl border border-slate-200 bg-white p-6 sm:p-10">
                     {terms && (
                         <>

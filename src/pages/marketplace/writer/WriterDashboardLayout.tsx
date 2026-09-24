@@ -106,7 +106,7 @@ function LayoutInner() {
     );
 
     return (
-        <div className="flex flex-grow pt-[80px]">
+        <div className="flex flex-grow">
             {/* Sidebar (md+) */}
             <aside className="sticky top-[80px] hidden h-[calc(100vh-80px)] w-64 shrink-0 flex-col border-r border-slate-200 bg-white md:flex">
                 <div className="space-y-4 border-b border-slate-100 p-5">
@@ -164,7 +164,7 @@ function LayoutInner() {
                         <button onClick={handleLogout} className="flex items-center gap-2 whitespace-nowrap rounded-xl px-3.5 py-2.5 text-sm font-semibold text-red-600"><LogOut className="h-4 w-4" /> Sign out</button>
                     </nav>
                 </div>
-                <div className="relative z-10 mx-auto max-w-6xl p-4 sm:p-6 lg:p-10">
+                <div className="relative z-10 mx-auto max-w-[1400px] p-4 sm:p-6 lg:p-8 xl:px-10">
                     <Outlet context={{ writer, setWriter }} />
                 </div>
             </main>

@@ -32,10 +32,10 @@ export default function BecomeWriter() {
     return (
         <div className="flex min-h-screen flex-col bg-[#f6f8fc] font-sans">
             <Navbar />
-            <main className="flex-grow pb-24 pt-[100px] lg:pt-[120px]">
+            <main className="flex-grow pb-24 pt-6 lg:pt-8">
                 {/* Hero + journey */}
                 <section className="mx-auto grid max-w-7xl items-start gap-12 px-4 py-6 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:py-8">
-                    <div className="lg:sticky lg:top-32">
+                    <div className="lg:self-center">
                         {r.hero.eyebrow && (
                             <p className="inline-flex items-center gap-2 rounded-full border border-[#002147]/10 bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-[#002147]">
                                 <span className="h-1.5 w-1.5 rounded-full bg-[#fea520]" /> {r.hero.eyebrow}

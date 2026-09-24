@@ -28,14 +28,20 @@ function Weights({ title, hint, value, onChange, labels }: { title: string; hint
         <div>
             <p className="text-sm font-semibold text-gray-700">{title}</p>
             {hint && <p className="text-xs text-gray-500">{hint}</p>}
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                {Object.entries(labels).map(([k, l]) => (
-                    <label key={k} className="flex items-center gap-2 text-sm">
-                        <span className="w-28 text-gray-600">{l}</span>
-                        <input type="number" min={0} max={100} value={value[k] ?? 0} onChange={e => onChange({ ...value, [k]: Number(e.target.value) })} className={cn(inputClass, 'w-20 py-1.5 tabular-nums')} aria-label={`${title}: ${l}`} />
-                        <span className="w-12 text-right text-xs tabular-nums text-gray-400">{Math.round(((value[k] ?? 0) / total) * 100)}%</span>
-                    </label>
-                ))}
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {Object.entries(labels).map(([k, l]) => {
+                    const share = Math.round(((value[k] ?? 0) / total) * 100);
+                    return (
+                        <label key={k} className="rounded-xl border border-gray-100 bg-gray-50/60 p-3 text-sm">
+                            <span className="flex items-center justify-between gap-2">
+                                <span className="font-medium text-gray-700">{l}</span>
+                                <span className="text-xs tabular-nums text-gray-400">{share}%</span>
+                            </span>
+                            <input type="number" min={0} max={100} value={value[k] ?? 0} onChange={e => onChange({ ...value, [k]: Number(e.target.value) })} className={cn(inputClass, 'mt-2 py-1.5 tabular-nums')} aria-label={`${title}: ${l}`} />
+                            <span className="mt-2 block h-1 overflow-hidden rounded-full bg-gray-200" aria-hidden><span className="block h-full rounded-full bg-[#2f6db5]" style={{ width: `${share}%` }} /></span>
+                        </label>
+                    );
+                })}
             </div>
         </div>
     );

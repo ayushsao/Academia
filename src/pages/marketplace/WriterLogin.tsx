@@ -49,7 +49,7 @@ export default function WriterLogin() {
         <div className="min-h-screen bg-gray-50 flex flex-col font-sans relative z-0">
             <Navbar activeSection="" />
 
-            <main className="flex-grow pt-[160px] pb-24 flex flex-col justify-center items-center px-4">
+            <main className="flex-grow pt-12 pb-24 lg:pt-16 flex flex-col justify-center items-center px-4">
                 <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden max-w-md w-full relative z-10 transition-transform">
                     <div className="bg-[#002147] p-8 text-center">
                         <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/20">

@@ -106,7 +106,7 @@ export default function SiteContentTab({ token }: { token: string }) {
 
     return (
         <div className="space-y-5">
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 min-[1700px]:flex-row min-[1700px]:items-end min-[1700px]:justify-between">
                 <nav className="flex gap-1 overflow-x-auto border-b border-gray-200" aria-label="Content sections">
                     {SECTIONS.map(s => (
                         <button key={s.id} onClick={() => setSection(s.id)} aria-current={section === s.id ? 'page' : undefined}

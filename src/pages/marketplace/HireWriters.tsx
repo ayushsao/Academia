@@ -70,7 +70,7 @@ export default function HireWriters() {
     return (
         <div className="flex min-h-screen flex-col bg-[#f6f8fc] font-sans">
             <Navbar activeSection="writers" />
-            <main className="mx-auto w-full max-w-7xl flex-grow px-4 pb-24 pt-[120px] sm:px-6 lg:pt-[150px]">
+            <main className="mx-auto w-full max-w-7xl flex-grow px-4 pb-24 pt-10 sm:px-6 lg:pt-14">
                 <header className="mx-auto mb-10 max-w-3xl text-center">
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#b86e00]">Verified writer network</p>
                     <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-[#0b1b33] sm:text-5xl">Find the right academic expert</h1>

@@ -66,7 +66,7 @@ export default function WriterProfilePage() {
     return (
         <div className="flex min-h-screen flex-col bg-[#f6f8fc] font-sans">
             <Navbar activeSection="writers" />
-            <main className="mx-auto w-full max-w-6xl flex-grow px-4 pb-24 pt-[120px] sm:px-6 lg:pt-[140px]">
+            <main className="mx-auto w-full max-w-6xl flex-grow px-4 pb-24 pt-8 sm:px-6 lg:pt-12">
                 <button onClick={() => navigate(-1)} className="mb-6 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-[#002147]"><ArrowLeft className="h-4 w-4" /> Back</button>
 
                 {/* Header */}
