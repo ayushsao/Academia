@@ -6,9 +6,7 @@ import { SignInModal } from '../components/SignInModal';
 import { REVIEWS } from '../data/mockData';
 import type { Review } from '../types';
 import {
-    Star, ShieldCheck, CheckCircle2, Search, Filter, ThumbsUp, MessageSquarePlus,
-    Award, GraduationCap, MapPin, Calendar, FileText, Check, Sparkles, X, ChevronDown,
-    ArrowRight
+  Star, ShieldCheck, CheckCircle2, Search, Filter, ThumbsUp, MessageSquarePlus, Award, GraduationCap, MapPin, Calendar, FileText, Check, X, ChevronDown, ArrowRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -403,7 +401,7 @@ export const ReviewsPage: React.FC = () => {
                 <div className="mt-16 bg-gradient-to-r from-[#000a1e] to-[#041a3a] rounded-3xl p-8 sm:p-12 text-white relative overflow-hidden shadow-xl">
                     <div className="relative z-10 max-w-3xl">
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#fea520]/20 text-[#fea520] text-xs font-bold uppercase tracking-wider mb-4">
-                            <Sparkles className="w-4 h-4" /> Guaranteed Excellence
+                            <Award className="w-4 h-4" /> Guaranteed Excellence
                         </div>
                         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
                             Every Paper Comes With Guaranteed Turnitin Clearance & Distinction Support

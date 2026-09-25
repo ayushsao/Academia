@@ -1,4 +1,5 @@
 import React from 'react';
+import { BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface CtaBannerProps {
@@ -90,7 +91,7 @@ export const CtaBanner: React.FC<CtaBannerProps> = ({ onOrderClick }) => {
                     animate={{ y: [0, -8, 0] }} transition={{ repeat: Infinity, duration: 4.5, delay: 0.5 }}
                     className="absolute bottom-[40%] right-[25%] bg-white w-9 h-9 rounded-full flex items-center justify-center shadow-sm"
                 >
-                    <span className="text-[#4a90e2] text-sm">📘</span>
+                    <BookOpen className="w-4 h-4 text-[#002147]" />
                 </motion.div>
             </div>
 

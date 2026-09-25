@@ -72,9 +72,6 @@ const Card = ({
                 >
                     <span
                         className={`${textColor} text-4xl font-handwriting mb-5`}
-                        style={{
-                            fontFamily: '"Comic Sans MS", "Chalkboard SE", sans-serif',
-                        }}
                     >
                         {number}
                     </span>

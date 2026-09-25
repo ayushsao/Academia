@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ChevronDown, Code2, Sparkles } from 'lucide-react';
+import { ArrowRight, ChevronDown, Code2, Lightbulb } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { absoluteMedia, type PageBlock, type PageFaq } from '../../lib/catalogContent';
 
@@ -64,7 +64,7 @@ function renderBlock(block: PageBlock, ctx: Ctx): React.ReactNode {
                 <div className="max-w-3xl space-y-5">
                     {block.title && <BlockTitle>{block.title}</BlockTitle>}
                     <Html html={c.html} className="text-lg md:text-xl md:leading-relaxed" />
-                    {c.highlight && <p className="flex items-start gap-3 rounded-2xl border border-[#fea520]/30 bg-[#fea520]/10 px-5 py-4 font-semibold text-[#000a1e]"><Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-[#b86e00]" />{c.highlight}</p>}
+                    {c.highlight && <p className="flex items-start gap-3 rounded-2xl border border-[#fea520]/30 bg-[#fea520]/10 px-5 py-4 font-semibold text-[#000a1e]"><Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-[#b86e00]" />{c.highlight}</p>}
                 </div>
             );
         case 'FEATURES':

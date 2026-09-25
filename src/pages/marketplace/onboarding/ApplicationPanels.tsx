@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Circle, ArrowRight, MessageSquareWarning, ShieldAlert, Sparkles, Hourglass, XCircle } from 'lucide-react';
+import { Check, Circle, ArrowRight, MessageSquareWarning, ShieldAlert, BadgeCheck, Hourglass, XCircle } from 'lucide-react';
 import { api } from '../../../lib/api';
 import type { WriterMe } from '../../../lib/writerTypes';
 import { Notice, inputClass } from '../../../components/writer/FormKit';
@@ -130,10 +130,10 @@ export function StatusExplainer({ writer, onGoTo }: { writer: WriterMe; onGoTo?:
         title = app.status === 'SUBMITTED' ? 'Your application is in the queue' : 'Our HR team is reviewing your application';
         body = <p>Reviews usually take 2–5 working days. We’ll email you as soon as there’s a decision. Your profile is locked while it’s being reviewed.</p>;
     } else if (writer.status === 'APPROVED') {
-        tone = 'bg-emerald-50 border-emerald-200'; Icon = Sparkles; title = 'You’re approved!';
+        tone = 'bg-emerald-50 border-emerald-200'; Icon = BadgeCheck; title = 'You’re approved!';
         body = <p>{app.decisionReason ? `Reviewer note: ${app.decisionReason}. ` : ''}The last step is choosing a writer membership plan from your dashboard.</p>;
     } else if (writer.status === 'ACTIVE') {
-        tone = 'bg-emerald-50 border-emerald-200'; Icon = Sparkles; title = 'Your writer account is active';
+        tone = 'bg-emerald-50 border-emerald-200'; Icon = BadgeCheck; title = 'Your writer account is active';
     } else if (writer.status === 'REJECTED') {
         tone = 'bg-slate-50 border-slate-200'; Icon = XCircle; title = 'Your application wasn’t approved';
         body = <p>{app.decisionReason || 'Thank you for your interest. Unfortunately we can’t offer you a place at this time.'}</p>;

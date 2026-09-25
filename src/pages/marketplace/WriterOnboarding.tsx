@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { UserRound, Sparkles, FolderOpen, Send, Check, Lock, LayoutDashboard, Activity } from 'lucide-react';
+import { UserRound, ListChecks, FolderOpen, Send, Check, Lock, LayoutDashboard, Activity } from 'lucide-react';
 import { MarketplaceNavbar as Navbar } from '../../components/writer/MarketplaceNavbar';
 import { useStore } from '../../store/useStore';
 import type { WriterMe } from '../../lib/writerTypes';
@@ -17,7 +17,7 @@ type Section = OnboardingSection | 'status';
 
 const SECTIONS: { id: OnboardingSection; label: string; sub: string; icon: typeof UserRound }[] = [
     { id: 'profile', label: 'Profile', sub: 'Photo, education, expertise', icon: UserRound },
-    { id: 'skills', label: 'Skills', sub: 'What you deliver', icon: Sparkles },
+    { id: 'skills', label: 'Skills', sub: 'What you deliver', icon: ListChecks },
     { id: 'documents', label: 'Documents', sub: 'CV, certificates, samples', icon: FolderOpen },
     { id: 'submit', label: 'Review & submit', sub: 'Send to HR', icon: Send },
 ];

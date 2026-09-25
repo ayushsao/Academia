@@ -2,30 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { AcademiaLogo } from './AcademiaLogo';
 import {
-  ArrowRight,
-  PlayCircle,
-  Calculator,
-  Minus,
-  Plus,
-  Calendar,
-  ChevronDown,
-  CheckCircle2,
-  FileSearch,
-  PenTool,
-  CheckSquare,
-  Crown,
-  Paperclip,
-  ShieldCheck,
-  Clock,
-  X,
-  Sparkles,
-  GraduationCap,
-  Award,
-  Zap,
-  Star,
-  BookOpen,
-  Users,
-  Check
+  ArrowRight, PlayCircle, Calculator, Minus, Plus, Calendar, ChevronDown, CheckCircle2, FileSearch, PenTool, CheckSquare, Crown, Paperclip, ShieldCheck, Clock, X, GraduationCap, Award, Zap, Star, BookOpen, Users, Check
 } from 'lucide-react';
 import { ServiceType, SubjectType } from '../types';
 import { useOrderQuote, fetchOrderQuote, CURRENCY_BY_SYMBOL, type OrderQuote } from '../lib/orderQuote';
@@ -248,7 +225,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 {/* 1. Top Bar & Live Status */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-pink-100/70 shrink-0">
                   <div className="inline-flex min-w-0 items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#002147]/5 text-[#002147] text-xs sm:text-[13px] font-bold whitespace-nowrap">
-                    <Sparkles className="w-3 h-3 shrink-0 text-[#fea520] fill-[#fea520]" />
+                    <Award className="w-3.5 h-3.5 shrink-0 text-[#b86e00]" />
                     <span className="sm:hidden">UK's #1 Academic Network</span>
                     <span className="hidden sm:inline truncate">UK's #1 Ranked Academic Consultation Network</span>
                   </div>
@@ -580,7 +557,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 {/* 7. Bottom Quality Banner */}
                 <div className="text-center font-semibold text-gray-800 text-[13px] sm:text-[15px] relative z-20 shrink-0 bg-white/95 py-2.5 px-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-500 fill-amber-400" />
+                    <ShieldCheck className="w-4 h-4 text-[#b86e00]" />
                     <span>Official Turnitin Originality Certificate Included with Every Order</span>
                   </div>
                   <button

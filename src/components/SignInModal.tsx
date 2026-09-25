@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, X, ArrowRight, ShieldCheck, Sparkles, AlertCircle, User } from 'lucide-react';
+import { Mail, Lock, X, ArrowRight, ShieldCheck, AlertCircle, User } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
 import { AcademiaLogo } from './AcademiaLogo';
@@ -356,7 +356,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
 
             {/* Footer Text */}
             <div className="w-full text-center mt-10 text-[10px] sm:text-xs text-gray-400 font-medium leading-relaxed px-2 z-10">
-              <Sparkles className="w-3.5 h-3.5 inline-block mr-1 text-[#fea520] mb-0.5" />
+              <ShieldCheck className="w-3.5 h-3.5 inline-block mr-1 text-gray-400 mb-0.5" />
               By continuing, you agree to our<br className="sm:hidden" />
               {' '}<a href="#" className="text-[#002147] font-semibold hover:underline decoration-[#fea520] underline-offset-2">Terms of Service</a>,
               {' '}<a href="#" className="text-[#002147] font-semibold hover:underline decoration-[#fea520] underline-offset-2">Privacy Policy</a>, and

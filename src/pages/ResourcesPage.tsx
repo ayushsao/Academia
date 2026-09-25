@@ -3,7 +3,7 @@ import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { OrderModal } from '../components/OrderModal';
 import { SignInModal } from '../components/SignInModal';
-import { FileText, CheckCircle, ShieldCheck, Sparkles, BookOpen, ChevronRight, Eye } from 'lucide-react';
+import { FileText, CheckCircle, ShieldCheck, BookOpen, ChevronRight, Eye, PenLine } from 'lucide-react';
 
 const samples = [
     {
@@ -47,7 +47,7 @@ Remarks: This thesis has been fully vetted against 99+ billion active and archiv
         id: 'humanizer',
         title: 'AI Humanization Output',
         category: 'AI Tools',
-        icon: <Sparkles className="w-5 h-5" />,
+        icon: <PenLine className="w-5 h-5" />,
         grade: '100% Human Score',
         desc: 'A before-and-after sample showing how our advanced text humanizer blends natural conversational imperfections.',
         preview: `BEFORE (AI Generated):

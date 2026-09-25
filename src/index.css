@@ -1,7 +1,11 @@
 ﻿@import "tailwindcss";
 
 @theme {
-  --font-sans: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* Apple system font: SF Pro on Apple devices, the platform UI font elsewhere. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* Apple-style type: headings top out at bold, never heavy/black. */
+  --font-weight-extrabold: 700;
+  --font-weight-black: 700;
   --color-primary: #000a1e;
   --color-primary-container: #002147;
   --color-on-primary-container: #708ab5;
@@ -22,9 +26,14 @@
 }
 
 body {
-  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* One consistent, SF Symbols-like icon weight across the site and admin. */
+@layer base {
+  svg.lucide { stroke-width: 1.75; }
 }
 
 .glass-panel {

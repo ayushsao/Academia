@@ -20,26 +20,27 @@ export function useFeaturedWriters() {
     return writers;
 }
 
-// Shown only while no real writer has joined yet. Always labelled "Sample":
-// no photos, degrees or ratings, so nobody mistakes them for real people.
-export const SAMPLE_WRITERS: { name: string; country: string; area: string }[] = [
-    { name: 'Ananya Iyer', country: 'India', area: 'Nursing & Healthcare' },
-    { name: 'James Whitfield', country: 'United Kingdom', area: 'Law & Legal Studies' },
-    { name: 'Chloe Nguyen', country: 'Australia', area: 'Psychology' },
-    { name: 'Marcus Bell', country: 'United States', area: 'Business & Finance' },
-    { name: 'Léa Moreau', country: 'France', area: 'Literature & Humanities' },
-    { name: 'Rahul Mehta', country: 'India', area: 'Computer Science' },
-    { name: 'Olivia Grant', country: 'Canada', area: 'Education' },
-    { name: 'Lukas Weber', country: 'Germany', area: 'Engineering' },
+// Shown only while no real writer has joined yet. Always labelled "Sample",
+// with illustrated avatars (Notionists by Zoish, CC0 — public/avatars/samples)
+// rather than photos, and no degrees or ratings, so nobody mistakes them for
+// real people.
+const sampleAvatar = (slug: string) => `/avatars/samples/${slug}.svg`;
+export const SAMPLE_WRITERS: { name: string; country: string; area: string; avatar: string }[] = [
+    { name: 'Ananya Iyer', country: 'India', area: 'Nursing & Healthcare', avatar: sampleAvatar('ananya-iyer') },
+    { name: 'James Whitfield', country: 'United Kingdom', area: 'Law & Legal Studies', avatar: sampleAvatar('james-whitfield') },
+    { name: 'Chloe Nguyen', country: 'Australia', area: 'Psychology', avatar: sampleAvatar('chloe-nguyen') },
+    { name: 'Marcus Bell', country: 'United States', area: 'Business & Finance', avatar: sampleAvatar('marcus-bell') },
+    { name: 'Léa Moreau', country: 'France', area: 'Literature & Humanities', avatar: sampleAvatar('lea-moreau') },
+    { name: 'Rahul Mehta', country: 'India', area: 'Computer Science', avatar: sampleAvatar('rahul-mehta') },
+    { name: 'Olivia Grant', country: 'Canada', area: 'Education', avatar: sampleAvatar('olivia-grant') },
+    { name: 'Lukas Weber', country: 'Germany', area: 'Engineering', avatar: sampleAvatar('lukas-weber') },
 ];
-
-const initials = (name: string) => name.split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
 
 export function SampleWriterItem({ s, compact, onClick }: { s: (typeof SAMPLE_WRITERS)[number]; compact?: boolean; onClick?: () => void }) {
     return (
         <button type="button" onClick={onClick} title="Sample profile"
             className={`flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors ${compact ? 'hover:bg-gray-100' : 'border border-transparent hover:border-gray-200 hover:bg-gray-50'}`}>
-            <span className={`flex shrink-0 items-center justify-center rounded-full bg-[#002147] font-bold text-white ${compact ? 'h-8 w-8 text-[11px]' : 'h-10 w-10 text-xs'}`}>{initials(s.name)}</span>
+            <img src={s.avatar} alt="" aria-hidden loading="lazy" decoding="async" className={`shrink-0 rounded-full bg-slate-100 object-cover ${compact ? 'h-8 w-8' : 'h-10 w-10'}`} />
             <span className="min-w-0 overflow-hidden">
                 <span className={`block truncate font-bold text-[#000a1e] ${compact ? 'text-xs' : 'text-[13px]'}`}>{s.name}</span>
                 <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase text-gray-400">
