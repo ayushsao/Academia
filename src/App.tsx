@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
 import { useStore } from './store/useStore';
+import { accountHome, isWriterAccount } from './lib/session';
 
 // Every page except Home is loaded on demand, so a first visit only downloads
 // what the landing page needs (admin, dashboards and tools come later, if ever).
@@ -59,11 +60,15 @@ function DeferredChatWidget() {
     return ready ? <Suspense fallback={null}><ChatWidget /></Suspense> : null;
 }
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+// Signed-in pages. Writers and customers have separate accounts, so each is sent
+// to their own area if they open the other one.
+const ProtectedRoute = ({ children, area }: { children: React.ReactNode; area?: 'customer' | 'writer' }) => {
     const user = useStore((state) => state.user);
     if (!user) {
         return <Navigate to="/" replace />;
     }
+    if (area === 'customer' && isWriterAccount(user)) return <Navigate to={accountHome(user)} replace />;
+    if (area === 'writer' && user.role && !isWriterAccount(user) && !/^admin$/i.test(user.role)) return <Navigate to={accountHome(user)} replace />;
     return <>{children}</>;
 };
 
@@ -83,7 +88,7 @@ export default function App() {
                     <Route
                         path="/dashboard"
                         element={
-                            <ProtectedRoute>
+                            <ProtectedRoute area="customer">
                                 <Dashboard />
                             </ProtectedRoute>
                         }
@@ -102,7 +107,7 @@ export default function App() {
                     <Route path="/writer/verify" element={<Navigate to="/writer/onboarding" replace />} />
 
                     {/* Writer Dashboard */}
-                    <Route path="/writer" element={<ProtectedRoute><WriterDashboardLayout /></ProtectedRoute>}>
+                    <Route path="/writer" element={<ProtectedRoute area="writer"><WriterDashboardLayout /></ProtectedRoute>}>
                         <Route path="dashboard" element={<WriterOverview />} />
                         <Route path="opportunities" element={<WriterOpportunities />} />
                         <Route path="assignments" element={<WriterAssignments />} />

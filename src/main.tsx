@@ -36,8 +36,15 @@ const legacyToken = useStore.getState().token;
 if (legacyToken) useStore.setState({ token: legacyToken });   // rewrites storage without it
 if (useStore.getState().user) {
   originalFetch(`${API}/auth/me`, { credentials: 'include' })
-    .then(r => {
-      if (r.ok) { if (useStore.getState().token) useStore.setState({ token: null }); }   // cookie works: no token needed
+    .then(async r => {
+      if (r.ok) {
+        if (useStore.getState().token) useStore.setState({ token: null });   // cookie works: no token needed
+        // Refresh the account's role (writer vs customer) from the server.
+        const me = (await r.json().catch(() => null))?.user;
+        const cur = useStore.getState().user;
+        if (me && cur && (me.role !== cur.role || me.email !== cur.email))
+          useStore.setState({ user: { ...cur, email: me.email, name: me.name, id: me._id || cur.id, role: me.role } });
+      }
       else if (r.status === 401 && !useStore.getState().token) useStore.setState({ user: null, orders: [] });
     })
     .catch(() => { /* offline: keep the remembered profile */ });

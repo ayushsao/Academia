@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, X, ArrowRight, ShieldCheck, AlertCircle, User } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
+import { accountHome } from '../lib/session';
 import { AcademiaLogo } from './AcademiaLogo';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -72,9 +73,9 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
         await sendWelcomeEmail(data.user.name, data.user.email);
       }
 
-      login(data.user.email, data.user.name, data.token, data.user.id);
+      login(data.user.email, data.user.name, data.token, data.user.id, data.user.role);
       onClose();
-      navigate('/dashboard');
+      navigate(accountHome(data.user));   // writers → writer area, customers → their dashboard
     } catch (err: any) {
       const msg = err.message ? err.message.toLowerCase() : '';
       if (err.name === 'AbortError' || msg.includes('fetch') || msg.includes('load failed') || msg.includes('network')) {
@@ -110,7 +111,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Authentication failed');
-      login(data.user.email, data.user.name, data.token, data.user.id);
+      login(data.user.email, data.user.name, data.token, data.user.id, data.user.role);
 
       // Reverted: Send Welcome Email on manual Signup
       if (activeTab === 'signup') {
@@ -119,7 +120,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
 
       setIsAuthenticating(false);
       onClose();
-      navigate('/dashboard');
+      navigate(accountHome(data.user));   // writers → writer area, customers → their dashboard
     } catch (err: any) {
       setIsAuthenticating(false);
       const msg = err.message ? err.message.toLowerCase() : '';

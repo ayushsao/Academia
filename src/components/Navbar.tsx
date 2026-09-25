@@ -4,6 +4,7 @@ import { AcademiaLogo } from './AcademiaLogo';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { useNavigate, Link } from 'react-router-dom';
+import { accountHome, isWriterAccount } from '../lib/session';
 import { useFeaturedWriters, FeaturedWriterLink, SampleWriterItem, SAMPLE_WRITERS } from './writer/FeaturedWriters';
 
 interface NavbarProps {
@@ -206,7 +207,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
 
           {user ? (
             <div className="relative group cursor-pointer">
-              <button onClick={() => navigate('/dashboard')} className="bg-[#000a1e] hover:bg-[#002147] text-white font-bold px-4 py-2.5 rounded text-sm shadow-sm transition-colors flex items-center gap-2">
+              <button onClick={() => navigate(accountHome(user))} className="bg-[#000a1e] hover:bg-[#002147] text-white font-bold px-4 py-2.5 rounded text-sm shadow-sm transition-colors flex items-center gap-2">
                 <User className="w-4 h-4" />
                 <span className="max-w-[80px] truncate">{user.name.split(' ')[0]}</span>
               </button>
@@ -215,9 +216,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                 <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
                   <p className="text-xs text-gray-500 font-semibold mb-0.5">Signed in as</p>
                   <p className="text-sm font-bold text-[#000a1e] truncate">{user.email}</p>
+                  {isWriterAccount(user) && <p className="mt-1 inline-block rounded bg-[#002147]/5 px-1.5 py-0.5 text-[11px] font-semibold text-[#002147]">Writer account</p>}
                 </div>
-                <div onClick={() => navigate('/dashboard')} className="px-4 py-3 text-sm font-medium hover:bg-[#fea520]/10 hover:text-[#e36100] transition-colors cursor-pointer border-b border-gray-100">
-                  My Dashboard
+                <div onClick={() => navigate(accountHome(user))} className="px-4 py-3 text-sm font-medium hover:bg-[#fea520]/10 hover:text-[#e36100] transition-colors cursor-pointer border-b border-gray-100">
+                  {isWriterAccount(user) ? 'Writer Dashboard' : 'My Dashboard'}
                 </div>
                 <div onClick={() => { logout(); navigate('/'); }} className="px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors cursor-pointer flex items-center gap-2">
                   <LogOut className="w-4 h-4" /> Log out
@@ -230,7 +232,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
             </button>
           )}
 
-          <button onClick={() => { if (user) { navigate('/dashboard'); } else { onOpenSignIn(); } }} className="text-[#2d2d2d] hover:text-[#fea520] transition-colors p-2 relative">
+          <button onClick={() => { if (user) { navigate(accountHome(user)); } else { onOpenSignIn(); } }} className="text-[#2d2d2d] hover:text-[#fea520] transition-colors p-2 relative">
             <ShoppingCart className="w-6 h-6" />
             <span className="absolute top-0 right-0 bg-[#fea520] text-[#000a1e] text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center -translate-y-1 translate-x-1 shadow-sm">{activeOrderCount}</span>
           </button>
@@ -242,7 +244,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
 
         {/* Mobile Menu Toggle */}
         <div className="flex lg:hidden items-center gap-3">
-          <button onClick={() => { if (user) { navigate('/dashboard'); } else { onOpenSignIn(); } }} className="text-[#2d2d2d] p-1 relative">
+          <button onClick={() => { if (user) { navigate(accountHome(user)); } else { onOpenSignIn(); } }} className="text-[#2d2d2d] p-1 relative">
             <ShoppingCart className="w-5 h-5" />
             <span className="absolute top-0 right-0 bg-[#fea520] text-[#000a1e] text-[9px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center -translate-y-1 translate-x-1 shadow-sm">{activeOrderCount}</span>
           </button>
@@ -358,7 +360,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                 <button onClick={onOpenOrder} className="bg-[#fea520] text-[#000a1e] font-bold py-3 rounded text-center w-full shadow-sm">Order Now</button>
                 {user ? (
                   <>
-                    <button onClick={() => { setMobileMenuOpen(false); navigate('/dashboard'); }} className="bg-[#000a1e] text-white font-bold py-3 rounded text-center w-full shadow-sm">Go to Dashboard</button>
+                    <button onClick={() => { setMobileMenuOpen(false); navigate(accountHome(user)); }} className="bg-[#000a1e] text-white font-bold py-3 rounded text-center w-full shadow-sm">{isWriterAccount(user) ? 'Go to Writer Dashboard' : 'Go to Dashboard'}</button>
                     <button onClick={() => { logout(); setMobileMenuOpen(false); navigate('/'); }} className="border border-red-200 text-red-500 hover:bg-red-50 font-bold py-3 rounded text-center w-full shadow-sm transition-colors">Log Out</button>
                   </>
                 ) : (
