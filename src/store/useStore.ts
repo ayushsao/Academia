@@ -37,7 +37,9 @@ export const useStore = create<AppState>()(
       user: null,
       token: null,
       orders: [],
-      login: (email, name, token, id, role) => set({ user: { email, name, id, role }, token: token || null }),
+      // A new sign-in never shows the previous account's orders: the list is
+      // cleared and reloaded from the server for the account that just signed in.
+      login: (email, name, token, id, role) => set({ user: { email, name, id, role }, token: token || null, orders: [] }),
       logout: () => set({ user: null, token: null, orders: [] }),
       addOrder: (order) => set((state) => ({ orders: [order, ...state.orders] })),
       updateOrderStatus: (id, status) => set((state) => ({

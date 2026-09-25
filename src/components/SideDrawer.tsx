@@ -117,7 +117,7 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
       {/* Drawer Panel */}
       <div
         id="sideNavDrawer"
-        className={`fixed right-0 top-0 h-screen w-full sm:w-[420px] z-[60] bg-[#dbe9ff] shadow-2xl transition-transform duration-500 ease-out flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'
+        className={`fixed right-0 top-0 h-screen w-full sm:w-[420px] z-[60] bg-[#dbe9ff] transition-transform duration-500 ease-out flex flex-col ${isOpen ? 'translate-x-0 shadow-2xl' : 'translate-x-full shadow-none'
           }`}
       >
         <div className="flex flex-col h-full p-6 sm:p-8 overflow-y-auto relative bg-mesh">

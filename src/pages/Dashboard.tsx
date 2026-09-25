@@ -16,6 +16,9 @@ export const Dashboard: React.FC = () => {
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
     const [uploadingForOrder, setUploadingForOrder] = useState<string | null>(null);
     const studentFileInputRefs = React.useRef<Record<string, HTMLInputElement | null>>({});
+    // Orders always come from the server for the signed-in account.
+    const [ordersState, setOrdersState] = useState<'loading' | 'ready' | 'error'>('loading');
+    const [ordersAttempt, setOrdersAttempt] = useState(0);
 
     const handleDownload = async (fileName: string) => {
         try {
@@ -72,19 +75,34 @@ export const Dashboard: React.FC = () => {
 
     useEffect(() => {
         if (!token) return;
+        let live = true;
         const loadOrders = async () => {
+            setOrdersState('loading');
             try {
                 const res = await fetch(`${API}/orders`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    credentials: 'include',
+                    cache: 'no-store',
                 });
-                if (res.ok) {
-                    const data = await res.json();
-                    setOrders(data.orders || []);
+                if (!live) return;
+                if (res.status === 401) {
+                    // Session expired: sign in again so the right account's orders load.
+                    logout();
+                    alert('Your session has expired. Please sign in again to see your orders.');
+                    navigate('/');
+                    return;
                 }
-            } catch (err) {}
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                setOrders(data.orders || []);
+                setOrdersState('ready');
+            } catch {
+                if (live) setOrdersState('error');
+            }
         };
         loadOrders();
-    }, [token, setOrders]);
+        return () => { live = false; };
+    }, [token, setOrders, ordersAttempt]);
 
     const handleLogout = async () => {
         try { await fetch(`${API}/auth/logout`, { method: 'POST', credentials: 'include' }); } catch (e) {}
@@ -267,7 +285,19 @@ export const Dashboard: React.FC = () => {
                                 <h2 className="text-sm font-bold text-[#1b2733] uppercase">All Projects ({orders.length})</h2>
                             </div>
 
-                            {orders.length === 0 ? (
+                            {ordersState === 'loading' && orders.length === 0 ? (
+                                <div className="flex-1 flex items-center justify-center p-8 bg-gray-50/50" role="status" aria-label="Loading your orders">
+                                    <div className="w-8 h-8 rounded-full border-[3px] border-gray-200 border-t-[#002147] animate-spin" />
+                                </div>
+                            ) : ordersState === 'error' ? (
+                                <div className="flex-1 flex items-center justify-center p-8 text-center bg-gray-50/50">
+                                    <div className="flex flex-col items-center">
+                                        <p className="text-lg text-gray-600">We couldn’t load your orders.</p>
+                                        <p className="text-xs text-gray-400 mt-2">Your orders are safe — check your connection and try again.</p>
+                                        <button onClick={() => setOrdersAttempt(a => a + 1)} className="mt-4 rounded-lg bg-[#002147] px-5 py-2.5 text-sm font-semibold text-white">Try again</button>
+                                    </div>
+                                </div>
+                            ) : orders.length === 0 ? (
                                 <div className="flex-1 flex items-center justify-center p-8 text-center bg-gray-50/50">
                                     <div className="flex flex-col items-center">
                                         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-4">

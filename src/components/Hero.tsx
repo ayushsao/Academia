@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AcademiaLogo } from './AcademiaLogo';
 import {
   ArrowRight, PlayCircle, Calculator, Minus, Plus, Calendar, ChevronDown, CheckCircle2, FileSearch, PenTool, CheckSquare, Crown, Paperclip, ShieldCheck, Clock, X, GraduationCap, Award, Zap, Star, BookOpen, Users, Check
@@ -59,15 +59,6 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
     return () => clearInterval(timer);
   }, []);
 
-  const containerRef = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end start"]
-  });
-
-  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
-  const contentY = useTransform(scrollYProgress, [0, 1], ["0%", "15%"]);
-  const contentOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
   const WORDS_PER_PAGE = 250;
 
@@ -199,7 +190,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
   };
 
   return (
-    <section ref={containerRef} className="relative pt-12 md:pt-16 pb-24 overflow-hidden bg-white">
+    <section className="relative pt-12 md:pt-16 pb-24 overflow-hidden bg-white">
       {/* Faint Background Letters matching screenshot */}
       <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] text-[180px] font-black leading-none overflow-hidden flex flex-col justify-between whitespace-nowrap text-[#fea520]">
         <div className="flex justify-between w-full"><span>FINANCIAL</span><span>MATHS</span></div>
