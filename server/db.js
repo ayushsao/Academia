@@ -718,6 +718,18 @@ for (const schema of [writerProfileSchema, writerSkillSchema, writerAvailability
   schema.post('insertMany', docs => [...new Set((docs || []).map(d => String(d.writerId)))].forEach(queueDirectoryRefresh));
 }
 
+// Writer changes (approval, suspension, membership start/expiry…) change who is
+// public, so the cached public profile and directory listings are dropped.
+// Awaited, so the next request already sees the change.
+async function dropWriterCache(writerId) {
+  try {
+    const { cacheDel, cacheDelPattern } = await import('./services/cache.js');
+    await Promise.all([writerId ? cacheDel(`writers:profile:${writerId}`) : null, cacheDelPattern('writers:public:')]);
+  } catch (err) { console.error('[Cache] writer invalidation failed:', err.message); }
+}
+writerSchema.post('save', doc => dropWriterCache(doc._id));
+writerSchema.post(['findOneAndUpdate', 'updateOne', 'updateMany'], function () { return dropWriterCache(this.getFilter()?._id); });
+
 export const MembershipPlan = mongoose.model('MembershipPlan', membershipPlanSchema);
 export const WriterSubscription = mongoose.model('WriterSubscription', writerSubscriptionSchema);
 export const SubscriptionPayment = mongoose.model('SubscriptionPayment', subscriptionPaymentSchema);

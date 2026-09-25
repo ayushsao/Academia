@@ -7,24 +7,13 @@ import { validateInput, contentBlockSchema, reorderSchema, faqSchema, seoInputSc
 import { recordAudit } from '../services/audit.js';
 import { ContentError, normaliseBlock, cleanRichText, loadEntity, buildPage, resolveSeo, MODELS } from '../services/contentBlocks.js';
 import { receiveCatalogFiles, storeCatalogFiles, removeCatalogFile, MediaError } from '../services/catalogMedia.js';
-import { cacheDelPattern } from '../services/cache.js';
+import { invalidateOnWrite } from '../services/cache.js';
 
 // Dynamic content CMS for the catalogue: /api/admin/catalog (content routes).
 // Blocks, FAQs, SEO and the media library need catalog.manage.
 const router = Router();
 router.use(noStore, authenticateAdmin, requirePermission('catalog.manage'));
-router.use((req, res, next) => {
-    if (req.method !== 'GET') {
-        const originalJson = res.json.bind(res);
-        res.json = (body) => {
-            if (res.statusCode >= 200 && res.statusCode < 300) {
-                cacheDelPattern('catalog:').catch(() => {});
-            }
-            return originalJson(body);
-        };
-    }
-    next();
-});
+router.use(invalidateOnWrite('catalog:'));   // blocks, FAQs, SEO and media change public pages
 
 const isId = (v) => mongoose.isValidObjectId(v) && /^[a-f0-9]{24}$/i.test(String(v));
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

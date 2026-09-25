@@ -13,7 +13,12 @@ const cleanEnv = (v) => (v ? String(v).trim().replace(/^['"]|['"]$/g, '') : '');
 const REDIS_URL = cleanEnv(process.env.UPSTASH_REDIS_REST_URL);
 const REDIS_TOKEN = cleanEnv(process.env.UPSTASH_REDIS_REST_TOKEN);
 
-const KEY_PREFIX = 'academiapro:';
+// Keys are namespaced by database so environments that share one Redis (local
+// test databases, staging, production) never read each other's cached data.
+const dbName = (() => {
+    try { return new URL(cleanEnv(process.env.MONGO_URI)).pathname.replace(/^\//, '') || 'default'; } catch { return 'default'; }
+})();
+const KEY_PREFIX = `academiapro:${dbName}:`;
 
 let redisClient = null;
 let redisHealthy = false;
@@ -150,6 +155,24 @@ export async function cacheDelPattern(pattern) {
         console.warn(`[Cache] Error invalidating pattern "${pattern}":`, err.message);
         return 0;
     }
+}
+
+/**
+ * Express middleware: after any successful write (non-GET 2xx JSON reply),
+ * drops cached keys matching `pattern` BEFORE the response is sent, so the
+ * next read — the admin's or a visitor's — never gets pre-edit data.
+ */
+export function invalidateOnWrite(pattern) {
+    return (req, res, next) => {
+        if (req.method === 'GET') return next();
+        const originalJson = res.json.bind(res);
+        res.json = (body) => {
+            if (res.statusCode < 200 || res.statusCode >= 300) return originalJson(body);
+            cacheDelPattern(pattern).catch(() => {}).finally(() => originalJson(body));
+            return res;
+        };
+        next();
+    };
 }
 
 /**

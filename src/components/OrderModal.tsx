@@ -969,7 +969,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 </button>
               ) : (
                 <button
-                  onClick={handleCompleteOrder}
+                  onClick={() => handleCompleteOrder()}
                   disabled={isSubmitting || !quoteReady}
                   className="bg-[#fea520] hover:bg-[#e36100] text-[#000a1e] hover:text-white px-7 py-3 rounded-xl text-sm font-bold shadow-soft flex items-center gap-1.5 transition-all disabled:opacity-75 disabled:cursor-not-allowed"
                 >

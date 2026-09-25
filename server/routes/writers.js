@@ -2,6 +2,7 @@ import { Router } from 'express';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { rateLimit } from 'express-rate-limit';
 import { User, Writer, WriterProfile, WriterSkill, WriterDocument, WriterApplication, WriterAvailability } from '../db.js';
 import { authenticateUser, identifyPrincipal, issueUserSession } from '../middleware.js';
 import { remember, cacheDel, cacheDelPattern } from '../services/cache.js';

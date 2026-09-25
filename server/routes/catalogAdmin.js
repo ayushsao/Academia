@@ -11,12 +11,13 @@ import { recordAudit } from '../services/audit.js';
 import { isIsoCurrency, toMinor, fromMinor } from '../services/money.js';
 import { FORMULAS, PricingError, unitPriceFor, quote, getWordConfig, saveWordConfig, normaliseRuleScope } from '../services/pricing.js';
 import { receiveCatalogFiles, storeCatalogFiles, removeCatalogFile, streamCatalogFile, MediaError, LIMITS } from '../services/catalogMedia.js';
-import { cacheDelPattern } from '../services/cache.js';
+import { cacheDelPattern, invalidateOnWrite } from '../services/cache.js';
 
 // Admin CRM core: /api/admin/catalog. Subjects/Services/Projects need
 // catalog.manage; pricing rules and word/page config need pricing.manage.
 const router = Router();
 router.use(noStore, authenticateAdmin);
+router.use(invalidateOnWrite('catalog:'));   // also covers images, project files and pricing rules
 
 const CATALOG = requirePermission('catalog.manage');
 const PRICING = requirePermission('pricing.manage');
