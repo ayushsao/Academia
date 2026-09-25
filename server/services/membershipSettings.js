@@ -1,4 +1,5 @@
 import { SiteSettings, MembershipPlan } from '../db.js';
+import { remember, cacheDel } from './cache.js';
 
 const KEY = 'membership';
 
@@ -22,19 +23,22 @@ export const DEFAULT_SETTINGS = {
 };
 
 export async function getMembershipSettings() {
-    const doc = await SiteSettings.findOne({ key: KEY }).lean();
-    const stored = doc?.value || {};
-    return {
-        ...DEFAULT_SETTINGS,
-        ...stored,
-        manualPayment: { ...DEFAULT_SETTINGS.manualPayment, ...(stored.manualPayment || {}) },
-        reporting: { ...DEFAULT_SETTINGS.reporting, ...(stored.reporting || {}) },
-        countryCurrency: { ...DEFAULT_SETTINGS.countryCurrency, ...(stored.countryCurrency || {}) },
-    };
+    return remember('settings:membership', 900, async () => {
+        const doc = await SiteSettings.findOne({ key: KEY }).lean();
+        const stored = doc?.value || {};
+        return {
+            ...DEFAULT_SETTINGS,
+            ...stored,
+            manualPayment: { ...DEFAULT_SETTINGS.manualPayment, ...(stored.manualPayment || {}) },
+            reporting: { ...DEFAULT_SETTINGS.reporting, ...(stored.reporting || {}) },
+            countryCurrency: { ...DEFAULT_SETTINGS.countryCurrency, ...(stored.countryCurrency || {}) },
+        };
+    });
 }
 
 export async function saveMembershipSettings(value) {
     await SiteSettings.findOneAndUpdate({ key: KEY }, { $set: { value } }, { upsert: true });
+    await cacheDel('settings:membership');
     return getMembershipSettings();
 }
 

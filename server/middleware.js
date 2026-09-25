@@ -2,6 +2,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const jwt = require('jsonwebtoken');
 import { normalizeRole } from './permissions.js';
+import { remember, cacheDel } from './services/cache.js';
 
 // Secrets come from config.js, which never falls back to a known value in production.
 export { JWT_SECRET, ADMIN_SECRET } from './config.js';
@@ -36,17 +37,24 @@ export function authenticateUser(req, res, next) {
 // The admin's current role is read from the database (cached briefly) rather than
 // trusted from the token, so deleting an admin or changing their role takes effect
 // within ADMIN_ROLE_TTL_MS instead of when their 12-hour token expires.
-const ADMIN_ROLE_TTL_MS = 30 * 1000;
+const ADMIN_ROLE_TTL_MS = 60 * 1000;
 const adminRoleCache = new Map();
-export const invalidateAdminCache = (adminId) => adminRoleCache.delete(String(adminId));
+export const invalidateAdminCache = (adminId) => {
+    adminRoleCache.delete(String(adminId));
+    cacheDel(`admin:role:${adminId}`).catch(() => {});
+};
 
 async function currentAdminRole(adminId) {
     const key = String(adminId);
     const hit = adminRoleCache.get(key);
     if (hit && hit.expires > Date.now()) return hit.role;
-    const { Admin } = await import('./db.js');
-    const admin = await Admin.findById(adminId).select('role').lean();
-    const role = admin ? normalizeRole(admin.role) : null;
+
+    const role = await remember(`admin:role:${adminId}`, 60, async () => {
+        const { Admin } = await import('./db.js');
+        const admin = await Admin.findById(adminId).select('role').lean();
+        return admin ? normalizeRole(admin.role) : null;
+    });
+
     adminRoleCache.set(key, { role, expires: Date.now() + ADMIN_ROLE_TTL_MS });
     return role;
 }

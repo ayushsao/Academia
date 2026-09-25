@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { SiteSettings } from '../db.js';
 import { MEMBERSHIP_DISCLAIMER } from './membershipSettings.js';
+import { remember, cacheDel } from './cache.js';
 
 // Admin-editable marketplace copy: the "Become a Writer" page, applicant FAQ,
 // pricing-page text, requirements, writer terms and contact details. Stored in
@@ -197,16 +198,18 @@ function journeySteps(saved) {
 }
 
 export async function getContent() {
-    const row = await SiteSettings.findOne({ key: CONTENT_KEY }).lean();
-    const saved = row?.value || {};
-    const content = {
-        recruitment: { ...DEFAULT_CONTENT.recruitment, ...(saved.recruitment || {}), steps: journeySteps(saved.recruitment?.steps) },
-        faq: saved.faq || DEFAULT_CONTENT.faq,
-        pricing: { ...DEFAULT_CONTENT.pricing, ...(saved.pricing || {}) },
-        terms: { ...DEFAULT_CONTENT.terms, ...(saved.terms || {}) },
-        contact: { ...DEFAULT_CONTENT.contact, ...(saved.contact || {}) },
-    };
-    return { content, updatedAt: row?.updatedAt || null, termsUpdatedAt: saved.termsUpdatedAt || null, disclaimer: MEMBERSHIP_DISCLAIMER };
+    return remember('settings:marketplace_content', 900, async () => {
+        const row = await SiteSettings.findOne({ key: CONTENT_KEY }).lean();
+        const saved = row?.value || {};
+        const content = {
+            recruitment: { ...DEFAULT_CONTENT.recruitment, ...(saved.recruitment || {}), steps: journeySteps(saved.recruitment?.steps) },
+            faq: saved.faq || DEFAULT_CONTENT.faq,
+            pricing: { ...DEFAULT_CONTENT.pricing, ...(saved.pricing || {}) },
+            terms: { ...DEFAULT_CONTENT.terms, ...(saved.terms || {}) },
+            contact: { ...DEFAULT_CONTENT.contact, ...(saved.contact || {}) },
+        };
+        return { content, updatedAt: row?.updatedAt || null, termsUpdatedAt: saved.termsUpdatedAt || null, disclaimer: MEMBERSHIP_DISCLAIMER };
+    });
 }
 
 export async function saveContent(input) {
@@ -217,5 +220,6 @@ export async function saveContent(input) {
     await SiteSettings.updateOne({ key: CONTENT_KEY }, {
         $set: { value: { ...content, termsUpdatedAt: termsChanged ? new Date() : current.termsUpdatedAt || null } },
     }, { upsert: true });
+    await cacheDel('settings:marketplace_content');
     return { changed, ...(await getContent()) };
 }

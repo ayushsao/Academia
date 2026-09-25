@@ -35,6 +35,7 @@ import { backfillWriterDirectory } from './services/writerDirectory.js';
 import { startAssignmentScheduler } from './services/assignmentService.js';
 import { startMembershipScheduler } from './services/membershipService.js';
 import { ensureDefaultPlans } from './services/membershipSettings.js';
+import { isRedisAvailable, cacheStats } from './services/cache.js';
 
 
 const app = express();
@@ -113,7 +114,14 @@ app.use('/api/payments', paymentsRouter);
 app.use('/', paymentsRouter);
 
 app.get('/api/health', (req, res) =>
-    res.json({ status: 'OK', timestamp: new Date().toISOString() })
+    res.json({
+        status: 'OK',
+        timestamp: new Date().toISOString(),
+        redis: {
+            connected: isRedisAvailable(),
+            stats: cacheStats,
+        },
+    })
 );
 
 app.use('/api/*', (req, res) =>
@@ -165,6 +173,7 @@ connectDB().then(() => {
     app.listen(PORT, () => {
         console.log(`\n🎓 AcademiaPro Backend  →  http://localhost:${PORT}`);
         console.log(`📦 Deploy Version      →  ${DEPLOY_VERSION}`);
+        console.log(`⚡ Redis Caching       →  ${isRedisAvailable() ? 'Active (Upstash Redis)' : 'Standby / Direct DB'}`);
         if (!IS_PRODUCTION) console.log(`📊 Admin Panel         →  http://localhost:3000/admin  (dev login: admin / admin123)\n`);
     });
 });

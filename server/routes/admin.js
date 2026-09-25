@@ -8,6 +8,7 @@ import { AbuseError, assertNotLocked, recordLoginFailure, clearLoginFailures } f
 import { IS_PRODUCTION } from '../config.js';
 import { streamOrderFile, receiveOrderFiles, storeOrderUploads } from '../services/orderFiles.js';
 import crypto from 'crypto';
+import { remember, cacheDelPattern } from '../services/cache.js';
 
 const require = createRequire(import.meta.url);
 const bcrypt = require('bcryptjs');
@@ -141,49 +142,53 @@ router.post('/me/password', validateInput(adminPasswordSchema), async (req, res)
 // GET /api/admin/stats
 router.get('/stats', authenticateAdmin, async (req, res) => {
     try {
-        const [
-            totalOrders, totalUsers, unreadContacts,
-            pendingOrders, inProgressOrders, completedOrders, cancelledOrders,
-            revenueResult
-        ] = await Promise.all([
-            Order.countDocuments(),
-            User.countDocuments(),
-            Contact.countDocuments({ status: 'unread' }),
-            Order.countDocuments({ status: 'Pending' }),
-            Order.countDocuments({ status: 'In Progress' }),
-            Order.countDocuments({ status: 'Completed' }),
-            Order.countDocuments({ status: 'Cancelled' }),
-            Order.aggregate([
-                { $match: { status: { $ne: 'Cancelled' } } },
-                { $group: { _id: { $ifNull: ['$currency', 'GBP'] }, total: { $sum: '$totalAmount' } } }
-            ]),
-        ]);
+        const stats = await remember('admin:stats', 30, async () => {
+            const [
+                totalOrders, totalUsers, unreadContacts,
+                pendingOrders, inProgressOrders, completedOrders, cancelledOrders,
+                revenueResult
+            ] = await Promise.all([
+                Order.countDocuments(),
+                User.countDocuments(),
+                Contact.countDocuments({ status: 'unread' }),
+                Order.countDocuments({ status: 'Pending' }),
+                Order.countDocuments({ status: 'In Progress' }),
+                Order.countDocuments({ status: 'Completed' }),
+                Order.countDocuments({ status: 'Cancelled' }),
+                Order.aggregate([
+                    { $match: { status: { $ne: 'Cancelled' } } },
+                    { $group: { _id: { $ifNull: ['$currency', 'GBP'] }, total: { $sum: '$totalAmount' } } }
+                ]),
+            ]);
 
-        // Totals are per currency (catalogue orders can be in any currency); GBP is the headline figure.
-        const totalRevenue = revenueResult.find(r => r._id === 'GBP')?.total || 0;
-        const otherRevenue = revenueResult.filter(r => r._id !== 'GBP').map(r => ({ currency: r._id, total: r.total })).sort((a, b) => a.currency.localeCompare(b.currency));
+            // Totals are per currency (catalogue orders can be in any currency); GBP is the headline figure.
+            const totalRevenue = revenueResult.find(r => r._id === 'GBP')?.total || 0;
+            const otherRevenue = revenueResult.filter(r => r._id !== 'GBP').map(r => ({ currency: r._id, total: r.total })).sort((a, b) => a.currency.localeCompare(b.currency));
 
-        // Revenue per day for the last 7 days
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            // Revenue per day for the last 7 days
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-        const recentRevenue = await Order.aggregate([
-            { $match: { status: { $ne: 'Cancelled' }, createdAt: { $gte: sevenDaysAgo }, currency: { $in: ['GBP', null] } } },
-            {
-                $group: {
-                    _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-                    revenue: { $sum: '$totalAmount' }
-                }
-            },
-            { $sort: { _id: 1 } },
-            { $project: { day: '$_id', revenue: 1, _id: 0 } }
-        ]);
+            const recentRevenue = await Order.aggregate([
+                { $match: { status: { $ne: 'Cancelled' }, createdAt: { $gte: sevenDaysAgo }, currency: { $in: ['GBP', null] } } },
+                {
+                    $group: {
+                        _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                        revenue: { $sum: '$totalAmount' }
+                    }
+                },
+                { $sort: { _id: 1 } },
+                { $project: { day: '$_id', revenue: 1, _id: 0 } }
+            ]);
 
-        res.json({
-            totalOrders, totalUsers, totalRevenue, otherRevenue,
-            pendingOrders, inProgressOrders, completedOrders, cancelledOrders,
-            unreadContacts, recentRevenue
+            return {
+                totalOrders, totalUsers, totalRevenue, otherRevenue,
+                pendingOrders, inProgressOrders, completedOrders, cancelledOrders,
+                unreadContacts, recentRevenue
+            };
         });
+
+        res.json(stats);
     } catch (err) {
         res.status(500).json({ error: 'Internal server error.' });
     }
@@ -568,6 +573,7 @@ router.patch('/settings', authenticateAdmin, async (req, res) => {
         for (const [key, value] of Object.entries(updates)) {
             await SiteSettings.findOneAndUpdate({ key }, { value }, { upsert: true, new: true });
         }
+        await cacheDelPattern('settings:');
         await recordAudit(req, 'SITE_SETTINGS_UPDATED', { targetType: 'SETTINGS', reason: Object.keys(updates).join(', ') });
         res.json({ message: 'Settings updated.' });
     } catch (err) {

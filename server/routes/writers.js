@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { rateLimit } from 'express-rate-limit';
+import crypto from 'crypto';
 import { User, Writer, WriterProfile, WriterSkill, WriterDocument, WriterApplication, WriterAvailability } from '../db.js';
 import { authenticateUser, identifyPrincipal, issueUserSession } from '../middleware.js';
+import { remember, cacheDel, cacheDelPattern } from '../services/cache.js';
 import { can } from '../permissions.js';
 import {
     validateInput, phoneField, writerRegisterSchema, writerPhoneUpdateSchema, otpVerifySchema, writerProfileSchema,
@@ -382,61 +383,73 @@ const queryString = (v, max = 80) => (typeof v === 'string' ? v.trim().slice(0, 
 
 router.get('/public', async (req, res) => {
     try {
-        const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
-        const limit = Math.min(48, Math.max(1, Number.parseInt(req.query.limit, 10) || 12));
-        const search = queryString(req.query.search);
-        const subject = queryString(req.query.subject);
-        const level = queryString(req.query.level);
-        const skill = queryString(req.query.skill);
-        const country = queryString(req.query.country, 2).toUpperCase();
-        const availableOnly = req.query.available === '1';
+        const queryHash = crypto.createHash('md5').update(JSON.stringify(req.query)).digest('hex');
+        const cacheKey = `writers:public:${queryHash}`;
 
-        // One indexed query on the directory snapshot (see services/writerDirectory.js).
-        const filter = { status: { $in: PUBLIC_WRITER_STATUSES }, 'directory.visible': true };
-        if (subject) filter['directory.subjects'] = subject.toLowerCase();
-        if (level) filter['directory.levels'] = level;
-        if (/^[A-Z]{2}$/.test(country)) filter['directory.country'] = country;
-        if (skill) filter['directory.skills'] = slugify(skill);
-        if (availableOnly) filter['directory.available'] = true;
-        const terms = prefixTerms(search);
-        if (terms.length) filter['directory.tokens'] = { $all: terms };
+        const result = await remember(cacheKey, 180, async () => {
+            const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+            const limit = Math.min(48, Math.max(1, Number.parseInt(req.query.limit, 10) || 12));
+            const search = queryString(req.query.search);
+            const subject = queryString(req.query.subject);
+            const level = queryString(req.query.level);
+            const skill = queryString(req.query.skill);
+            const country = queryString(req.query.country, 2).toUpperCase();
+            const availableOnly = req.query.available === '1';
 
-        const [total, pageWriters] = await Promise.all([
-            Writer.countDocuments(filter),
-            Writer.find(filter)
-                .sort({ 'membership.tier': -1, 'metrics.rating': -1, 'metrics.completedAssignments': -1, _id: 1 })
-                .skip((page - 1) * limit).limit(limit).select('-phoneE164 -searchKeys -signupIpHash -emailCanonical -risk').lean(),
-        ]);
-        const ids = pageWriters.map(w => w._id);
-        const [users, profiles, availabilities, skills] = await Promise.all([
-            User.find({ _id: { $in: pageWriters.map(w => w.userId) } }).select('name').lean(),
-            WriterProfile.find({ writerId: { $in: ids } }).lean(),
-            WriterAvailability.find({ writerId: { $in: ids } }).lean(),
-            WriterSkill.find({ writerId: { $in: ids } }).select('writerId name').lean(),
-        ]);
-        const byWriter = (rows) => new Map(rows.map(r => [String(r.writerId), r]));
-        const userMap = new Map(users.map(u => [String(u._id), u]));
-        const profileMap = byWriter(profiles), availMap = byWriter(availabilities);
+            // One indexed query on the directory snapshot (see services/writerDirectory.js).
+            const filter = { status: { $in: PUBLIC_WRITER_STATUSES }, 'directory.visible': true };
+            if (subject) filter['directory.subjects'] = subject.toLowerCase();
+            if (level) filter['directory.levels'] = level;
+            if (/^[A-Z]{2}$/.test(country)) filter['directory.country'] = country;
+            if (skill) filter['directory.skills'] = slugify(skill);
+            if (availableOnly) filter['directory.available'] = true;
+            const terms = prefixTerms(search);
+            if (terms.length) filter['directory.tokens'] = { $all: terms };
 
-        const writers = pageWriters.filter(w => profileMap.has(String(w._id))).map(w => {
-            const view = toPublicView({
-                writer: w, user: userMap.get(String(w.userId)), profile: profileMap.get(String(w._id)), availability: availMap.get(String(w._id)),
-                skills: skills.filter(s => String(s.writerId) === String(w._id)), documents: [],
+            const [total, pageWriters] = await Promise.all([
+                Writer.countDocuments(filter),
+                Writer.find(filter)
+                    .sort({ 'membership.tier': -1, 'metrics.rating': -1, 'metrics.completedAssignments': -1, _id: 1 })
+                    .skip((page - 1) * limit).limit(limit).select('-phoneE164 -searchKeys -signupIpHash -emailCanonical -risk').lean(),
+            ]);
+            const ids = pageWriters.map(w => w._id);
+            const [users, profiles, availabilities, skills] = await Promise.all([
+                User.find({ _id: { $in: pageWriters.map(w => w.userId) } }).select('name').lean(),
+                WriterProfile.find({ writerId: { $in: ids } }).lean(),
+                WriterAvailability.find({ writerId: { $in: ids } }).lean(),
+                WriterSkill.find({ writerId: { $in: ids } }).select('writerId name').lean(),
+            ]);
+            const byWriter = (rows) => new Map(rows.map(r => [String(r.writerId), r]));
+            const userMap = new Map(users.map(u => [String(u._id), u]));
+            const profileMap = byWriter(profiles), availMap = byWriter(availabilities);
+
+            const writers = pageWriters.filter(w => profileMap.has(String(w._id))).map(w => {
+                const view = toPublicView({
+                    writer: w, user: userMap.get(String(w.userId)), profile: profileMap.get(String(w._id)), availability: availMap.get(String(w._id)),
+                    skills: skills.filter(s => String(s.writerId) === String(w._id)), documents: [],
+                });
+                // Cards only need a summary.
+                const { bio, education, writingExperience, writingSamples, ...card } = view;
+                return { ...card, topDegree: education[0] ? `${education[0].level} · ${education[0].degree}` : null };
             });
-            // Cards only need a summary.
-            const { bio, education, writingExperience, writingSamples, ...card } = view;
-            return { ...card, topDegree: education[0] ? `${education[0].level} · ${education[0].degree}` : null };
+            return { writers, total, page, limit };
         });
-        res.json({ writers, total, page, limit });
+
+        res.json(result);
     } catch (err) { handleError(res, err, 'Could not load writers.'); }
 });
 
 router.get('/public/:writerId', async (req, res) => {
     try {
         if (!isObjectId(req.params.writerId)) return res.status(404).json({ error: 'Writer not found.' });
-        const bundle = await loadWriterBundle({ _id: req.params.writerId });
-        if (!bundle || !isPubliclyVisible(bundle.writer, bundle.profile)) return res.status(404).json({ error: 'Writer not found.' });
-        res.json({ writer: toPublicView(bundle) });
+        const cacheKey = `writers:profile:${req.params.writerId}`;
+        const writerData = await remember(cacheKey, 600, async () => {
+            const bundle = await loadWriterBundle({ _id: req.params.writerId });
+            if (!bundle || !isPubliclyVisible(bundle.writer, bundle.profile)) return null;
+            return toPublicView(bundle);
+        });
+        if (!writerData) return res.status(404).json({ error: 'Writer not found.' });
+        res.json({ writer: writerData });
     } catch (err) { handleError(res, err, 'Could not load writer.'); }
 });
 

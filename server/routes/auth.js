@@ -7,6 +7,7 @@ import { User, Writer } from '../db.js';
 import { AbuseError, assertNotLocked, recordLoginFailure, clearLoginFailures } from '../services/abuse.js';
 import { authenticateUser, issueUserSession } from '../middleware.js';
 import { validateInput, signupSchema, loginSchema } from '../validation.js';
+import { remember, cacheDel } from '../services/cache.js';
 
 const require = createRequire(import.meta.url);
 const bcrypt = require('bcryptjs');
@@ -153,13 +154,16 @@ router.post('/login', authLimiter, validateInput(loginSchema), async (req, res) 
 // POST /api/auth/logout
 router.post('/logout', (req, res) => {
     res.clearCookie('auth_token', { httpOnly: true, secure: true, sameSite: 'none' });
+    if (req.user?.id) cacheDel(`user:profile:${req.user.id}`).catch(() => {});
     res.json({ message: 'Logged out' });
 });
 
 // GET /api/auth/me
 router.get('/me', authenticateUser, async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select('-password');
+        const user = await remember(`user:profile:${req.user.id}`, 180, async () => {
+            return await User.findById(req.user.id).select('-password').lean();
+        });
         if (!user) return res.status(404).json({ error: 'User not found.' });
         res.json({ user });
     } catch (err) {

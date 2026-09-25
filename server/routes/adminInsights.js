@@ -8,6 +8,7 @@ import { can, requirePermission, noStore } from '../permissions.js';
 import { membershipAnalytics } from '../services/membershipAnalytics.js';
 import { getAssignmentSettings, workloadLimit } from '../services/assignmentSettings.js';
 import { effectiveAvailability } from '../services/writerService.js';
+import { remember } from '../services/cache.js';
 
 // Mounted at /api/admin/insights. Aggregated, non-personal metrics. Each dashboard
 // section is only computed for roles allowed to see that area.
@@ -118,13 +119,16 @@ async function performanceSection() {
 router.get('/dashboard', requirePermission('dashboard.view'), async (req, res) => {
     try {
         const role = req.admin.adminRole;
-        const tasks = {};
-        if (can(role, 'writers.read') || can(role, 'recruitment.read')) tasks.writers = writerSection();
-        if (can(role, 'subscriptions.read')) tasks.subscriptions = subscriptionSection();
-        if (can(role, 'assignments.manage')) tasks.operations = operationsSection();
-        if (can(role, 'writers.performance')) tasks.performance = performanceSection();
-        const entries = await Promise.all(Object.entries(tasks).map(async ([k, p]) => [k, await p]));
-        res.json({ generatedAt: new Date(), role, sections: Object.fromEntries(entries) });
+        const data = await remember(`admin:insights:dashboard:${role}`, 45, async () => {
+            const tasks = {};
+            if (can(role, 'writers.read') || can(role, 'recruitment.read')) tasks.writers = writerSection();
+            if (can(role, 'subscriptions.read')) tasks.subscriptions = subscriptionSection();
+            if (can(role, 'assignments.manage')) tasks.operations = operationsSection();
+            if (can(role, 'writers.performance')) tasks.performance = performanceSection();
+            const entries = await Promise.all(Object.entries(tasks).map(async ([k, p]) => [k, await p]));
+            return { generatedAt: new Date(), role, sections: Object.fromEntries(entries) };
+        });
+        res.json(data);
     } catch (err) {
         console.error('[Insights] dashboard failed:', err);
         res.status(500).json({ error: 'Failed to load dashboard.' });
@@ -134,39 +138,42 @@ router.get('/dashboard', requirePermission('dashboard.view'), async (req, res) =
 // GET /api/admin/insights/recruitment — writer acquisition funnel (no personal data).
 router.get('/recruitment', requirePermission('recruitment.read'), async (req, res) => {
     try {
-        const since = new Date(Date.now() - 84 * DAY);
-        const [registered, emailVerified, phoneVerified, submitted, approved, active, byCountry, weekly, leads] = await Promise.all([
-            Writer.countDocuments(),
-            Writer.countDocuments({ emailVerified: true }),
-            Writer.countDocuments({ phoneVerified: true }),
-            WriterApplication.countDocuments({ submittedAt: { $ne: null } }),
-            Writer.countDocuments({ status: { $in: ['APPROVED', 'ACTIVE'] } }),
-            Writer.countDocuments({ status: 'ACTIVE' }),
-            WriterProfile.aggregate([
-                { $lookup: { from: 'writers', localField: 'writerId', foreignField: '_id', as: 'w' } },
-                { $unwind: '$w' },
-                { $group: { _id: '$country', registered: { $sum: 1 }, approved: { $sum: { $cond: [{ $in: ['$w.status', ['APPROVED', 'ACTIVE']] }, 1, 0] } } } },
-                { $sort: { registered: -1 } }, { $limit: 15 },
-            ]),
-            Writer.aggregate([
-                { $match: { createdAt: { $gte: since } } },
-                { $group: { _id: { $dateToString: { format: '%G-W%V', date: '$createdAt' } }, n: { $sum: 1 } } },
-                { $sort: { _id: 1 } },
-            ]),
-            Promise.all([Contact.countDocuments(), Contact.countDocuments({ status: 'unread' }), Contact.countDocuments({ createdAt: { $gte: new Date(Date.now() - 30 * DAY) } })]),
-        ]);
-        const stages = [
-            { key: 'registered', label: 'Registered', n: registered },
-            { key: 'submitted', label: 'Application submitted', n: submitted },
-            { key: 'approved', label: 'Approved', n: approved },
-            { key: 'active', label: 'Active member', n: active },
-        ].map((s, i, all) => ({ ...s, ofPrevious: i ? pct(s.n, all[i - 1].n) : null, ofRegistered: pct(s.n, registered) }));
-        res.json({
-            funnel: stages,
-            byCountry: byCountry.map(c => ({ country: c._id, registered: c.registered, approved: c.approved })),
-            weeklyRegistrations: weekly.map(w => ({ week: w._id, registrations: w.n })),
-            leads: { total: leads[0], unread: leads[1], last30Days: leads[2] },
+        const data = await remember('admin:insights:recruitment', 60, async () => {
+            const since = new Date(Date.now() - 84 * DAY);
+            const [registered, emailVerified, phoneVerified, submitted, approved, active, byCountry, weekly, leads] = await Promise.all([
+                Writer.countDocuments(),
+                Writer.countDocuments({ emailVerified: true }),
+                Writer.countDocuments({ phoneVerified: true }),
+                WriterApplication.countDocuments({ submittedAt: { $ne: null } }),
+                Writer.countDocuments({ status: { $in: ['APPROVED', 'ACTIVE'] } }),
+                Writer.countDocuments({ status: 'ACTIVE' }),
+                WriterProfile.aggregate([
+                    { $lookup: { from: 'writers', localField: 'writerId', foreignField: '_id', as: 'w' } },
+                    { $unwind: '$w' },
+                    { $group: { _id: '$country', registered: { $sum: 1 }, approved: { $sum: { $cond: [{ $in: ['$w.status', ['APPROVED', 'ACTIVE']] }, 1, 0] } } } },
+                    { $sort: { registered: -1 } }, { $limit: 15 },
+                ]),
+                Writer.aggregate([
+                    { $match: { createdAt: { $gte: since } } },
+                    { $group: { _id: { $dateToString: { format: '%G-W%V', date: '$createdAt' } }, n: { $sum: 1 } } },
+                    { $sort: { _id: 1 } },
+                ]),
+                Promise.all([Contact.countDocuments(), Contact.countDocuments({ status: 'unread' }), Contact.countDocuments({ createdAt: { $gte: new Date(Date.now() - 30 * DAY) } })]),
+            ]);
+            const stages = [
+                { key: 'registered', label: 'Registered', n: registered },
+                { key: 'submitted', label: 'Application submitted', n: submitted },
+                { key: 'approved', label: 'Approved', n: approved },
+                { key: 'active', label: 'Active member', n: active },
+            ].map((s, i, all) => ({ ...s, ofPrevious: i ? pct(s.n, all[i - 1].n) : null, ofRegistered: pct(s.n, registered) }));
+            return {
+                funnel: stages,
+                byCountry: byCountry.map(c => ({ country: c._id, registered: c.registered, approved: c.approved })),
+                weeklyRegistrations: weekly.map(w => ({ week: w._id, registrations: w.n })),
+                leads: { total: leads[0], unread: leads[1], last30Days: leads[2] },
+            };
         });
+        res.json(data);
     } catch (err) {
         console.error('[Insights] recruitment failed:', err);
         res.status(500).json({ error: 'Failed to load recruitment data.' });

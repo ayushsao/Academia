@@ -5,6 +5,7 @@ import { getMembershipSettings, activeCurrencyCodes, GRACE_DAYS, RENEWAL_NOTICE_
 import { membershipEligibility } from './writerService.js';
 import { notify as sendNotification } from './notifications.js';
 import { RAZORPAY_MIN_MINOR } from './paymentProviders.js';
+import { remember, cacheDelPattern } from './cache.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const CHECKOUT_TTL_MS = DAY;
@@ -58,19 +59,21 @@ export async function priceFor({ planCode, planId, billingPeriod, currency }, { 
 
 // Public catalogue: active plans with their active prices in active currencies.
 export async function listPublicPlans() {
-    const settings = await getMembershipSettings();
-    const currencies = activeCurrencyCodes(settings);
-    const plans = await MembershipPlan.find({ isActive: true }).sort({ sortOrder: 1, tier: 1 }).lean();
-    return {
-        currencies,
-        plans: plans.map(p => ({
-            code: p.code, name: p.name, description: p.description, features: p.features, tier: p.tier, highlight: p.highlight,
-            prices: p.prices.filter(pr => pr.isActive && currencies.includes(pr.currency)).map(pr => ({
-                currency: pr.currency, billingPeriod: pr.billingPeriod, listAmountMinor: pr.amountMinor,
-                discountPercent: pr.discountPercent, amountMinor: applyDiscount(pr.amountMinor, pr.discountPercent),
-            })),
-        })).filter(p => p.prices.length),
-    };
+    return remember('membership:public_plans', 900, async () => {
+        const settings = await getMembershipSettings();
+        const currencies = activeCurrencyCodes(settings);
+        const plans = await MembershipPlan.find({ isActive: true }).sort({ sortOrder: 1, tier: 1 }).lean();
+        return {
+            currencies,
+            plans: plans.map(p => ({
+                code: p.code, name: p.name, description: p.description, features: p.features, tier: p.tier, highlight: p.highlight,
+                prices: p.prices.filter(pr => pr.isActive && currencies.includes(pr.currency)).map(pr => ({
+                    currency: pr.currency, billingPeriod: pr.billingPeriod, listAmountMinor: pr.amountMinor,
+                    discountPercent: pr.discountPercent, amountMinor: applyDiscount(pr.amountMinor, pr.discountPercent),
+                })),
+            })).filter(p => p.prices.length),
+        };
+    });
 }
 
 export async function suggestedCurrency(writerCountry) {

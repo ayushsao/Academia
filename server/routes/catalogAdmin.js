@@ -11,6 +11,7 @@ import { recordAudit } from '../services/audit.js';
 import { isIsoCurrency, toMinor, fromMinor } from '../services/money.js';
 import { FORMULAS, PricingError, unitPriceFor, quote, getWordConfig, saveWordConfig, normaliseRuleScope } from '../services/pricing.js';
 import { receiveCatalogFiles, storeCatalogFiles, removeCatalogFile, streamCatalogFile, MediaError, LIMITS } from '../services/catalogMedia.js';
+import { cacheDelPattern } from '../services/cache.js';
 
 // Admin CRM core: /api/admin/catalog. Subjects/Services/Projects need
 // catalog.manage; pricing rules and word/page config need pricing.manage.
@@ -94,6 +95,7 @@ function crud({ path, Model, schema, entity, guard, nameField = 'name', searchFi
             if (publishable && fields.published) fields.publishedAt = new Date();
             const doc = await Model.create(fields);
             await audit(req, `${targetType}_CREATED`, targetType, doc);
+            await cacheDelPattern('catalog:');
             res.status(201).json({ item: decorate ? (await decorate([doc.toObject()]))[0] : doc });
         } catch (err) { handle(res, err, `Could not create ${entity.toLowerCase()}.`); }
     });
@@ -108,6 +110,7 @@ function crud({ path, Model, schema, entity, guard, nameField = 'name', searchFi
             existing.set(fields);
             await existing.save();
             await audit(req, `${targetType}_UPDATED`, targetType, existing);
+            await cacheDelPattern('catalog:');
             res.json({ item: decorate ? (await decorate([existing.toObject()]))[0] : existing });
         } catch (err) { handle(res, err, `Could not save ${entity.toLowerCase()}.`); }
     });
@@ -118,6 +121,7 @@ function crud({ path, Model, schema, entity, guard, nameField = 'name', searchFi
             const doc = await Model.findByIdAndUpdate(req.params.id, { $set: { status: req.body.status } }, { new: true }).lean();
             if (!doc) return res.status(404).json({ error: 'Not found.' });
             await audit(req, `${targetType}_${req.body.status === 'ACTIVE' ? 'ACTIVATED' : 'DEACTIVATED'}`, targetType, doc);
+            await cacheDelPattern('catalog:');
             res.json({ item: decorate ? (await decorate([doc]))[0] : doc });
         } catch (err) { handle(res, err, 'Could not change status.'); }
     });
@@ -130,6 +134,7 @@ function crud({ path, Model, schema, entity, guard, nameField = 'name', searchFi
                 const doc = await Model.findByIdAndUpdate(req.params.id, { $set: set }, { new: true }).lean();
                 if (!doc) return res.status(404).json({ error: 'Not found.' });
                 await audit(req, `${targetType}_${req.body.published ? 'PUBLISHED' : 'UNPUBLISHED'}`, targetType, doc);
+                await cacheDelPattern('catalog:');
                 res.json({ item: decorate ? (await decorate([doc]))[0] : doc });
             } catch (err) { handle(res, err, 'Could not change publishing.'); }
         });
@@ -144,6 +149,7 @@ function crud({ path, Model, schema, entity, guard, nameField = 'name', searchFi
             await doc.deleteOne();
             if (afterDelete) await afterDelete(doc);
             await audit(req, `${targetType}_DELETED`, targetType, doc, doc[nameField]);
+            await cacheDelPattern('catalog:');
             res.json({ ok: true });
         } catch (err) { handle(res, err, `Could not delete ${entity.toLowerCase()}.`); }
     });

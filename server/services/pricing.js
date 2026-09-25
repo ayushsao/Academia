@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { SiteSettings, PricingRule, CatalogProject, CatalogService, CatalogSubject } from '../db.js';
 import { currencyDigits } from './money.js';
+import { remember, cacheDel } from './cache.js';
 
 // Catalogue pricing. Nothing here is a business constant: words-per-page,
 // spacing factors and rounding come from the word config (Admin → Catalog →
@@ -24,12 +25,15 @@ export const DEFAULT_WORD_CONFIG = {
 };
 
 export async function getWordConfig() {
-    const row = await SiteSettings.findOne({ key: WORD_CONFIG_KEY }).lean();
-    return { ...DEFAULT_WORD_CONFIG, ...(row?.value || {}) };
+    return remember('settings:catalog_word_config', 900, async () => {
+        const row = await SiteSettings.findOne({ key: WORD_CONFIG_KEY }).lean();
+        return { ...DEFAULT_WORD_CONFIG, ...(row?.value || {}) };
+    });
 }
 
 export async function saveWordConfig(config) {
     await SiteSettings.updateOne({ key: WORD_CONFIG_KEY }, { $set: { value: config } }, { upsert: true });
+    await cacheDel('settings:catalog_word_config');
     return getWordConfig();
 }
 

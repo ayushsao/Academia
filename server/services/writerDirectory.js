@@ -1,4 +1,5 @@
 import { User, Writer, WriterProfile, WriterSkill, WriterAvailability } from '../db.js';
+import { cacheDel, cacheDelPattern } from './cache.js';
 
 // Writer.directory is an indexed snapshot of the profile, skills and availability
 // fields that the public directory and admin search filter on. Keeping it on the
@@ -57,6 +58,11 @@ export async function buildDirectory(writerId) {
 export async function refreshWriterDirectory(writerId) {
     const snapshot = await buildDirectory(writerId);
     if (snapshot) await Writer.updateOne({ _id: writerId }, { $set: snapshot });
+    // Invalidate Redis cache for this writer's profile and public directory listings
+    await Promise.all([
+        cacheDel(`writers:profile:${writerId}`),
+        cacheDelPattern('writers:public:'),
+    ]).catch(() => {});
     return snapshot;
 }
 

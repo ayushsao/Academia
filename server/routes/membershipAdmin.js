@@ -14,6 +14,7 @@ import { membershipAnalytics } from '../services/membershipAnalytics.js';
 import { razorpayEnabled } from '../services/paymentProviders.js';
 import { subscriptionView, paymentView } from './membership.js';
 import { prefixTerms } from '../services/writerDirectory.js';
+import { cacheDelPattern } from '../services/cache.js';
 
 // Mounted at /api/admin/membership. Billing is restricted to full admins.
 const router = Router();
@@ -111,6 +112,7 @@ router.post('/plans', validateInput(planUpsertSchema), async (req, res) => {
         if (await MembershipPlan.exists({ code: req.body.code })) return res.status(409).json({ error: 'A plan with this code already exists.' });
         const plan = await MembershipPlan.create(await normalisePlan(req.body));
         await audit(req, 'MEMBERSHIP_PLAN_CREATED', `${plan.code} (${plan.isActive ? 'active' : 'inactive'})`);
+        await cacheDelPattern('membership:');
         res.status(201).json({ plan: planView(plan) });
     } catch (err) { handleError(res, err, 'Failed to create plan.'); }
 });
@@ -127,6 +129,7 @@ router.put('/plans/:id', validateInput(planUpsertSchema), async (req, res) => {
         Object.assign(plan, await normalisePlan(req.body));
         await plan.save();
         await audit(req, 'MEMBERSHIP_PLAN_UPDATED', `${plan.code}: ${plan.prices.length} prices, ${plan.isActive ? 'active' : 'inactive'}`);
+        await cacheDelPattern('membership:');
         res.json({ plan: planView(plan) });
     } catch (err) { handleError(res, err, 'Failed to update plan.'); }
 });
@@ -142,6 +145,7 @@ router.patch('/plans/:id/status', validateInput(planStatusSchema), async (req, r
         plan.isActive = req.body.isActive;
         await plan.save();
         await audit(req, req.body.isActive ? 'MEMBERSHIP_PLAN_ACTIVATED' : 'MEMBERSHIP_PLAN_DEACTIVATED', plan.code);
+        await cacheDelPattern('membership:');
         res.json({ plan: planView(plan) });
     } catch (err) { handleError(res, err, 'Failed to update plan.'); }
 });

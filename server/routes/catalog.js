@@ -5,6 +5,7 @@ import { loadEntity, buildPage, isPublicContentFile } from '../services/contentB
 import { validateInput, quoteSchema } from '../validation.js';
 import { quote, getWordConfig, activePricing, isLiveSelection, PricingError } from '../services/pricing.js';
 import { streamCatalogFile } from '../services/catalogMedia.js';
+import { remember } from '../services/cache.js';
 
 // Public catalogue: /api/catalog. Only ACTIVE + published items whose parents
 // are ACTIVE + published are visible. Internal fields are never returned.
@@ -19,11 +20,13 @@ const serviceView = (s) => ({ id: s._id, subjectId: s.subjectId, name: s.name, s
 const projectView = (p) => ({ id: p._id, subjectId: p.subjectId, serviceId: p.serviceId, title: p.title, slug: p.slug, description: p.description, files: p.files.map(media) });
 
 async function liveTree() {
-    const subjects = await CatalogSubject.find(LIVE).sort(ORDER).lean();
-    const subjectIds = subjects.map(s => s._id);
-    const services = await CatalogService.find({ ...LIVE, subjectId: { $in: subjectIds } }).sort(ORDER).lean();
-    const projects = await CatalogProject.find({ ...LIVE, serviceId: { $in: services.map(s => s._id) } }).sort(ORDER).lean();
-    return { subjects, services, projects };
+    return remember('catalog:tree', 600, async () => {
+        const subjects = await CatalogSubject.find(LIVE).sort(ORDER).lean();
+        const subjectIds = subjects.map(s => s._id);
+        const services = await CatalogService.find({ ...LIVE, subjectId: { $in: subjectIds } }).sort(ORDER).lean();
+        const projects = await CatalogProject.find({ ...LIVE, serviceId: { $in: services.map(s => s._id) } }).sort(ORDER).lean();
+        return { subjects, services, projects };
+    });
 }
 
 // GET /api/catalog/tree — the whole published hierarchy (names/slugs only).
@@ -46,11 +49,16 @@ router.get('/tree', async (_req, res) => {
 // GET /api/catalog/subjects/:slug — one subject with its services and projects.
 router.get('/subjects/:slug', async (req, res) => {
     try {
-        const subject = await CatalogSubject.findOne({ ...LIVE, slug: String(req.params.slug).toLowerCase() }).lean();
-        if (!subject) return res.status(404).json({ error: 'Subject not found.' });
-        const services = await CatalogService.find({ ...LIVE, subjectId: subject._id }).sort(ORDER).lean();
-        const projects = await CatalogProject.find({ ...LIVE, serviceId: { $in: services.map(s => s._id) } }).sort(ORDER).lean();
-        res.json({ subject: { ...subjectView(subject), services: services.map(s => ({ ...serviceView(s), projects: projects.filter(p => String(p.serviceId) === String(s._id)).map(projectView) })) } });
+        const slug = String(req.params.slug).toLowerCase();
+        const data = await remember(`catalog:subject:${slug}`, 600, async () => {
+            const subject = await CatalogSubject.findOne({ ...LIVE, slug }).lean();
+            if (!subject) return null;
+            const services = await CatalogService.find({ ...LIVE, subjectId: subject._id }).sort(ORDER).lean();
+            const projects = await CatalogProject.find({ ...LIVE, serviceId: { $in: services.map(s => s._id) } }).sort(ORDER).lean();
+            return { subject: { ...subjectView(subject), services: services.map(s => ({ ...serviceView(s), projects: projects.filter(p => String(p.serviceId) === String(s._id)).map(projectView) })) } };
+        });
+        if (!data) return res.status(404).json({ error: 'Subject not found.' });
+        res.json(data);
     } catch { res.status(500).json({ error: 'Could not load the subject.' }); }
 });
 
@@ -92,10 +100,14 @@ router.get('/pricing', quoteLimiter, async (req, res) => {
 // GET /api/catalog/pages/subject/:s · /pages/service/:s/:v · /pages/project/:s/:v/:p
 const PUBLIC_MEDIA = (name) => `/api/catalog/media/${name}`;
 async function sendPage(req, res, type, id) {
-    const ctx = await loadEntity(type, id);
-    if (!ctx.live) return res.status(404).json({ error: 'Page not found.' });
+    const pageData = await remember(`catalog:page:${type}:${id}`, 600, async () => {
+        const ctx = await loadEntity(type, id);
+        if (!ctx.live) return null;
+        return await buildPage(ctx, { liveOnly: true, mediaUrl: PUBLIC_MEDIA, apiOrigin: `${req.protocol}://${req.get('host')}` });
+    });
+    if (!pageData) return res.status(404).json({ error: 'Page not found.' });
     res.setHeader('Cache-Control', 'no-cache'); // revalidate (ETag) so admin edits show immediately
-    res.json({ page: await buildPage(ctx, { liveOnly: true, mediaUrl: PUBLIC_MEDIA, apiOrigin: `${req.protocol}://${req.get('host')}` }) });
+    res.json({ page: pageData });
 }
 const slugOf = (v) => String(v || '').toLowerCase().slice(0, 120);
 const liveSubject = (slug) => CatalogSubject.findOne({ ...LIVE, slug: slugOf(slug) }).select('_id').lean();

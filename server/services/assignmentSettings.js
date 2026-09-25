@@ -1,4 +1,5 @@
 import { SiteSettings } from '../db.js';
+import { remember, cacheDel } from './cache.js';
 
 const KEY = 'assignments';
 
@@ -39,12 +40,15 @@ const merge = (base, over) => {
 };
 
 export async function getAssignmentSettings() {
-    const doc = await SiteSettings.findOne({ key: KEY }).lean();
-    return merge(DEFAULT_ASSIGNMENT_SETTINGS, doc?.value);
+    return remember('settings:assignments', 900, async () => {
+        const doc = await SiteSettings.findOne({ key: KEY }).lean();
+        return merge(DEFAULT_ASSIGNMENT_SETTINGS, doc?.value);
+    });
 }
 
 export async function saveAssignmentSettings(value) {
     await SiteSettings.findOneAndUpdate({ key: KEY }, { $set: { value } }, { upsert: true });
+    await cacheDel('settings:assignments');
     return getAssignmentSettings();
 }
 

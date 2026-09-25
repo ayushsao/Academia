@@ -1,4 +1,5 @@
 import { SiteSettings } from '../db.js';
+import { remember, cacheDel } from './cache.js';
 
 // Standard (non-catalogue) order pricing. This is the ONLY place these prices
 // are calculated: the website shows the quote from POST /api/orders/quote,
@@ -60,17 +61,19 @@ export class OrderPricingError extends Error {
 }
 
 export async function getRateCard() {
-    const row = await SiteSettings.findOne({ key: ORDER_RATE_CARD_KEY }).lean();
-    const v = row?.value || {};
-    const d = DEFAULT_RATE_CARD;
-    return {
-        ...d, ...v,
-        rates: { ...d.rates, ...(v.rates || {}) },
-        levelMultipliers: { ...d.levelMultipliers, ...(v.levelMultipliers || {}) },
-        currencies: { ...d.currencies, ...(v.currencies || {}) },
-        addOns: { ...d.addOns, ...(v.addOns || {}) },
-        upi: { ...d.upi, ...(v.upi || {}) },
-    };
+    return remember('settings:order_rate_card', 900, async () => {
+        const row = await SiteSettings.findOne({ key: ORDER_RATE_CARD_KEY }).lean();
+        const v = row?.value || {};
+        const d = DEFAULT_RATE_CARD;
+        return {
+            ...d, ...v,
+            rates: { ...d.rates, ...(v.rates || {}) },
+            levelMultipliers: { ...d.levelMultipliers, ...(v.levelMultipliers || {}) },
+            currencies: { ...d.currencies, ...(v.currencies || {}) },
+            addOns: { ...d.addOns, ...(v.addOns || {}) },
+            upi: { ...d.upi, ...(v.upi || {}) },
+        };
+    });
 }
 
 // What the website may show (per-page rates, currencies, levels, add-ons).
