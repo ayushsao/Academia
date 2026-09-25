@@ -30,7 +30,7 @@ type Order = {
     status: string;
     files: string[];
     deliveryFiles: OrderFile[];
-    adminNotes: string;
+    revisionNote?: string;
     createdAt: string;
     submittedAt?: string;
     completedAt?: string;
@@ -48,7 +48,7 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; icon: React.Elem
 
 const STATUS_LABELS: Record<string, string> = {
     pending: 'Pending', assigned: 'Assigned', in_progress: 'In Progress',
-    submitted: 'Submitted', revision_required: 'Revision Required', completed: 'Completed',
+    submitted: 'Submitted', revision_required: 'Revision required', completed: 'Completed',
     cancelled: 'Cancelled',
 };
 
@@ -311,18 +311,21 @@ export default function WriterOrdersPage() {
                                             </div>
                                         )}
 
-                                        {/* Admin Notes (revision notes) */}
-                                        {order.adminNotes && order.status === 'revision_required' && (
+                                        {/* What the admin asked to change */}
+                                        {order.revisionNote && order.status === 'revision_required' && (
                                             <div className="bg-red-50 border border-red-200 rounded-xl p-4">
                                                 <h4 className="text-xs font-bold uppercase tracking-wider text-red-700 mb-2 flex items-center gap-1.5">
-                                                    <AlertTriangle className="w-4 h-4" /> Revision Notes
+                                                    <AlertTriangle className="w-4 h-4" /> Revision required
                                                 </h4>
-                                                <p className="text-sm text-red-800 whitespace-pre-wrap">{order.adminNotes}</p>
+                                                <p className="text-sm text-red-800 whitespace-pre-wrap">{order.revisionNote}</p>
                                             </div>
                                         )}
 
                                         {/* Reference Files */}
-                                        {order.files && order.files.length > 0 && (
+                                        {order.files && order.files.length > 0 && tab === 'available' && (
+                                            <p className="text-sm text-slate-500">{order.files.length} reference file{order.files.length === 1 ? '' : 's'} — you can download {order.files.length === 1 ? 'it' : 'them'} after accepting the order.</p>
+                                        )}
+                                        {order.files && order.files.length > 0 && tab === 'my-orders' && (
                                             <div>
                                                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Reference Files</h4>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

@@ -41,6 +41,24 @@ export const OPEN_ORDER = { adminApproved: true, writerId: null, status: { $in: 
 export const WRITER_HIDDEN_FIELDS = '-userId -transactionId -payment -pricing -catalog -adminNotes -feedback';
 
 /**
+ * A customer's view of their own order: everything about their order and the
+ * delivered work, but not the admins' internal notes, the writer's account ID
+ * or where files are stored on the server.
+ */
+export const isCompleted = (status) => status === 'completed' || status === 'Completed';
+
+export function clientOrderView(order) {
+    const o = typeof order?.toObject === 'function' ? order.toObject() : { ...order };
+    delete o.adminNotes;
+    delete o.revisionNote;
+    delete o.writerId;
+    if (o.feedback) delete o.feedback.writerId;
+    // The customer receives the work after an admin has approved it.
+    o.deliveryFiles = isCompleted(o.status) ? (o.deliveryFiles || []).map(({ filePath, uploadedBy, ...file }) => file) : [];
+    return o;
+}
+
+/**
  * Approves an order and releases it to eligible writers. Returns the released
  * order, or null when it is no longer awaiting release (already released,
  * taken by a writer, or closed) — so writers are never notified twice.

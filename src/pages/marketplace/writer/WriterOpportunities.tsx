@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BookOpen, GraduationCap, FileText, Check, X, Inbox, Calendar, Crown, Paperclip } from 'lucide-react';
-import { api, openProtectedFile } from '../../../lib/api';
+import { api } from '../../../lib/api';
 import { formatMoney } from '../../../lib/money';
 import type { Offer } from '../../../lib/assignmentTypes';
 import { Countdown, FileList } from '../../../components/writer/AssignmentBits';
@@ -109,8 +109,6 @@ type ClientOrder = {
 };
 type ClientOrders = { orders: ClientOrder[]; requiresMembership?: boolean };
 
-const cleanFileName = (name: string) => name.replace(/^[0-9a-f]{32}-/, '');
-
 function ClientOrderCard({ order, onTaken }: { order: ClientOrder; onTaken: (msg: string) => void }) {
     const navigate = useNavigate();
     const [busy, setBusy] = useState(false);
@@ -155,24 +153,14 @@ function ClientOrderCard({ order, onTaken }: { order: ClientOrder; onTaken: (msg
             </div>
 
             {(brief || extras.length > 0 || (order.files?.length ?? 0) > 0) && (
-                <button onClick={() => setOpen(v => !v)} aria-expanded={open} className="mt-4 text-sm font-semibold text-[#002147] hover:underline">{open ? 'Hide details' : 'View brief & files'}</button>
+                <button onClick={() => setOpen(v => !v)} aria-expanded={open} className="mt-4 text-sm font-semibold text-[#002147] hover:underline">{open ? 'Hide details' : 'View brief'}</button>
             )}
             {open && (
                 <div className="mt-4 space-y-4 text-sm text-slate-700">
                     {brief && <div><h4 className="font-semibold text-[#0b1b33]">Instructions</h4><p className="mt-1 whitespace-pre-line">{brief}</p></div>}
                     {extras.length > 0 && <p><span className="font-semibold text-[#0b1b33]">Extras:</span> {extras.join(', ')}</p>}
                     {(order.files?.length ?? 0) > 0 && (
-                        <div>
-                            <h4 className="mb-2 font-semibold text-[#0b1b33]">Reference files</h4>
-                            <ul className="space-y-1.5">
-                                {order.files!.map(fn => (
-                                    <li key={fn}>
-                                        <button onClick={() => openProtectedFile(`/order-workflow/writer/files/${encodeURIComponent(order.orderId)}/${encodeURIComponent(fn)}`).catch(e => setError(e.message))}
-                                            className="inline-flex items-center gap-2 text-[#002147] hover:underline"><Paperclip className="h-4 w-4" />{cleanFileName(fn)}</button>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
+                        <p className="inline-flex items-center gap-2"><Paperclip className="h-4 w-4 text-slate-400" />{order.files!.length} reference file{order.files!.length === 1 ? '' : 's'} — available to download after you accept.</p>
                     )}
                 </div>
             )}

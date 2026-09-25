@@ -7,11 +7,11 @@ import { createRequire } from 'module';
 import { Order, User, Writer } from '../db.js';
 import { authenticateUser, authenticateAdmin } from '../middleware.js';
 import { requirePermission, noStore } from '../permissions.js';
-import { EXT_MIMES, sniffOrderFileKind } from '../services/orderFiles.js';
+import { EXT_MIMES, sniffOrderFileKind, kindMatchesExtension } from '../services/orderFiles.js';
 import { recordAudit } from '../services/audit.js';
 import { notify } from '../services/notifications.js';
 import { streamOrderFile } from '../services/orderFiles.js';
-import { releaseOrder, getOrderSettings, saveOrderSettings, canTakeOrders, OPEN_ORDER, WRITER_HIDDEN_FIELDS } from '../services/orderRelease.js';
+import { releaseOrder, getOrderSettings, saveOrderSettings, canTakeOrders, clientOrderView, isCompleted, OPEN_ORDER, WRITER_HIDDEN_FIELDS } from '../services/orderRelease.js';
 
 const require = createRequire(import.meta.url);
 const multer = require('multer');
@@ -102,7 +102,7 @@ router.get('/writer/my-orders', authenticateUser, requireWriter, async (req, res
     try {
         // The client's name only — never their email or other contact details.
         const orders = await Order.find({ writerId: req.user.id })
-            .select('-transactionId -payment -pricing -catalog')
+            .select('-transactionId -payment -pricing -catalog -adminNotes -deliveryFiles.filePath')
             .populate('userId', 'name')
             .sort({ createdAt: -1 })
             .lean();
@@ -122,7 +122,7 @@ router.get('/writer/orders/:orderId', authenticateUser, requireWriter, async (re
             orderId: req.params.orderId,
             $or: [{ writerId: req.user.id }, ...(canTakeOrders(writer) ? [OPEN_ORDER] : [])],
         })
-            .select('-transactionId -payment -pricing -catalog')
+            .select('-transactionId -payment -pricing -catalog -adminNotes -deliveryFiles.filePath')
             .populate('userId', 'name')
             .lean();
 
@@ -164,15 +164,11 @@ router.post('/writer/accept/:orderId', authenticateUser, requireWriter, async (r
 });
 
 // GET /api/order-workflow/writer/files/:orderId/:name — the client's reference files,
-// for an order the writer can see (their own, or an open one they're eligible for).
+// only for the writer the order is assigned to.
 router.get('/writer/files/:orderId/:name', authenticateUser, requireWriter, async (req, res) => {
     try {
         const name = path.basename(String(req.params.name));
-        const writer = await Writer.findOne({ userId: req.user.id }).select('status membership').lean();
-        const visible = await Order.exists({
-            orderId: req.params.orderId, files: name,
-            $or: [{ writerId: req.user.id }, ...(canTakeOrders(writer) ? [OPEN_ORDER] : [])],
-        });
+        const visible = await Order.exists({ orderId: req.params.orderId, files: name, writerId: req.user.id });
         if (!visible) return res.status(404).json({ error: 'File not found.' });
         await streamOrderFile(res, name);
     } catch { if (!res.headersSent) res.status(500).json({ error: 'Could not load file.' }); }
@@ -220,7 +216,7 @@ router.post('/writer/upload/:orderId', authenticateUser, requireWriter, delivery
             const { bytesRead } = await fh.read(head, 0, 64, 0);
             await fh.close();
             const kind = sniffOrderFileKind(head.subarray(0, bytesRead));
-            if (!kind) {
+            if (!kindMatchesExtension(kind, ext)) {
                 await discard();
                 return res.status(400).json({ error: `"${safeName(f.originalname)}" doesn't appear to be a valid file.` });
             }
@@ -246,16 +242,6 @@ router.post('/writer/upload/:orderId', authenticateUser, requireWriter, delivery
         order.status = 'submitted';
         order.submittedAt = new Date();
         await order.save();
-
-        // Notify client that files were delivered
-        notify({
-            userId: order.userId,
-            category: 'ASSIGNMENT',
-            type: 'WORK_SUBMITTED',
-            title: `Work Delivered: ${order.orderId}`,
-            message: `Your writer has uploaded the completed work for "${order.topicTitle}". You can review the files in your dashboard.`,
-            link: '/dashboard',
-        }).catch(err => console.error('[OrderWorkflow] client notify error:', err.message));
 
         res.json({
             message: 'Work submitted successfully.',
@@ -371,12 +357,13 @@ router.post('/admin/approve/:orderId', authenticateAdmin, requirePermission('ord
 // POST /api/order-workflow/admin/revision/:orderId — admin requests revision
 router.post('/admin/revision/:orderId', authenticateAdmin, requirePermission('orders.write'), async (req, res) => {
     try {
-        const { note } = req.body || {};
+        const note = typeof req.body?.note === 'string' ? req.body.note.trim().slice(0, 2000) : '';
+        if (!note) return res.status(400).json({ error: 'Tell the writer what needs to change.' });
         const order = await Order.findOne({ orderId: req.params.orderId, status: 'submitted' });
         if (!order) return res.status(404).json({ error: 'Order not found or not in submitted state.' });
 
         order.status = 'revision_required';
-        if (note) order.adminNotes = `${order.adminNotes ? order.adminNotes + '\n' : ''}[Revision] ${note}`;
+        order.revisionNote = note;
         await order.save();
 
         await recordAudit(req, 'ORDER_REVISION_REQUESTED', {
@@ -391,7 +378,7 @@ router.post('/admin/revision/:orderId', authenticateAdmin, requirePermission('or
                 category: 'REVISION',
                 type: 'REVISION_REQUESTED',
                 title: `Revision Requested: ${order.orderId}`,
-                message: `Revision requested for "${order.topicTitle}": ${note || 'Please check guidelines and resubmit updated files.'}`,
+                message: `Revision requested for "${order.topicTitle}": ${note}`,
                 link: '/writer/orders',
             }).catch(err => console.error('[OrderWorkflow] writer notify error:', err.message));
         }
@@ -442,10 +429,8 @@ router.get('/client/orders', authenticateUser, async (req, res) => {
 
         res.json({
             orders: orders.map(o => ({
-                ...o,
+                ...clientOrderView(o),
                 status: normaliseStatus(o.status),
-                // Include delivery files for submitted or completed orders
-                deliveryFiles: ['submitted', 'completed'].includes(normaliseStatus(o.status)) ? o.deliveryFiles : [],
             })),
         });
     } catch (err) {
@@ -461,9 +446,8 @@ router.get('/client/orders/:orderId', authenticateUser, async (req, res) => {
 
         res.json({
             order: {
-                ...order,
+                ...clientOrderView(order),
                 status: normaliseStatus(order.status),
-                deliveryFiles: ['submitted', 'completed'].includes(normaliseStatus(order.status)) ? order.deliveryFiles : [],
             },
         });
     } catch (err) {
@@ -482,10 +466,9 @@ router.get('/client/download/:orderId/:fileId', authenticateUser, async (req, re
 
         if (!order) return res.status(404).json({ error: 'Order not found.' });
 
-        // Verify submitted or completed status
-        const status = normaliseStatus(order.status);
-        if (!['submitted', 'completed'].includes(status)) {
-            return res.status(403).json({ error: 'File download is only available for submitted or completed orders.' });
+        // The work is released to the customer once an admin has approved it.
+        if (!isCompleted(order.status)) {
+            return res.status(403).json({ error: 'You can download the work once your order is completed.' });
         }
 
         // Find file
@@ -506,84 +489,12 @@ router.get('/client/download/:orderId/:fileId', authenticateUser, async (req, re
     }
 });
 
-// POST /api/order-workflow/client/approve/:orderId — client accepts delivery and completes order
-router.post('/client/approve/:orderId', authenticateUser, async (req, res) => {
-    try {
-        const order = await Order.findOne({
-            orderId: req.params.orderId,
-            userId: req.user.id,
-            status: 'submitted',
-        });
-
-        if (!order) return res.status(404).json({ error: 'Order not found or not in submitted state.' });
-
-        order.status = 'completed';
-        order.completedAt = new Date();
-        await order.save();
-
-        if (order.writerId) {
-            notify({
-                userId: order.writerId,
-                category: 'APPROVAL',
-                type: 'CLIENT_APPROVED',
-                title: `Order Accepted: ${order.orderId}`,
-                message: `The client has accepted your delivery for "${order.topicTitle}" and marked the order completed!`,
-                link: '/writer/orders',
-            }).catch(err => console.error('[OrderWorkflow] writer notify error:', err.message));
-        }
-
-        res.json({
-            message: 'Order accepted and marked as completed.',
-            order: { ...order.toObject(), status: normaliseStatus(order.status) },
-        });
-    } catch (err) {
-        res.status(500).json({ error: 'Could not accept order.' });
-    }
-});
-
-// POST /api/order-workflow/client/revision/:orderId — client requests revision
-router.post('/client/revision/:orderId', authenticateUser, async (req, res) => {
-    try {
-        const { note } = req.body || {};
-        const order = await Order.findOne({
-            orderId: req.params.orderId,
-            userId: req.user.id,
-            status: 'submitted',
-        });
-
-        if (!order) return res.status(404).json({ error: 'Order not found or not in submitted state.' });
-
-        order.status = 'revision_required';
-        const revisionNote = note ? String(note).slice(0, 2000) : 'Client requested revision';
-        order.adminNotes = `${order.adminNotes ? order.adminNotes + '\n' : ''}[Client Revision] ${revisionNote}`;
-        await order.save();
-
-        if (order.writerId) {
-            notify({
-                userId: order.writerId,
-                category: 'REVISION',
-                type: 'CLIENT_REVISION',
-                title: `Revision Requested: ${order.orderId}`,
-                message: `Client requested revision on "${order.topicTitle}": ${revisionNote}`,
-                link: '/writer/orders',
-            }).catch(err => console.error('[OrderWorkflow] writer notify error:', err.message));
-        }
-
-        res.json({
-            message: 'Revision requested. Your writer has been notified.',
-            order: { ...order.toObject(), status: normaliseStatus(order.status) },
-        });
-    } catch (err) {
-        res.status(500).json({ error: 'Could not request revision.' });
-    }
-});
-
 // POST /api/order-workflow/client/feedback/:orderId — client submits feedback
 router.post('/client/feedback/:orderId', authenticateUser, async (req, res) => {
     try {
-        const { rating, comment } = req.body;
-
-        if (!rating || rating < 1 || rating > 5) {
+        const rating = Number(req.body?.rating);
+        const comment = typeof req.body?.comment === 'string' ? req.body.comment.trim() : '';
+        if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
             return res.status(400).json({ error: 'Rating must be between 1 and 5.' });
         }
 
@@ -604,8 +515,9 @@ router.post('/client/feedback/:orderId', authenticateUser, async (req, res) => {
         }
 
         order.feedback = {
-            rating: Math.round(rating),
-            comment: (comment || '').slice(0, 2000),
+            rating,
+            comment: comment.slice(0, 2000),
+            writerId: order.writerId || undefined,
             createdAt: new Date(),
         };
         await order.save();
@@ -622,7 +534,7 @@ router.post('/client/feedback/:orderId', authenticateUser, async (req, res) => {
             }).catch(err => console.error('[OrderWorkflow] writer notify error:', err.message));
         }
 
-        res.json({ message: 'Thank you for your feedback!', order: { ...order.toObject(), status: normaliseStatus(order.status) } });
+        res.json({ message: 'Thank you for your feedback!', order: { ...clientOrderView(order), status: normaliseStatus(order.status) } });
     } catch (err) {
         res.status(500).json({ error: 'Could not submit feedback.' });
     }

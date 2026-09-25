@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { clientOrderView } from '../services/orderRelease.js';
 import { Order, CatalogSubject, CatalogService, CatalogProject } from '../db.js';
 import { authenticateUser } from '../middleware.js';
 import { rateLimit } from 'express-rate-limit';
@@ -15,8 +16,8 @@ const router = Router();
 // GET /api/orders — user's own orders
 router.get('/', authenticateUser, async (req, res) => {
     try {
-        const orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 });
-        res.json({ orders });
+        const orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 }).lean();
+        res.json({ orders: orders.map(clientOrderView) });
     } catch (err) {
         res.status(500).json({ error: 'Failed to fetch orders.' });
     }
@@ -216,9 +217,9 @@ router.post('/:id/files', authenticateUser, receiveOrderFiles, async (req, res) 
 
 router.get('/:id', authenticateUser, async (req, res) => {
     try {
-        const order = await Order.findOne({ orderId: req.params.id, userId: req.user.id });
+        const order = await Order.findOne({ orderId: req.params.id, userId: req.user.id }).lean();
         if (!order) return res.status(404).json({ error: 'Order not found.' });
-        res.json({ order });
+        res.json({ order: clientOrderView(order) });
     } catch (err) {
         res.status(500).json({ error: 'Internal server error.' });
     }

@@ -61,7 +61,9 @@ interface Order {
     abstractPage?: boolean;
     totalAmount: number; currency?: string; status: string; assignedTo?: string;
     adminApproved?: boolean; adminApprovedAt?: string;
-    adminNotes?: string; transactionId?: string; payment?: { provider: 'RAZORPAY' | 'MANUAL'; status: 'PAID' | 'PENDING_VERIFICATION'; providerPaymentId?: string; amountMinor?: number; currency?: string }; createdAt: string; updatedAt: string;
+    adminNotes?: string; revisionNote?: string; transactionId?: string;
+    deliveryFiles?: { _id: string; originalName: string; mimeType?: string; size: number; uploadedAt: string; version: number }[];
+    submittedAt?: string; completedAt?: string; feedback?: { rating: number; comment?: string; createdAt: string }; payment?: { provider: 'RAZORPAY' | 'MANUAL'; status: 'PAID' | 'PENDING_VERIFICATION'; providerPaymentId?: string; amountMinor?: number; currency?: string }; createdAt: string; updatedAt: string;
 }
 interface User { _id: string; name: string; email: string; role: string; createdAt: string; lastLogin?: string; order_count: number; total_spent: number; }
 interface Contact { _id: string; name: string; email: string; phone?: string; subject: string; message: string; status: string; createdAt: string; }
@@ -83,12 +85,100 @@ const statusConfig: Record<string, { color: string; icon: React.ReactNode }> = {
     cancelled: { color: 'bg-red-100 text-red-800 border-red-200', icon: <XCircle className="w-3 h-3" /> },
 };
 
+// Workflow statuses in plain words.
+const STATUS_LABELS: Record<string, string> = {
+    pending: 'Pending', available: 'Released to writers', assigned: 'Assigned', in_progress: 'In progress',
+    submitted: 'Submitted', revision_required: 'Revision required', completed: 'Completed', cancelled: 'Cancelled',
+};
+const ORDER_STATUSES = ['pending', 'available', 'in_progress', 'submitted', 'revision_required', 'completed', 'cancelled'];
+
 const StatusBadge = ({ status }: { status: string }) => {
     const cfg = statusConfig[status] || { color: 'bg-gray-100 text-gray-700 border-gray-200', icon: null };
     return (
         <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${cfg.color}`}>
-            {cfg.icon}{status}
+            {cfg.icon}{STATUS_LABELS[status] || status}
         </span>
+    );
+};
+
+const fileSize = (bytes: number) => (bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`);
+
+// The writer's uploaded work, and the admin's decision on it: approve (the
+// customer can then download it) or send it back with a note for the writer.
+const WriterSubmission = ({ order, token, onUpdate, download }: { order: Order; token: string; onUpdate: (o: Partial<Order>) => void; download: (url: string, name: string) => void }) => {
+    const [busy, setBusy] = useState<'approve' | 'revision' | null>(null);
+    const [asking, setAsking] = useState(false);
+    const [note, setNote] = useState('');
+    const files = order.deliveryFiles || [];
+    if (!files.length) return null;
+    const latest = Math.max(...files.map(f => f.version || 1));
+    const current = files.filter(f => (f.version || 1) === latest);
+    const earlier = files.filter(f => (f.version || 1) !== latest).sort((a, b) => b.version - a.version);
+    const act = async (kind: 'approve' | 'revision') => {
+        if (kind === 'approve' && !confirm(`Approve the work for ${order.orderId}? The customer will be able to download it.`)) return;
+        setBusy(kind);
+        try {
+            const data = await apiFetch(`/order-workflow/admin/${kind}/${order.orderId}`, { method: 'POST', body: JSON.stringify(kind === 'revision' ? { note } : {}) }, token);
+            onUpdate({ status: data.order.status, completedAt: data.order.completedAt, revisionNote: data.order.revisionNote });
+            setAsking(false); setNote('');
+        } catch (e: any) { alert(e.message); }
+        finally { setBusy(null); }
+    };
+    const row = (f: NonNullable<Order['deliveryFiles']>[number]) => (
+        <div key={f._id} className="flex items-center gap-4 p-4 bg-gray-50 border border-gray-100 rounded-xl">
+            <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+                <span className="text-sm font-semibold text-gray-800 truncate block" title={f.originalName}>{f.originalName}</span>
+                <span className="text-[11px] text-gray-400 block">Version {f.version} · {fileSize(f.size)} · {new Date(f.uploadedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+            <button onClick={() => download(`${API}/order-workflow/admin/delivery-file/${order.orderId}/${f._id}`, f.originalName)}
+                className="text-xs font-bold bg-white border border-gray-200 text-gray-600 px-4 py-2.5 rounded-lg hover:border-gray-300 hover:text-[#000a1e] transition-colors">
+                Download
+            </button>
+        </div>
+    );
+    return (
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Writer's submission</p>
+            <p className="text-xs text-gray-500 mb-4">
+                {order.status === 'submitted' ? 'Writer submitted the work. Check it, then approve it or ask for a revision.'
+                    : order.status === 'revision_required' ? 'Sent back to the writer for a revision.'
+                        : ['completed', 'Completed'].includes(order.status) ? 'Approved. The customer can download the work.' : ''}
+            </p>
+            <div className="space-y-3">{current.map(row)}</div>
+            {earlier.length > 0 && (
+                <details className="mt-3">
+                    <summary className="text-xs font-semibold text-gray-500 cursor-pointer">Earlier versions ({earlier.length})</summary>
+                    <div className="space-y-3 mt-3">{earlier.map(row)}</div>
+                </details>
+            )}
+            {order.status === 'revision_required' && order.revisionNote && (
+                <p className="mt-4 text-sm text-gray-700 bg-orange-50 border border-orange-100 rounded-xl p-3 whitespace-pre-wrap"><span className="font-semibold">Revision note:</span> {order.revisionNote}</p>
+            )}
+            {order.status === 'submitted' && (asking ? (
+                <div className="mt-4 space-y-3">
+                    <label htmlFor="revision-note" className="block text-xs font-bold text-gray-500">What should the writer change?</label>
+                    <textarea id="revision-note" rows={3} maxLength={2000} value={note} onChange={e => setNote(e.target.value)}
+                        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#000a1e] focus:outline-none focus:border-gray-400 resize-none" />
+                    <div className="flex gap-2">
+                        <button onClick={() => act('revision')} disabled={busy !== null || !note.trim()} className="bg-[#000a1e] text-white font-bold text-xs px-4 py-2.5 rounded-xl disabled:opacity-50">{busy === 'revision' ? 'Sending...' : 'Send to writer'}</button>
+                        <button onClick={() => setAsking(false)} className="text-xs font-bold text-gray-500 px-4 py-2.5 rounded-xl hover:bg-gray-100">Cancel</button>
+                    </div>
+                </div>
+            ) : (
+                <div className="mt-4 flex flex-col sm:flex-row gap-2">
+                    <button onClick={() => act('approve')} disabled={busy !== null} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 disabled:opacity-50">
+                        <CheckCircle2 className="w-4 h-4" />{busy === 'approve' ? 'Approving...' : 'Approve and mark completed'}
+                    </button>
+                    <button onClick={() => setAsking(true)} disabled={busy !== null} className="flex-1 bg-white border border-gray-200 text-[#000a1e] font-bold text-xs px-4 py-2.5 rounded-xl hover:border-gray-300">
+                        Ask for a revision
+                    </button>
+                </div>
+            ))}
+            {order.feedback && (
+                <p className="mt-4 text-sm text-gray-700"><span className="font-semibold">Customer feedback:</span> {order.feedback.rating}/5{order.feedback.comment ? ` — “${order.feedback.comment}”` : ''}</p>
+            )}
+        </div>
     );
 };
 
@@ -121,7 +211,7 @@ const OrderDetailDrawer = ({
         setReleasing(true);
         try {
             const data = await apiFetch(`/order-workflow/admin/release/${order.orderId}`, { method: 'POST' }, token);
-            onUpdate(data.order);
+            onUpdate({ ...order, status: data.order.status, adminApproved: data.order.adminApproved, adminApprovedAt: data.order.adminApprovedAt });
             alert('Order approved and released to writers with active memberships!');
         } catch (e: any) {
             alert(e.message || 'Failed to release order.');
@@ -386,6 +476,9 @@ const OrderDetailDrawer = ({
                         </div>
                     </div>
 
+                    <WriterSubmission order={order} token={token} download={handleForceDownload}
+                        onUpdate={changes => { if (changes.status) setStatus(changes.status); onUpdate({ ...order, ...changes }); }} />
+
                     {/* Admin Controls */}
                     <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200 shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)] space-y-5">
                         <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
@@ -395,7 +488,7 @@ const OrderDetailDrawer = ({
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Update Status</label>
                             <select value={status} onChange={e => setStatus(e.target.value)}
                                 className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-[#000a1e] focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 shadow-sm">
-                                {['Pending', 'In Progress', 'Completed', 'Cancelled'].map(s => <option key={s}>{s}</option>)}
+                                {[...(ORDER_STATUSES.includes(status) ? [] : [status]), ...ORDER_STATUSES].map(s => <option key={s} value={s}>{STATUS_LABELS[s] || s}</option>)}
                             </select>
                         </div>
                         <div>
@@ -530,7 +623,7 @@ const OrdersTab = ({ token }: { token: string }) => {
                 </div>
                 <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
                     className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-[#000a1e] focus:outline-none shadow-sm">
-                    {['all', 'Pending', 'In Progress', 'Completed', 'Cancelled'].map(s => <option key={s} value={s}>{s === 'all' ? 'All Statuses' : s}</option>)}
+                    {['all', ...ORDER_STATUSES].map(s => <option key={s} value={s}>{s === 'all' ? 'All Statuses' : STATUS_LABELS[s]}</option>)}
                 </select>
                 <button onClick={() => load(false)} className="bg-white border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-50 transition-colors shadow-sm flex items-center gap-2 text-xs font-bold text-gray-500">
                     <RefreshCw className="w-4 h-4" /> Refresh

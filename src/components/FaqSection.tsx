@@ -43,10 +43,6 @@ export const FaqSection: React.FC = () => {
             answer: "It's simple: click 'Order Now', fill out the order form with your assignment details and attachments, complete the secure payment, and your assignment will be assigned to a suitable expert immediately."
         },
         {
-            question: "Can ChatGPT Do My Assignment?",
-            answer: "While AI tools exist, they generally struggle with highly complex, nuanced academic logic and often produce detectable AI content that risks university penalties. Our rigorous, human-expert-driven approach ensures original, flawless, and deeply researched academic work."
-        },
-        {
             question: "Is My Identity Safe with You?",
             answer: "100% Secure. We operate under strict GDPR compliance and utilize bank-grade encryption protocols. Your personal identity, university details, and financial data are never shared with third parties or even your writer."
         },

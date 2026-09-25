@@ -46,6 +46,7 @@ const orderDeliveryFileSchema = new mongoose.Schema({
 const orderFeedbackSchema = new mongoose.Schema({
   rating: { type: Number, min: 1, max: 5, required: true },
   comment: { type: String, default: '' },
+  writerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },   // the writer who delivered the order
   createdAt: { type: Date, default: Date.now },
 }, { _id: false });
 
@@ -79,6 +80,8 @@ const orderSchema = new mongoose.Schema({
   paymentStatus: { type: String, default: 'pending', enum: ['pending', 'paid', 'refunded'] },
   assignedTo: { type: String, default: '' },
   adminNotes: { type: String, default: '' },
+  // What the admin asked the writer to change (shown to the writer; adminNotes stay internal).
+  revisionNote: { type: String, default: '' },
   transactionId: { type: String, default: '' },
   currency: { type: String, default: 'GBP' },
   // Writer-delivered files (final work submissions)

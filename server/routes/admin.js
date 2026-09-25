@@ -350,12 +350,17 @@ router.get('/orders', authenticateAdmin, async (req, res) => {
     try {
         const { status, search, page = 1, limit = 15 } = req.query;
         const filter = {};
-        if (status && status !== 'all') filter.status = status;
+        const STATUS_GROUPS = {
+            pending: ['pending', 'Pending'], available: ['available'], in_progress: ['in_progress', 'assigned', 'In Progress'],
+            submitted: ['submitted'], revision_required: ['revision_required'], completed: ['completed', 'Completed'], cancelled: ['cancelled', 'Cancelled'],
+            Pending: ['pending', 'Pending'], 'In Progress': ['in_progress', 'assigned', 'In Progress'], Completed: ['completed', 'Completed'], Cancelled: ['cancelled', 'Cancelled'],
+        };
+        if (status && status !== 'all') filter.status = { $in: STATUS_GROUPS[status] || [String(status)] };
 
         let query = Order.find(filter).populate('userId', 'name email').sort({ createdAt: -1 });
 
         if (search) {
-            const rgx = new RegExp(search, 'i');
+            const rgx = new RegExp(String(search).slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
             filter.$or = [
                 { orderId: rgx }, { topicTitle: rgx }, { service: rgx }
             ];

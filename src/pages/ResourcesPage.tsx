@@ -3,7 +3,7 @@ import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { OrderModal } from '../components/OrderModal';
 import { SignInModal } from '../components/SignInModal';
-import { FileText, CheckCircle, ShieldCheck, BookOpen, ChevronRight, Eye, PenLine } from 'lucide-react';
+import { FileText, CheckCircle, ShieldCheck, BookOpen, ChevronRight, Eye } from 'lucide-react';
 
 const samples = [
     {
@@ -43,25 +43,6 @@ Breakdown:
 Remarks: This thesis has been fully vetted against 99+ billion active and archived web pages, university repositories, and published journals. No matching strings exceeding 5 adjacent words were identified.`,
         features: ['Full Turnitin-style scanning', 'Verifiable originality', 'Exclusion of proper quotes']
     },
-    {
-        id: 'humanizer',
-        title: 'AI Humanization Output',
-        category: 'AI Tools',
-        icon: <PenLine className="w-5 h-5" />,
-        grade: '100% Human Score',
-        desc: 'A before-and-after sample showing how our advanced text humanizer blends natural conversational imperfections.',
-        preview: `BEFORE (AI Generated):
-"Consequently, the implementation of these strategic methodologies will result in a significant augmentation of overall productivity margins."
-
-AFTER (Humanized by AssignmentMinds):
-"Because of this, putting these new strategies into play should really help boost our overall profit margins and get the team moving faster."
-
-AI DETECTOR RESULT:
-- GPTZero: 1% AI (Highly likely human)
-- Winston AI: 0% AI
-- Turnitin AI: 0% AI`,
-        features: ['Natural Syntax Flow', 'Bypasses Top AI Detectors', 'Maintains Original Meaning']
-    }
 ];
 
 export const ResourcesPage = () => {

@@ -272,7 +272,7 @@ export const REVIEWS: Review[] = [
     rating: 5,
     grade: 'First Class',
     verified: true,
-    text: 'Writing about thematic diaspora and intersectionality requires nuanced language that AI tools butcher. AssignmentMinds connected me with an actual literary scholar who wrote with deep human insight and rich textual analysis.',
+    text: 'Writing about thematic diaspora and intersectionality requires nuanced language. AssignmentMinds connected me with an actual literary scholar who wrote with deep human insight and rich textual analysis.',
     platform: 'SITEJABBER'
   },
   {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, LayoutDashboard, List, Coins, Layers, Plus, Bookmark, Wallet, Bell, MessageCircle, ChevronRight, User, FileText, CheckCircle, Clock, Home, Paperclip, Download, UploadCloud, Star, Send, ArrowDown, Eye, AlertTriangle, Package } from 'lucide-react';
+import { LogOut, LayoutDashboard, List, Coins, Layers, Plus, Bookmark, Wallet, Bell, MessageCircle, ChevronRight, User, FileText, CheckCircle, Clock, Home, Paperclip, Download, Star, Send, ArrowDown, Eye, Package } from 'lucide-react';
 import { OrderModal } from '../components/OrderModal';
 import { AcademiaLogo } from '../components/AcademiaLogo';
 
@@ -17,9 +17,9 @@ const normaliseStatus = (s: string): string => {
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string; borderColor: string }> = {
     pending: { label: 'Pending', color: 'text-amber-700', bgColor: 'bg-amber-100', borderColor: 'border-amber-200' },
     assigned: { label: 'Writer Assigned', color: 'text-blue-700', bgColor: 'bg-blue-100', borderColor: 'border-blue-200' },
-    in_progress: { label: 'In Progress', color: 'text-indigo-700', bgColor: 'bg-indigo-100', borderColor: 'border-indigo-200' },
-    submitted: { label: 'Under Review', color: 'text-purple-700', bgColor: 'bg-purple-100', borderColor: 'border-purple-200' },
-    revision_required: { label: 'Revision Required', color: 'text-red-700', bgColor: 'bg-red-100', borderColor: 'border-red-200' },
+    in_progress: { label: 'In progress', color: 'text-indigo-700', bgColor: 'bg-indigo-100', borderColor: 'border-indigo-200' },
+    submitted: { label: 'Submitted', color: 'text-purple-700', bgColor: 'bg-purple-100', borderColor: 'border-purple-200' },
+    revision_required: { label: 'Revision required', color: 'text-red-700', bgColor: 'bg-red-100', borderColor: 'border-red-200' },
     completed: { label: 'Completed', color: 'text-emerald-700', bgColor: 'bg-emerald-100', borderColor: 'border-emerald-200' },
     cancelled: { label: 'Cancelled', color: 'text-slate-700', bgColor: 'bg-slate-100', borderColor: 'border-slate-200' },
 };
@@ -132,8 +132,8 @@ export const Dashboard: React.FC = () => {
     useEffect(() => {
         if (!user) return;
         let live = true;
-        const loadOrders = async () => {
-            setOrdersState('loading');
+        const loadOrders = async (quiet = false) => {
+            if (!quiet) setOrdersState('loading');
             try {
                 const res = await fetch(`${API}/orders`, {
                     credentials: 'include',   // cookie session (the interceptor adds a fallback token if needed)
@@ -152,11 +152,16 @@ export const Dashboard: React.FC = () => {
                 setOrders(data.orders || []);
                 setOrdersState('ready');
             } catch {
-                if (live) setOrdersState('error');
+                if (live && !quiet) setOrdersState('error');
             }
         };
         loadOrders();
-        return () => { live = false; };
+        // New deliveries and status changes appear on their own: every minute while
+        // the tab is visible, and as soon as the customer comes back to the tab.
+        const refresh = () => { if (document.visibilityState === 'visible') loadOrders(true); };
+        const timer = window.setInterval(refresh, 60_000);
+        document.addEventListener('visibilitychange', refresh);
+        return () => { live = false; window.clearInterval(timer); document.removeEventListener('visibilitychange', refresh); };
     }, [user?.email, setOrders, ordersAttempt]);
 
     const handleLogout = async () => {
@@ -170,9 +175,6 @@ export const Dashboard: React.FC = () => {
     const [feedbackComment, setFeedbackComment] = useState('');
     const [feedbackSending, setFeedbackSending] = useState(false);
     const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
-    const [actionLoading, setActionLoading] = useState<string | null>(null);
-    const [reviewRevisionOpen, setReviewRevisionOpen] = useState<string | null>(null);
-    const [reviewRevisionNote, setReviewRevisionNote] = useState<Record<string, string>>({});
 
     const handleDeliveryDownload = async (orderId: string, fileId: string, fileName: string) => {
         setDownloadingFile(fileId);
@@ -192,46 +194,8 @@ export const Dashboard: React.FC = () => {
         finally { setDownloadingFile(null); }
     };
 
-    const handleClientApprove = async (orderId: string) => {
-        if (!confirm('Accept this delivery and mark the order as completed?')) return;
-        setActionLoading(orderId);
-        try {
-            const headers: Record<string, string> = {};
-            if (token) headers.Authorization = `Bearer ${token}`;
-            const res = await fetch(`${API}/order-workflow/client/approve/${orderId}`, {
-                method: 'POST', headers, credentials: 'include',
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to accept order.');
-            alert('Order completed! You can now rate your writer.');
-            setOrdersAttempt(a => a + 1);
-        } catch (e: any) { alert(e.message); }
-        finally { setActionLoading(null); }
-    };
-
-    const handleClientRevision = async (orderId: string) => {
-        const note = reviewRevisionNote[orderId] || '';
-        if (!note.trim()) return alert('Please describe the changes needed.');
-        setActionLoading(orderId);
-        try {
-            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-            if (token) headers.Authorization = `Bearer ${token}`;
-            const res = await fetch(`${API}/order-workflow/client/revision/${orderId}`, {
-                method: 'POST', headers, credentials: 'include',
-                body: JSON.stringify({ note }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to request revision.');
-            alert('Revision request sent to the writer!');
-            setReviewRevisionOpen(null);
-            setOrdersAttempt(a => a + 1);
-        } catch (e: any) { alert(e.message); }
-        finally { setActionLoading(null); }
-    };
-
     // Enhanced status categories using normalised statuses
     const activeOrders = orders.filter(o => !['completed', 'cancelled', 'Completed', 'Cancelled'].includes(o.status));
-    const submittedOrders = orders.filter(o => normaliseStatus(o.status) === 'submitted');
     const completedOrders = orders.filter(o => ['completed', 'Completed'].includes(o.status));
     const pastOrders = orders.filter(o => ['completed', 'cancelled', 'Completed', 'Cancelled'].includes(o.status));
 
@@ -452,6 +416,7 @@ export const Dashboard: React.FC = () => {
                                                                 <span className={`inline-block mt-1 text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase ${(STATUS_CONFIG[normaliseStatus(order.status)] || STATUS_CONFIG.pending).bgColor} ${(STATUS_CONFIG[normaliseStatus(order.status)] || STATUS_CONFIG.pending).color}`}>
                                                                     {(STATUS_CONFIG[normaliseStatus(order.status)] || STATUS_CONFIG.pending).label}
                                                                 </span>
+                                                                {normaliseStatus(order.status) === 'submitted' && <div className="mt-1 text-[10px] sm:text-xs text-gray-500">Writer submitted the work. We’re checking it.</div>}
                                                             </td>
                                                             <td className="py-4 px-4 sm:px-6">
                                                                 <div className="font-bold text-gray-700 text-xs sm:text-sm whitespace-pre-wrap line-clamp-2">{order.service}</div>
@@ -549,126 +514,6 @@ export const Dashboard: React.FC = () => {
                     )}
 
                     {/* ── Submissions Awaiting Client Review ────────── */}
-                    {activeTab === 'orders' && submittedOrders.length > 0 && (
-                        <div className="mt-6 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-sm font-bold text-[#1b2733] uppercase flex items-center gap-2">
-                                    <UploadCloud className="w-4 h-4 text-purple-600" /> Awaiting Your Review ({submittedOrders.length})
-                                </h2>
-                                <span className="text-xs text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full font-semibold border border-purple-200">
-                                    Action Required
-                                </span>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {submittedOrders.map(order => {
-                                    const oid = (order as any).orderId || (order as any).id;
-                                    const deliveryFiles = (order as any).deliveryFiles || [];
-                                    const isRevisionOpen = reviewRevisionOpen === oid;
-
-                                    return (
-                                        <div key={oid} className="bg-white rounded-2xl border-2 border-purple-200 p-5 shadow-sm hover:shadow-md transition-shadow">
-                                            {/* Header */}
-                                            <div className="flex items-start justify-between mb-3">
-                                                <div>
-                                                    <span className="text-[10px] font-bold text-slate-400">{oid}</span>
-                                                    <h3 className="text-sm font-bold text-[#0b1b33] mt-0.5 line-clamp-2">{(order as any).topicTitle || order.service}</h3>
-                                                </div>
-                                                <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 text-[10px] font-bold px-2 py-1 rounded-lg">
-                                                    <Clock className="w-3 h-3" /> Under Review
-                                                </span>
-                                            </div>
-
-                                            {/* Details */}
-                                            <div className="flex flex-wrap gap-3 text-[11px] text-slate-500 mb-3">
-                                                <span className="flex items-center gap-1"><FileText className="w-3 h-3" />{order.subject}</span>
-                                                <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{order.deadline}</span>
-                                                <span className="font-bold text-[#e37e25]">{formatOrderTotal(order.totalAmount, order.currency)}</span>
-                                            </div>
-
-                                            {/* Progress tracker */}
-                                            <div className="mb-4">
-                                                <OrderProgress status="submitted" />
-                                            </div>
-
-                                            {/* Delivered Files for Inspection */}
-                                            {deliveryFiles.length > 0 && (
-                                                <div className="mb-4">
-                                                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Delivered Files</h4>
-                                                    <div className="space-y-2">
-                                                        {deliveryFiles.map((f: any) => (
-                                                            <div key={f._id} className="flex items-center justify-between bg-purple-50 border border-purple-200 rounded-xl p-3">
-                                                                <div className="flex items-center gap-2 min-w-0 mr-2">
-                                                                    <FileText className="w-4 h-4 text-purple-600 shrink-0" />
-                                                                    <span className="text-xs font-medium text-slate-700 truncate">{f.originalName}</span>
-                                                                </div>
-                                                                <button
-                                                                    onClick={() => handleDeliveryDownload(oid, f._id, f.originalName)}
-                                                                    disabled={downloadingFile === f._id}
-                                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg transition disabled:opacity-50 shrink-0"
-                                                                >
-                                                                    <Download className="w-3.5 h-3.5" />{downloadingFile === f._id ? '...' : 'Download'}
-                                                                </button>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Primary Actions */}
-                                            <div className="flex items-center gap-2 mt-4">
-                                                <button
-                                                    onClick={() => handleClientApprove(oid)}
-                                                    disabled={actionLoading === oid}
-                                                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition disabled:opacity-50"
-                                                >
-                                                    <CheckCircle className="w-3.5 h-3.5" />
-                                                    {actionLoading === oid ? 'Processing...' : 'Accept & Complete'}
-                                                </button>
-                                                <button
-                                                    onClick={() => setReviewRevisionOpen(isRevisionOpen ? null : oid)}
-                                                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 bg-amber-50 text-amber-800 hover:bg-amber-100 text-xs font-bold rounded-xl transition border border-amber-200"
-                                                >
-                                                    <AlertTriangle className="w-3.5 h-3.5" />
-                                                    Request Revision
-                                                </button>
-                                            </div>
-
-                                            {/* Revision Note Form */}
-                                            {isRevisionOpen && (
-                                                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                                                    <h5 className="text-xs font-bold text-amber-900 mb-1.5">Revision Instructions</h5>
-                                                    <textarea
-                                                        value={reviewRevisionNote[oid] || ''}
-                                                        onChange={e => setReviewRevisionNote({ ...reviewRevisionNote, [oid]: e.target.value })}
-                                                        placeholder="Specify the adjustments or changes you'd like the writer to make..."
-                                                        rows={3}
-                                                        className="w-full rounded-lg border border-amber-200 bg-white p-2.5 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none"
-                                                    />
-                                                    <div className="flex gap-2 mt-2">
-                                                        <button
-                                                            onClick={() => handleClientRevision(oid)}
-                                                            disabled={actionLoading === oid}
-                                                            className="flex-1 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition disabled:opacity-50"
-                                                        >
-                                                            {actionLoading === oid ? 'Sending...' : 'Send Revision Request'}
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setReviewRevisionOpen(null)}
-                                                            className="px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition"
-                                                        >
-                                                            Cancel
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-
                     {/* ── Completed Orders with Download & Feedback ────────── */}
                     {activeTab === 'orders' && completedOrders.length > 0 && (
                         <div className="mt-6 space-y-4">
@@ -678,7 +523,10 @@ export const Dashboard: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {completedOrders.map(order => {
                                     const oid = (order as any).orderId || (order as any).id;
-                                    const deliveryFiles = (order as any).deliveryFiles || [];
+                                    const allFiles: any[] = (order as any).deliveryFiles || [];
+                                    // The final file(s): the writer's latest approved version.
+                                    const latest = Math.max(0, ...allFiles.map(f => f.version || 1));
+                                    const deliveryFiles = allFiles.filter(f => (f.version || 1) === latest);
                                     const feedback = (order as any).feedback;
                                     const isFeedbackOpen = feedbackOrder === oid;
 
@@ -731,7 +579,7 @@ export const Dashboard: React.FC = () => {
                                             {/* Delivery Files */}
                                             {deliveryFiles.length > 0 && (
                                                 <div className="mb-3">
-                                                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Completed Work</h4>
+                                                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">{deliveryFiles.length > 1 ? 'Final files' : 'Final file'}</h4>
                                                     <div className="space-y-2">
                                                         {deliveryFiles.map((f: any) => (
                                                             <div key={f._id} className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-3">
@@ -740,7 +588,7 @@ export const Dashboard: React.FC = () => {
                                                                     <span className="text-xs font-medium text-slate-700 truncate">{f.originalName}</span>
                                                                 </div>
                                                                 <button
-                                                                    onClick={() => handleDeliveryDownload(f._id, f.originalName)}
+                                                                    onClick={() => handleDeliveryDownload(oid, f._id, f.originalName)}
                                                                     disabled={downloadingFile === f._id}
                                                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition disabled:opacity-50 shrink-0"
                                                                 >
@@ -755,15 +603,15 @@ export const Dashboard: React.FC = () => {
                                             {/* Actions */}
                                             <div className="flex items-center gap-2 mt-3">
                                                 {deliveryFiles.length > 0 && (
-                                                    <button onClick={() => handleDeliveryDownload(deliveryFiles[deliveryFiles.length - 1]._id, deliveryFiles[deliveryFiles.length - 1].originalName)}
+                                                    <button onClick={() => handleDeliveryDownload(oid, deliveryFiles[deliveryFiles.length - 1]._id, deliveryFiles[deliveryFiles.length - 1].originalName)}
                                                         className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 bg-[#002147] hover:bg-[#001233] text-white text-xs font-bold rounded-xl transition">
-                                                        <Download className="w-3.5 h-3.5" /> Download Work
+                                                        <Download className="w-3.5 h-3.5" /> Download completed work
                                                     </button>
                                                 )}
                                                 {!feedback ? (
                                                     <button onClick={() => { setFeedbackOrder(oid); setFeedbackRating(0); setFeedbackComment(''); }}
                                                         className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 bg-amber-100 text-amber-800 hover:bg-amber-200 text-xs font-bold rounded-xl transition border border-amber-200">
-                                                        <Star className="w-3.5 h-3.5" /> Give Feedback
+                                                        <Star className="w-3.5 h-3.5" /> Give feedback
                                                     </button>
                                                 ) : (
                                                     <div className="flex-1 flex items-center gap-1 text-xs text-amber-600 font-semibold justify-center">

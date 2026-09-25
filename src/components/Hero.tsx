@@ -292,7 +292,6 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <span className="text-[13px] sm:text-[15px] font-bold text-gray-900">Turnitin Authenticity</span>
-                          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/50">0.0% AI</span>
                         </div>
                         <p className="text-xs sm:text-[13px] text-gray-500 leading-tight mt-0.5">Custom-written from scratch with official plagiarism certificate.</p>
                       </div>
@@ -389,7 +388,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 <div className="flex items-center justify-center gap-1.5 pt-1 shrink-0">
                   {[
                     { label: '01 Academic Excellence' },
-                    { label: '02 100% Turnitin No-AI' },
+                    { label: '02 100% Original Work' },
                     { label: '03 UK Ph.D. Writers' }
                   ].map((s, idx) => (
                     <button
@@ -409,7 +408,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
               </motion.div>
             )}
 
-            {/* SLIDE 1: Guaranteed NO-AI Work */}
+            {/* SLIDE 1: Guaranteed Original Work */}
             {currentSlide === 1 && (
               <motion.div
                 key="slide-1"
@@ -423,8 +422,8 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200/80 shrink-0">
                   <div className="inline-flex min-w-0 items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#fea520]/10 text-[#d87500] text-xs sm:text-[13px] font-bold whitespace-nowrap">
                     <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                    <span className="sm:hidden">AI Integrity Check Active</span>
-                    <span className="hidden sm:inline truncate">Dual-Layer Originality & AI Integrity Check Active</span>
+                    <span className="sm:hidden">Originality Check Active</span>
+                    <span className="hidden sm:inline truncate">Turnitin Originality Check Active</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold whitespace-nowrap text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 shrink-0">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -435,10 +434,10 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 {/* 2. Main Headline */}
                 <div className="text-center my-1 shrink-0">
                   <h1 className="text-xl sm:text-2xl md:text-[27px] lg:text-[29px] font-black text-[#0f172a] leading-[1.2] tracking-tight">
-                    Guaranteed <strong className="text-[#fea520] font-black">NO-AI</strong> Work, with <strong className="font-black text-[#000a1e]">Free Turnitin</strong> Report
+                    Guaranteed <strong className="text-[#fea520] font-black">Original</strong> Work, with <strong className="font-black text-[#000a1e]">Free Turnitin</strong> Report
                   </h1>
                   <p className="text-[13px] sm:text-[15px] text-gray-500 mt-1 max-w-[92%] mx-auto">
-                    Dual-layer authenticity verification using official Turnitin Originality & GPTZero algorithms. Every paper is custom-crafted from scratch by verified subject scholars.
+                    Authenticity verified with an official Turnitin Originality report. Every paper is custom-crafted from scratch by verified subject scholars.
                   </p>
                 </div>
 
@@ -456,7 +455,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                         <CheckCircle2 className="w-3 h-3" /> A+ Distinction
                       </div>
                       <div className="absolute bottom-2 left-2 bg-[#000a1e] text-[#fea520] rounded-full px-2 py-0.5 text-[11px] font-black shadow-sm flex items-center gap-1 border border-[#fea520]/40">
-                        <Crown className="w-2.5 h-2.5 fill-current" /> Turnitin 0% AI
+                        <Crown className="w-2.5 h-2.5 fill-current" /> Turnitin Report
                       </div>
                     </div>
                   </div>
@@ -464,11 +463,11 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                   {/* Right Guarantee Cards (7 cols) */}
                   <div className="sm:col-span-7 flex flex-col justify-between gap-2">
                     <div className="bg-white/95 rounded-xl p-2.5 border border-slate-200 shadow-xs flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 font-black text-[13px]">
-                        0%
+                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                        <PenTool className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-[13px] sm:text-[15px] font-bold text-gray-900 leading-tight">Zero AI & ChatGPT Usage</div>
+                        <div className="text-[13px] sm:text-[15px] font-bold text-gray-900 leading-tight">Written From Scratch</div>
                         <div className="text-xs sm:text-[13px] text-gray-500 leading-tight mt-0.5">Written from scratch by real subject scholars with genuine critical evaluation.</div>
                       </div>
                     </div>
@@ -511,12 +510,8 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 </div>
 
                 {/* 5. Integrity Matrix Strip */}
-                <div className="grid grid-cols-4 gap-1.5 py-1.5 px-2 bg-white/85 backdrop-blur-sm rounded-xl border border-slate-200 text-center shadow-xs shrink-0">
-                  <div>
-                    <div className="text-[13px] font-black text-emerald-600">0.0%</div>
-                    <div className="text-[11px] text-gray-500 font-medium">AI Generated</div>
-                  </div>
-                  <div className="border-x border-slate-200">
+                <div className="grid grid-cols-3 gap-1.5 py-1.5 px-2 bg-white/85 backdrop-blur-sm rounded-xl border border-slate-200 text-center shadow-xs shrink-0">
+                  <div className="border-r border-slate-200">
                     <div className="text-[13px] font-black text-blue-600">&lt; 3%</div>
                     <div className="text-[11px] text-gray-500 font-medium">Similarity Index</div>
                   </div>
@@ -537,7 +532,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                       L
                     </div>
                     <p className="text-[12.5px] text-gray-700 font-medium truncate">
-                      <strong className="text-gray-900 font-bold">"Turnitin scan came back 1% similarity and 0% AI!</strong> Tutor commended the critical arguments."
+                      <strong className="text-gray-900 font-bold">"Turnitin scan came back 1% similarity!</strong> Tutor commended the critical arguments."
                     </p>
                   </div>
                   <span className="text-[11.5px] font-bold text-blue-700 bg-white px-2 py-0.5 rounded-full border border-blue-200 shrink-0">
@@ -556,7 +551,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     onClick={() => onOpenOrder()}
                     className="text-[13px] font-bold text-blue-600 hover:text-blue-800 underline cursor-pointer whitespace-nowrap"
                   >
-                    Order No-AI Work →
+                    Order Original Work →
                   </button>
                 </div>
 
@@ -564,7 +559,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 <div className="flex items-center justify-center gap-1.5 pt-1 shrink-0">
                   {[
                     { label: '01 Academic Excellence' },
-                    { label: '02 100% Turnitin No-AI' },
+                    { label: '02 100% Original Work' },
                     { label: '03 UK Ph.D. Writers' }
                   ].map((s, idx) => (
                     <button
@@ -638,7 +633,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                   <div className="bg-white/10 backdrop-blur-md rounded-xl p-2.5 border border-white/20">
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <CheckSquare className="w-4 h-4 text-[#ffcb05]" />
-                      <span className="text-[13px] sm:text-[15px] font-bold text-white">AI-Free Scholarly Depth</span>
+                      <span className="text-[13px] sm:text-[15px] font-bold text-white">Genuine Scholarly Depth</span>
                     </div>
                     <p className="text-[12.5px] text-white/80 leading-snug">100% human academic reasoning, qualitative analysis & peer-reviewed sources.</p>
                   </div>
@@ -705,7 +700,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 <div className="flex items-center justify-center gap-1.5 pt-1 shrink-0">
                   {[
                     { label: '01 Academic Excellence' },
-                    { label: '02 100% Turnitin No-AI' },
+                    { label: '02 100% Original Work' },
                     { label: '03 UK Ph.D. Writers' }
                   ].map((s, idx) => (
                     <button
@@ -778,7 +773,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
               <span className="hidden sm:inline text-gray-300">•</span>
               <span className="flex items-center gap-1 text-[#000a1e] whitespace-nowrap">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#fea520]" />
-                <span>No AI</span>
+                <span>100% Original</span>
               </span>
               <span className="hidden sm:inline text-gray-300">•</span>
               <span className="flex items-center gap-1 text-blue-600 whitespace-nowrap">

@@ -32,7 +32,7 @@ router.post('/chat', agentLimiter, async (req, res) => {
         const webhookUrl = process.env.N8N_AGENT_WEBHOOK_URL;
         if (!webhookUrl) {
             return res.status(503).json({
-                error: 'AI agent webhook is not configured.',
+                error: 'Chat is not available right now.',
                 setup: 'Set N8N_AGENT_WEBHOOK_URL to your active n8n Webhook URL.'
             });
         }
@@ -56,7 +56,7 @@ router.post('/chat', agentLimiter, async (req, res) => {
 
         if (!upstreamResponse.ok) {
             console.error('n8n agent error:', upstreamResponse.status, raw);
-            return res.status(502).json({ error: 'The AI agent could not answer right now.' });
+            return res.status(502).json({ error: 'Our assistant could not answer right now.' });
         }
 
         const reply = pickReply(payload);
@@ -67,7 +67,7 @@ router.post('/chat', agentLimiter, async (req, res) => {
         res.json({ reply, raw: payload });
     } catch (err) {
         console.error('Agent route error:', err.message);
-        res.status(500).json({ error: 'Failed to contact the AI agent.' });
+        res.status(500).json({ error: 'Could not reach our assistant.' });
     }
 });
 

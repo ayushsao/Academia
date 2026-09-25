@@ -6,7 +6,7 @@ const router = Router();
 const toolsLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 20, // 20 requests per 15 minutes per IP
-    message: { error: 'Too many AI requests. Please try again later.' }
+    message: { error: 'Too many requests. Please try again later.' }
 });
 
 router.post('/process', toolsLimiter, async (req, res) => {
@@ -72,10 +72,10 @@ router.post('/process', toolsLimiter, async (req, res) => {
 
         // Upstream details stay in the server log, never in the response.
         console.error('Inception AI failed:', inceptionError);
-        return res.status(502).json({ error: 'The AI tool is unavailable right now. Please try again shortly.' });
+        return res.status(502).json({ error: 'This tool is unavailable right now. Please try again shortly.' });
     } catch (err) {
         console.error('Tools error:', err);
-        res.status(500).json({ error: 'Failed to process AI request.' });
+        res.status(500).json({ error: 'Could not process your request.' });
     }
 });
 

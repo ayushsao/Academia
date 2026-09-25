@@ -52,6 +52,9 @@ function looksLikeText(buf) {
     try { new TextDecoder('utf-8', { fatal: true }).decode(buf); return true; } catch { return false; }
 }
 
+/** True when a sniffed file kind is a valid match for the extension (e.g. a real PDF named .pdf). */
+export const kindMatchesExtension = (kind, ext) => Boolean(kind && KINDS[kind]?.exts.includes(ext));
+
 export function sniffOrderFileKind(buf) {
     const base = sniffKind(buf);
     if (base) return base;
