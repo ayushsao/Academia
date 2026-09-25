@@ -18,7 +18,12 @@ function WriterCard({ w }: { w: PublicWriter }) {
             <div className="flex items-start gap-4">
                 <WriterAvatar writerId={w.id} name={w.name} hasPhoto={w.hasPhoto} version={w.photoVersion} size={60} />
                 <div className="min-w-0 flex-1">
-                    <h3 className="flex items-center gap-1.5 truncate text-lg font-bold text-[#0b1b33] group-hover:text-[#002147]">{w.name}<BadgeCheck className="h-4 w-4 shrink-0 text-[#b86e00]" /></h3>
+                    <h3 className="flex items-center gap-1.5 truncate text-lg font-bold text-[#0b1b33] group-hover:text-[#002147]">
+                        {w.name}
+                        {w.verified
+                            ? <BadgeCheck className="h-4 w-4 shrink-0 text-[#b86e00]" aria-label="Verified writer" />
+                            : <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">New</span>}
+                    </h3>
                     <p className="line-clamp-1 text-sm text-slate-600">{w.headline || w.topDegree}</p>
                     <p className="mt-1 flex items-center gap-1 text-xs text-slate-500"><MapPin className="h-3 w-3" />{countryName(w.country)} · {w.yearsExperience} yrs</p>
                 </div>
@@ -72,9 +77,9 @@ export default function HireWriters() {
             <Navbar activeSection="writers" />
             <main className="mx-auto w-full max-w-7xl flex-grow px-4 pb-24 pt-10 sm:px-6 lg:pt-14">
                 <header className="mx-auto mb-10 max-w-3xl text-center">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#b86e00]">Verified writer network</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#b86e00]">Our writer network</p>
                     <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-[#0b1b33] sm:text-5xl">Find the right academic expert</h1>
-                    <p className="mt-4 text-slate-600 sm:text-lg">Every writer here passed identity verification and a human review of their qualifications and writing.</p>
+                    <p className="mt-4 text-slate-600 sm:text-lg">Browse writers by subject and expertise. Writers marked <BadgeCheck className="inline h-4 w-4 -translate-y-px text-[#b86e00]" aria-label="verified" /> have passed our human review of their qualifications and writing.</p>
                 </header>
 
                 <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">

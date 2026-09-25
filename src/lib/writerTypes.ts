@@ -128,5 +128,7 @@ export interface PublicWriter {
     metrics: { rating: number; ratingCount: number; completedAssignments: number; qualityScore: number; responseRate: number };
     availability: 'AVAILABLE' | 'UNAVAILABLE';
     membershipPlan: string | null;
+    /** Approved by HR after reviewing qualifications and writing. */
+    verified: boolean;
     memberSince: string;
 }

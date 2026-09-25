@@ -77,7 +77,9 @@ export default function WriterProfilePage() {
                         <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
                                 <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{writer.name}</h1>
-                                <BadgeCheck className="h-6 w-6 text-[#fea520]" aria-label="Verified writer" />
+                                {writer.verified
+                                    ? <BadgeCheck className="h-6 w-6 text-[#fea520]" aria-label="Verified writer" />
+                                    : <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold text-white/80">New writer · not yet verified</span>}
                                 {writer.membershipPlan && <span className="inline-flex items-center gap-1 rounded-full bg-[#fea520] px-2.5 py-0.5 text-xs font-bold text-[#0b1b33]"><Crown className="h-3 w-3" />{writer.membershipPlan}</span>}
                             </div>
                             {writer.headline && <p className="mt-1 text-lg text-white/80">{writer.headline}</p>}

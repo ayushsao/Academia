@@ -2,9 +2,11 @@ import { User, Writer, WriterProfile, WriterSkill, WriterDocument, WriterApplica
 import { notify } from './notifications.js';
 
 // Approved writers become ACTIVE when their membership is live (see
-// membershipService.syncWriter). Only ACTIVE writers are listed publicly and
-// can access the job board; approved writers can manage availability and subscribe.
-export const PUBLIC_WRITER_STATUSES = ['ACTIVE'];
+// membershipService.syncWriter). Every registered writer is listed publicly
+// (new ones are marked unverified) except accounts that were rejected,
+// suspended or deactivated. Only ACTIVE writers can access the job board;
+// approved writers can manage availability and subscribe.
+export const PUBLIC_WRITER_STATUSES = ['PENDING', 'UNDER_REVIEW', 'APPROVED', 'ACTIVE'];
 export const JOB_ACCESS_STATUSES = ['ACTIVE'];
 export const WORKING_WRITER_STATUSES = ['APPROVED', 'ACTIVE'];
 
@@ -174,6 +176,8 @@ export function toPublicView({ writer, user, profile, skills, documents, availab
         },
         availability: effectiveAvailability(availability),
         membershipPlan: writer.membership?.status === 'ACTIVE' ? writer.membership.plan : null,
+        // Passed HR's review of qualifications and writing (approved or active member).
+        verified: WORKING_WRITER_STATUSES.includes(writer.status),
         memberSince: writer.createdAt,
     };
 }
