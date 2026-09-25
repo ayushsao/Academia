@@ -32,26 +32,61 @@ const refreshWriterForUser = (doc) => { if (doc?.role === 'WRITER') import('./se
 userSchema.post('save', refreshWriterForUser);
 userSchema.post('findOneAndUpdate', refreshWriterForUser);
 
+const orderDeliveryFileSchema = new mongoose.Schema({
+  originalName: { type: String, required: true },
+  fileName: { type: String, required: true },
+  filePath: { type: String, required: true },
+  mimeType: { type: String, required: true },
+  size: { type: Number, required: true },
+  uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  uploadedAt: { type: Date, default: Date.now },
+  version: { type: Number, default: 1 },
+}, { _id: true });
+
+const orderFeedbackSchema = new mongoose.Schema({
+  rating: { type: Number, min: 1, max: 5, required: true },
+  comment: { type: String, default: '' },
+  createdAt: { type: Date, default: Date.now },
+}, { _id: false });
+
 const orderSchema = new mongoose.Schema({
   orderId: { type: String, required: true, unique: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  writerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   service: { type: String, required: true },
   subject: { type: String, required: true },
   academicLevel: { type: String, default: 'Undergraduate' },
   pages: { type: Number, default: 1 },
+  wordCount: { type: Number, default: 0 },
   deadline: { type: String, required: true },
   topicTitle: { type: String, required: true },
+  description: { type: String, default: '' },
   instructions: { type: String, default: '' },
   files: { type: [String], default: [] },
   turnitinReport: { type: Boolean, default: false },
   topExpert: { type: Boolean, default: false },
   abstractPage: { type: Boolean, default: false },
   totalAmount: { type: Number, default: 0 },
-  status: { type: String, default: 'Pending', enum: ['Pending', 'In Progress', 'Completed', 'Cancelled'] },
+  status: {
+    type: String,
+    default: 'pending',
+    enum: ['pending', 'available', 'assigned', 'in_progress', 'submitted', 'revision_required', 'completed', 'cancelled',
+           // Legacy values (existing orders before the workflow update)
+           'Pending', 'In Progress', 'Completed', 'Cancelled'],
+  },
+  adminApproved: { type: Boolean, default: false },
+  adminApprovedAt: { type: Date },
+  paymentStatus: { type: String, default: 'pending', enum: ['pending', 'paid', 'refunded'] },
   assignedTo: { type: String, default: '' },
   adminNotes: { type: String, default: '' },
   transactionId: { type: String, default: '' },
   currency: { type: String, default: 'GBP' },
+  // Writer-delivered files (final work submissions)
+  deliveryFiles: { type: [orderDeliveryFileSchema], default: [] },
+  submittedAt: { type: Date },
+  completedAt: { type: Date },
+  // Client feedback on completed work
+  feedback: { type: orderFeedbackSchema, default: undefined },
   // How the order was paid. RAZORPAY + PAID only after the server confirmed the
   // payment with Razorpay; MANUAL references (UPI/PayPal/UTR) need admin checks.
   payment: {
@@ -87,6 +122,7 @@ const orderSchema = new mongoose.Schema({
     default: undefined,
   },
 }, { timestamps: true });
+orderSchema.index({ writerId: 1, status: 1 });
 
 const contactSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -104,6 +140,16 @@ const adminSchema = new mongoose.Schema({
   // See server/permissions.js. 'ADMIN' is the legacy value for a full admin (= SUPER_ADMIN).
   role: { type: String, default: 'SUPER_ADMIN', enum: ['SUPER_ADMIN', 'ADMIN', 'HR', 'OPERATIONS', 'FINANCE', 'MARKETING'] },
   lastLoginAt: { type: Date },
+  // Two-factor authentication (services/twoFactor.js). Secrets are encrypted;
+  // recovery codes are stored as hashes only. Never sent to clients.
+  twoFactor: {
+    enabled: { type: Boolean, default: false },
+    secretEnc: { type: String, select: false },
+    pendingSecretEnc: { type: String, select: false },   // being set up, not yet confirmed
+    recoveryHashes: { type: [String], default: [], select: false },
+    lastUsedStep: { type: Number, default: -1 },         // stops a code being used twice
+    enabledAt: Date,
+  },
 }, { timestamps: true });
 
 const siteSettingsSchema = new mongoose.Schema({

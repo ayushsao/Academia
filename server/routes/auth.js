@@ -5,7 +5,7 @@ import { rateLimit } from 'express-rate-limit';
 import crypto from 'crypto';
 import { User, Writer } from '../db.js';
 import { AbuseError, assertNotLocked, recordLoginFailure, clearLoginFailures } from '../services/abuse.js';
-import { authenticateUser, issueUserSession } from '../middleware.js';
+import { authenticateUser, issueUserSession, clearSessionCookie } from '../middleware.js';
 import { validateInput, signupSchema, loginSchema } from '../validation.js';
 import { remember, cacheDel } from '../services/cache.js';
 
@@ -153,7 +153,9 @@ router.post('/login', authLimiter, validateInput(loginSchema), async (req, res) 
 
 // POST /api/auth/logout
 router.post('/logout', (req, res) => {
-    res.clearCookie('auth_token', { httpOnly: true, secure: true, sameSite: 'none' });
+    // Clear both the partitioned cookie and any older unpartitioned one.
+    res.clearCookie('auth_token', clearSessionCookie);
+    res.clearCookie('auth_token', { httpOnly: true, secure: true, sameSite: 'none', path: '/' });
     if (req.user?.id) cacheDel(`user:profile:${req.user.id}`).catch(() => {});
     res.json({ message: 'Logged out' });
 });

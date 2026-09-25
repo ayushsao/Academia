@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { createRequire } from 'module';
 import { User, Order, Contact, Admin, SiteSettings, PageView, AuditLog } from '../db.js';
-import { authenticateAdmin, invalidateAdminCache, ADMIN_SECRET } from '../middleware.js';
+import { authenticateAdmin, invalidateAdminCache, ADMIN_SECRET, sessionCookie, clearSessionCookie } from '../middleware.js';
+import { newSecret, verifyTotp, encryptSecret, decryptSecret, newRecoveryCodes, consumeRecoveryCode, setupPayload } from '../services/twoFactor.js';
 import { ADMIN_ROLES, ROLE_LABELS, PERMISSIONS, normalizeRole, permissionsFor, requirePermission, noStore } from '../permissions.js';
 import { recordAudit } from '../services/audit.js';
 import { AbuseError, assertNotLocked, recordLoginFailure, clearLoginFailures } from '../services/abuse.js';
-import { IS_PRODUCTION } from '../config.js';
+import { IS_PRODUCTION, ADMIN_2FA_REQUIRED } from '../config.js';
 import { streamOrderFile, receiveOrderFiles, storeOrderUploads } from '../services/orderFiles.js';
 import crypto from 'crypto';
 import { remember, cacheDelPattern } from '../services/cache.js';
@@ -54,7 +55,7 @@ ensureDefaultAdmin().catch(console.error);
 
 // POST /api/admin/login
 import { rateLimit } from 'express-rate-limit';
-import { validateInput, adminLoginSchema, adminPasswordSchema } from '../validation.js';
+import { validateInput, adminLoginSchema, adminPasswordSchema, adminTwoFactorLoginSchema, adminTwoFactorCodeSchema, adminTwoFactorDisableSchema } from '../validation.js';
 
 const adminAuthLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -80,16 +81,104 @@ router.post('/login', adminAuthLimiter, validateInput(adminLoginSchema), async (
         }
         await clearLoginFailures(throttleKey);
 
-        const adminRole = normalizeRole(admin.role);
-        const token = jwt.sign({ id: admin._id, username: admin.username, role: 'admin', adminRole }, ADMIN_SECRET, { expiresIn: '12h' });
-        await Admin.updateOne({ _id: admin._id }, { $set: { lastLoginAt: new Date() } });
-        req.admin = { id: admin._id, username: admin.username, adminRole };
-        await recordAudit(req, 'ADMIN_LOGIN', { targetType: 'ADMIN', targetId: admin._id });
-        res.cookie('admin_token', token, { httpOnly: true, secure: true, sameSite: 'none', maxAge: 12 * 60 * 60 * 1000 });
-        res.json({ token, admin: { id: admin._id, username: admin.username, role: adminRole, permissions: permissionsFor(adminRole) } });
+        // Password alone never opens a session: the second factor comes next.
+        if (admin.twoFactor?.enabled)
+            return res.json({ twoFactorRequired: true, challenge: twoFactorChallenge(admin, '2fa') });
+        if (ADMIN_2FA_REQUIRED) {
+            // First sign-in since 2FA became mandatory: set it up before entering.
+            const secret = newSecret();
+            await Admin.updateOne({ _id: admin._id }, { $set: { 'twoFactor.pendingSecretEnc': encryptSecret(secret) } });
+            return res.json({ twoFactorSetupRequired: true, challenge: twoFactorChallenge(admin, '2fa-setup'), setup: await setupPayload(secret, admin.username) });
+        }
+        await startAdminSession(req, res, admin);
     } catch (err) {
         res.status(500).json({ error: 'Admin login failed.' });
     }
+});
+
+// ── Two-factor authentication ─────────────────────────────────────────────────
+const ADMIN_SESSION_MS = 12 * 60 * 60 * 1000;
+const WITH_2FA_SECRETS = '+twoFactor.secretEnc +twoFactor.pendingSecretEnc +twoFactor.recoveryHashes';
+
+// A short-lived proof that the password step succeeded; useless on its own.
+const twoFactorChallenge = (admin, purpose) => jwt.sign({ id: admin._id, purpose }, ADMIN_SECRET, { expiresIn: '10m' });
+
+async function startAdminSession(req, res, admin, extra = {}) {
+    const adminRole = normalizeRole(admin.role);
+    const token = jwt.sign({ id: admin._id, username: admin.username, role: 'admin', adminRole }, ADMIN_SECRET, { expiresIn: '12h' });
+    await Admin.updateOne({ _id: admin._id }, { $set: { lastLoginAt: new Date() } });
+    req.admin = { id: admin._id, username: admin.username, adminRole };
+    await recordAudit(req, 'ADMIN_LOGIN', { targetType: 'ADMIN', targetId: admin._id });
+    res.cookie('admin_token', token, sessionCookie(ADMIN_SESSION_MS));
+    res.json({ token, admin: { id: admin._id, username: admin.username, role: adminRole, permissions: permissionsFor(adminRole), twoFactorEnabled: Boolean(admin.twoFactor?.enabled) }, ...extra });
+}
+
+// Accepts a 6-digit code once (atomically records the step so it can't be replayed).
+async function acceptTotp(admin, secretEnc, code) {
+    const step = verifyTotp(decryptSecret(secretEnc), code, { lastUsedStep: admin.twoFactor?.lastUsedStep ?? -1 });
+    if (step === null) return null;
+    const r = await Admin.updateOne({ _id: admin._id, 'twoFactor.lastUsedStep': { $lt: step } }, { $set: { 'twoFactor.lastUsedStep': step } });
+    return r.modifiedCount ? step : null;
+}
+
+// POST /api/admin/login/2fa — second step: { challenge, code } or { challenge, recoveryCode }.
+router.post('/login/2fa', adminAuthLimiter, validateInput(adminTwoFactorLoginSchema), async (req, res) => {
+    let payload;
+    try { payload = jwt.verify(req.body.challenge, ADMIN_SECRET, { algorithms: ['HS256'] }); }
+    catch { return res.status(401).json({ error: 'Your sign-in expired. Please enter your password again.' }); }
+    if (!['2fa', '2fa-setup'].includes(payload.purpose)) return res.status(401).json({ error: 'Please enter your password again.' });
+
+    const throttleKey = `admin2fa:${payload.id}`;
+    try {
+        try { await assertNotLocked(throttleKey); }
+        catch (err) { if (err instanceof AbuseError) return res.status(err.status).json({ error: err.message }); throw err; }
+
+        const admin = await Admin.findById(payload.id).select(WITH_2FA_SECRETS);
+        if (!admin) return res.status(401).json({ error: 'Please enter your password again.' });
+        const fail = async () => { await recordLoginFailure(throttleKey); return res.status(401).json({ error: 'That code isn’t right. Check your authenticator app and try again.' }); };
+
+        if (payload.purpose === '2fa') {
+            if (!admin.twoFactor?.enabled) return res.status(401).json({ error: 'Please enter your password again.' });
+            if (req.body.recoveryCode) {
+                const rest = consumeRecoveryCode(admin.twoFactor.recoveryHashes, req.body.recoveryCode);
+                if (!rest) return fail();
+                await Admin.updateOne({ _id: admin._id }, { $set: { 'twoFactor.recoveryHashes': rest } });
+                req.admin = { id: admin._id, username: admin.username, adminRole: normalizeRole(admin.role) };
+                await recordAudit(req, 'ADMIN_2FA_RECOVERY_CODE_USED', { targetType: 'ADMIN', targetId: admin._id, reason: `${rest.length} left` });
+                await clearLoginFailures(throttleKey);
+                return startAdminSession(req, res, admin, { recoveryCodesLeft: rest.length });
+            }
+            if (await acceptTotp(admin, admin.twoFactor.secretEnc, req.body.code) === null) return fail();
+            await clearLoginFailures(throttleKey);
+            return startAdminSession(req, res, admin);
+        }
+
+        // First-time setup: the code proves the authenticator app has the new secret.
+        if (admin.twoFactor?.enabled || !admin.twoFactor?.pendingSecretEnc) return res.status(401).json({ error: 'Please enter your password again.' });
+        const step = verifyTotp(decryptSecret(admin.twoFactor.pendingSecretEnc), req.body.code);
+        if (step === null) return fail();
+        const { codes, hashes } = newRecoveryCodes();
+        await Admin.updateOne({ _id: admin._id }, {
+            $set: { 'twoFactor.enabled': true, 'twoFactor.secretEnc': admin.twoFactor.pendingSecretEnc, 'twoFactor.recoveryHashes': hashes, 'twoFactor.lastUsedStep': step, 'twoFactor.enabledAt': new Date() },
+            $unset: { 'twoFactor.pendingSecretEnc': 1 },
+        });
+        admin.twoFactor.enabled = true;
+        req.admin = { id: admin._id, username: admin.username, adminRole: normalizeRole(admin.role) };
+        await recordAudit(req, 'ADMIN_2FA_ENABLED', { targetType: 'ADMIN', targetId: admin._id });
+        await clearLoginFailures(throttleKey);
+        return startAdminSession(req, res, admin, { recoveryCodes: codes });
+    } catch (err) {
+        console.error('[Admin] 2FA login failed:', err.message);
+        res.status(500).json({ error: 'Sign-in failed. Please try again.' });
+    }
+});
+
+// POST /api/admin/logout — ends the cookie session.
+router.post('/logout', (req, res) => {
+    // Clear both the partitioned cookie and any older unpartitioned one.
+    res.clearCookie('admin_token', clearSessionCookie);
+    res.clearCookie('admin_token', { httpOnly: true, secure: true, sameSite: 'none', path: '/' });
+    res.json({ ok: true });
 });
 
 // Every route below is permission-checked here; see server/permissions.js.
@@ -107,13 +196,14 @@ const ROUTE_PERMISSIONS = [
     ['GET', /^\/audit$/, 'audit.read'],
     ['*', /^\/settings$/, 'settings.manage'],
 ];
-const PUBLIC_PATHS = ['/login', '/track'];
+const PUBLIC_PATHS = ['/login', '/login/2fa', '/logout', '/track'];
 
 router.use(noStore);
 router.use(async (req, res, next) => {
     if (PUBLIC_PATHS.includes(req.path)) return next();
     await authenticateAdmin(req, res, () => {
-        if (req.path === '/me' || req.path === '/me/password') return next();
+        // Every admin manages their own account (password, two-factor).
+        if (req.path === '/me' || req.path.startsWith('/me/')) return next();
         const rule = ROUTE_PERMISSIONS.find(([m, rx]) => (m === '*' || m === req.method) && rx.test(req.path));
         if (!rule) return res.status(403).json({ error: 'Your admin role does not permit this action.' });
         return requirePermission(rule[2])(req, res, next);
@@ -121,8 +211,69 @@ router.use(async (req, res, next) => {
 });
 
 // GET /api/admin/me — the signed-in admin's role and permissions (drives the console UI).
-router.get('/me', (req, res) => {
-    res.json({ admin: { id: req.admin.id, username: req.admin.username, role: req.admin.adminRole, roleLabel: ROLE_LABELS[req.admin.adminRole], permissions: permissionsFor(req.admin.adminRole) } });
+router.get('/me', async (req, res) => {
+    const own = await Admin.findById(req.admin.id).select('twoFactor.enabled twoFactor.enabledAt').lean().catch(() => null);
+    res.json({ admin: {
+        id: req.admin.id, username: req.admin.username, role: req.admin.adminRole, roleLabel: ROLE_LABELS[req.admin.adminRole], permissions: permissionsFor(req.admin.adminRole),
+        twoFactorEnabled: Boolean(own?.twoFactor?.enabled), twoFactorRequired: ADMIN_2FA_REQUIRED,
+    } });
+});
+
+// ── Own two-factor settings ───────────────────────────────────────────────────
+// POST /api/admin/me/2fa/setup — start (or restart) setting up an authenticator.
+router.post('/me/2fa/setup', async (req, res) => {
+    try {
+        const admin = await Admin.findById(req.admin.id).select('username twoFactor.enabled');
+        if (!admin) return res.status(404).json({ error: 'Admin not found.' });
+        if (admin.twoFactor?.enabled) return res.status(409).json({ error: 'Two-factor authentication is already on.' });
+        const secret = newSecret();
+        await Admin.updateOne({ _id: admin._id }, { $set: { 'twoFactor.pendingSecretEnc': encryptSecret(secret) } });
+        res.json({ setup: await setupPayload(secret, admin.username) });
+    } catch { res.status(500).json({ error: 'Could not start two-factor setup.' }); }
+});
+
+// POST /api/admin/me/2fa/enable { code } — confirm the authenticator; returns recovery codes once.
+router.post('/me/2fa/enable', validateInput(adminTwoFactorCodeSchema), async (req, res) => {
+    try {
+        const admin = await Admin.findById(req.admin.id).select(WITH_2FA_SECRETS);
+        if (!admin?.twoFactor?.pendingSecretEnc || admin.twoFactor.enabled) return res.status(409).json({ error: 'Start the setup first.' });
+        const step = verifyTotp(decryptSecret(admin.twoFactor.pendingSecretEnc), req.body.code);
+        if (step === null) return res.status(400).json({ error: 'That code isn’t right. Check your authenticator app and try again.' });
+        const { codes, hashes } = newRecoveryCodes();
+        await Admin.updateOne({ _id: admin._id }, {
+            $set: { 'twoFactor.enabled': true, 'twoFactor.secretEnc': admin.twoFactor.pendingSecretEnc, 'twoFactor.recoveryHashes': hashes, 'twoFactor.lastUsedStep': step, 'twoFactor.enabledAt': new Date() },
+            $unset: { 'twoFactor.pendingSecretEnc': 1 },
+        });
+        await recordAudit(req, 'ADMIN_2FA_ENABLED', { targetType: 'ADMIN', targetId: admin._id });
+        res.json({ ok: true, recoveryCodes: codes });
+    } catch { res.status(500).json({ error: 'Could not turn on two-factor authentication.' }); }
+});
+
+// POST /api/admin/me/2fa/recovery-codes { code } — new set (the old ones stop working).
+router.post('/me/2fa/recovery-codes', validateInput(adminTwoFactorCodeSchema), async (req, res) => {
+    try {
+        const admin = await Admin.findById(req.admin.id).select(WITH_2FA_SECRETS);
+        if (!admin?.twoFactor?.enabled) return res.status(409).json({ error: 'Two-factor authentication is not on.' });
+        if (await acceptTotp(admin, admin.twoFactor.secretEnc, req.body.code) === null) return res.status(400).json({ error: 'That code isn’t right.' });
+        const { codes, hashes } = newRecoveryCodes();
+        await Admin.updateOne({ _id: admin._id }, { $set: { 'twoFactor.recoveryHashes': hashes } });
+        await recordAudit(req, 'ADMIN_2FA_RECOVERY_CODES_REGENERATED', { targetType: 'ADMIN', targetId: admin._id });
+        res.json({ recoveryCodes: codes });
+    } catch { res.status(500).json({ error: 'Could not create new recovery codes.' }); }
+});
+
+// POST /api/admin/me/2fa/disable { password, code } — only where 2FA is optional.
+router.post('/me/2fa/disable', validateInput(adminTwoFactorDisableSchema), async (req, res) => {
+    try {
+        if (ADMIN_2FA_REQUIRED) return res.status(403).json({ error: 'Two-factor authentication is required for all admins.' });
+        const admin = await Admin.findById(req.admin.id).select(`password ${WITH_2FA_SECRETS}`);
+        if (!admin?.twoFactor?.enabled) return res.status(409).json({ error: 'Two-factor authentication is not on.' });
+        if (!await bcrypt.compare(req.body.password, admin.password)) return res.status(400).json({ error: 'Your password is incorrect.' });
+        if (await acceptTotp(admin, admin.twoFactor.secretEnc, req.body.code) === null) return res.status(400).json({ error: 'That code isn’t right.' });
+        await Admin.updateOne({ _id: admin._id }, { $set: { 'twoFactor.enabled': false, 'twoFactor.recoveryHashes': [] }, $unset: { 'twoFactor.secretEnc': 1, 'twoFactor.pendingSecretEnc': 1 } });
+        await recordAudit(req, 'ADMIN_2FA_DISABLED', { targetType: 'ADMIN', targetId: admin._id });
+        res.json({ ok: true });
+    } catch { res.status(500).json({ error: 'Could not turn off two-factor authentication.' }); }
 });
 
 // POST /api/admin/me/password — any admin can change their own password.
@@ -414,6 +565,20 @@ router.post('/managers', authenticateAdmin, async (req, res) => {
 
 const SUPER_ROLES = ['SUPER_ADMIN', 'ADMIN', null, undefined];
 const superAdminCount = () => Admin.countDocuments({ $or: [{ role: { $in: ['SUPER_ADMIN', 'ADMIN'] } }, { role: { $exists: false } }] });
+
+// POST /api/admin/managers/:id/2fa/reset — for an admin who lost their phone and
+// recovery codes: they set up a new authenticator at their next sign-in.
+router.post('/managers/:id/2fa/reset', authenticateAdmin, async (req, res) => {
+    try {
+        if (String(req.params.id) === String(req.admin.id)) return res.status(400).json({ error: 'Use a recovery code to sign in, then set up your own authenticator again.' });
+        const target = await Admin.findById(req.params.id).select('username');
+        if (!target) return res.status(404).json({ error: 'Admin not found.' });
+        await Admin.updateOne({ _id: target._id }, { $set: { 'twoFactor.enabled': false, 'twoFactor.recoveryHashes': [], 'twoFactor.lastUsedStep': -1 }, $unset: { 'twoFactor.secretEnc': 1, 'twoFactor.pendingSecretEnc': 1 } });
+        await invalidateAdminCache(target._id);
+        await recordAudit(req, 'ADMIN_2FA_RESET', { targetType: 'ADMIN', targetId: target._id, reason: target.username });
+        res.json({ ok: true });
+    } catch { res.status(500).json({ error: 'Could not reset two-factor authentication.' }); }
+});
 
 // PATCH /api/admin/managers/:id/role  { role }
 router.patch('/managers/:id/role', authenticateAdmin, async (req, res) => {

@@ -8,7 +8,7 @@ import { rateLimit } from 'express-rate-limit';
 
 import { connectDB } from './db.js';
 import { isAllowedOrigin, securityWarnings, IS_PRODUCTION } from './config.js';
-import { authenticateUser } from './middleware.js';
+import { authenticateUser, csrfGuard } from './middleware.js';
 import { receiveOrderFiles, storeOrderUploads } from './services/orderFiles.js';
 import authRouter from './routes/auth.js';
 import ordersRouter from './routes/orders.js';
@@ -29,6 +29,7 @@ import riskAdminRouter from './routes/riskAdmin.js';
 import catalogAdminRouter from './routes/catalogAdmin.js';
 import catalogContentAdminRouter from './routes/catalogContentAdmin.js';
 import catalogRouter from './routes/catalog.js';
+import orderWorkflowRouter from './routes/orderWorkflow.js';
 
 import { startNotificationWorker } from './services/notifications.js';
 import { backfillWriterDirectory } from './services/writerDirectory.js';
@@ -54,6 +55,10 @@ app.use(cors({
     origin: (origin, callback) => callback(null, isAllowedOrigin(origin)),
     credentials: true,
 }));
+
+// ── Sessions: httpOnly cookies (see middleware.js), with CSRF protection ─────
+app.use(cookieParser());
+app.use(csrfGuard(isAllowedOrigin));
 
 // ── Protect against NoSQL Injection ──────────────────────────────────────────
 app.use(mongoSanitize());
@@ -108,6 +113,7 @@ app.use('/api/assignments', assignmentsRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/content', contentRouter);
 app.use('/api/catalog', catalogRouter);
+app.use('/api/order-workflow', orderWorkflowRouter);
 // Customer online payments: POST /api/orders/checkout and /api/orders/checkout/confirm (routes/orders.js).
 
 app.get('/api/health', (req, res) =>

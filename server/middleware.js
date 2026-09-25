@@ -9,15 +9,40 @@ export { JWT_SECRET, ADMIN_SECRET } from './config.js';
 import { JWT_SECRET, ADMIN_SECRET } from './config.js';
 
 const SESSION_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+// A signed-in admin session (a 2FA challenge token carries a "purpose" instead).
+const isAdminSession = (p) => p && p.role === 'admin' && !p.purpose;
+
 // Only our own HMAC tokens are accepted (never "none" or another algorithm).
 const VERIFY = { algorithms: ['HS256'] };
 
-// Signs a user JWT and sets the auth cookie. Returns the token so callers can
-// also hand it to clients that use Bearer auth.
+// Session cookies: httpOnly (page scripts can never read them), Secure, and
+// Partitioned + SameSite=None so they work for the site's own origin even
+// though the API is on a different domain (browsers keep them in a partition
+// keyed to the site, so other websites can't use them either).
+export const sessionCookie = (maxAge) => ({ httpOnly: true, secure: true, sameSite: 'none', partitioned: true, path: '/', maxAge });
+export const clearSessionCookie = { httpOnly: true, secure: true, sameSite: 'none', partitioned: true, path: '/' };
+
+// Signs a user JWT and sets the auth cookie. The token is also returned for
+// browsers that block even partitioned cookies (kept in memory there, never stored).
 export function issueUserSession(res, user) {
     const token = jwt.sign({ id: user._id, email: user.email, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-    res.cookie('auth_token', token, { httpOnly: true, secure: true, sameSite: 'none', maxAge: SESSION_MAX_AGE });
+    res.cookie('auth_token', token, sessionCookie(SESSION_MAX_AGE));
     return token;
+}
+
+// CSRF defence for cookie sessions: a state-changing request authenticated by
+// cookie (no Authorization header) must come from one of our own origins.
+// Bearer-token requests can't be forged cross-site, so they pass through.
+export function csrfGuard(isAllowedOrigin) {
+    return (req, res, next) => {
+        if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+        const hasCookie = Boolean(req.cookies && (req.cookies.auth_token || req.cookies.admin_token));
+        if (!hasCookie || req.headers.authorization) return next();
+        let origin = req.get('origin');
+        if (!origin) { try { origin = new URL(req.get('referer') || '').origin; } catch { origin = ''; } }
+        if (origin && origin !== 'null' && isAllowedOrigin(origin)) return next();
+        return res.status(403).json({ error: 'Request blocked: it did not come from this website.' });
+    };
 }
 
 function bearerToken(req) {
@@ -72,6 +97,8 @@ export async function authenticateAdmin(req, res, next) {
     } catch {
         return res.status(401).json({ error: 'Unauthorized: Invalid admin token' });
     }
+    // Only a full session token opens the console — never a two-factor challenge.
+    if (!isAdminSession(payload)) return res.status(401).json({ error: 'Unauthorized: Invalid admin token' });
     try {
         const role = await currentAdminRole(payload.id);
         if (!role) return res.status(401).json({ error: 'Unauthorized: This admin account no longer exists' });
@@ -104,7 +131,7 @@ export async function identifyPrincipal(req, _res, next) {
         let payload;
         try { payload = jwt.verify(token, secret, VERIFY); } catch { continue; } // wrong secret or expired
         if (kind === 'user' && !req.user) req.user = payload;
-        if (kind === 'admin' && !req.admin) {
+        if (kind === 'admin' && !req.admin && isAdminSession(payload)) {
             try {
                 const role = await currentAdminRole(payload.id);
                 if (role) req.admin = { ...payload, adminRole: role };

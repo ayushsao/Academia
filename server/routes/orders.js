@@ -79,7 +79,7 @@ async function priceCatalogOrder(sel, pages) {
 async function prepareOrder(body, userId) {
     const {
         service, subject, academicLevel, pages, deadline,
-        topicTitle, instructions, files,
+        topicTitle, instructions, description, wordCount, files,
         turnitinReport, topExpert, abstractPage,
     } = body;
 
@@ -90,6 +90,9 @@ async function prepareOrder(body, userId) {
     if (q && body.quote && !quoteMatches(q, body.quote))
         throw Object.assign(new OrderPricingError('The price has changed since your quote. Please review the new price.', 409), { quote: q });
     const calcPages = q ? q.pages : pages || 1;
+    const calcWords = Number(wordCount) || (q ? q.words : calcPages * 250);
+    const orderDesc = description || instructions || '';
+    const orderInst = instructions || description || '';
     const serverComputedAmount = q ? q.total : 0;
 
     const fields = {
@@ -97,8 +100,12 @@ async function prepareOrder(body, userId) {
             service, subject,
             academicLevel: academicLevel || 'Undergraduate',
             pages: calcPages,
+            wordCount: calcWords,
             deadline, topicTitle,
-            instructions: instructions || '',
+            description: orderDesc,
+            instructions: orderInst,
+            status: 'pending',
+            paymentStatus: 'pending',
             files: await ownedFileNames(files || [], userId),   // only the caller's own uploads
             turnitinReport: Boolean(turnitinReport),
             topExpert: Boolean(topExpert),

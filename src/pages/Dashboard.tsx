@@ -1,12 +1,67 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, LayoutDashboard, List, Coins, Layers, Plus, Bookmark, Wallet, Bell, MessageCircle, ChevronRight, User, FileText, CheckCircle, Clock, Home, Paperclip, Download, UploadCloud } from 'lucide-react';
+import { LogOut, LayoutDashboard, List, Coins, Layers, Plus, Bookmark, Wallet, Bell, MessageCircle, ChevronRight, User, FileText, CheckCircle, Clock, Home, Paperclip, Download, UploadCloud, Star, Send, ArrowDown, Eye, AlertTriangle, Package } from 'lucide-react';
 import { OrderModal } from '../components/OrderModal';
 import { AcademiaLogo } from '../components/AcademiaLogo';
 
 import { API } from '../lib/api';
 import { formatOrderTotal } from '../lib/money';
+
+// Normalise legacy/new status values for display
+const normaliseStatus = (s: string): string => {
+    const map: Record<string, string> = { 'Pending': 'pending', 'In Progress': 'in_progress', 'Completed': 'completed', 'Cancelled': 'cancelled' };
+    return map[s] || s;
+};
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string; borderColor: string }> = {
+    pending: { label: 'Pending', color: 'text-amber-700', bgColor: 'bg-amber-100', borderColor: 'border-amber-200' },
+    assigned: { label: 'Writer Assigned', color: 'text-blue-700', bgColor: 'bg-blue-100', borderColor: 'border-blue-200' },
+    in_progress: { label: 'In Progress', color: 'text-indigo-700', bgColor: 'bg-indigo-100', borderColor: 'border-indigo-200' },
+    submitted: { label: 'Under Review', color: 'text-purple-700', bgColor: 'bg-purple-100', borderColor: 'border-purple-200' },
+    revision_required: { label: 'Revision Required', color: 'text-red-700', bgColor: 'bg-red-100', borderColor: 'border-red-200' },
+    completed: { label: 'Completed', color: 'text-emerald-700', bgColor: 'bg-emerald-100', borderColor: 'border-emerald-200' },
+    cancelled: { label: 'Cancelled', color: 'text-slate-700', bgColor: 'bg-slate-100', borderColor: 'border-slate-200' },
+};
+
+const PROGRESS_STEPS = ['pending', 'assigned', 'in_progress', 'submitted', 'completed'];
+
+function OrderProgress({ status }: { status: string }) {
+    const currentIdx = PROGRESS_STEPS.indexOf(status);
+    return (
+        <div className="flex items-center gap-1 w-full">
+            {PROGRESS_STEPS.map((step, i) => {
+                const done = i <= currentIdx;
+                const isCurrent = i === currentIdx;
+                return (
+                    <React.Fragment key={step}>
+                        <div className={`flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-black transition-all ${
+                            done ? (isCurrent ? 'bg-[#e37e25] text-white ring-2 ring-[#e37e25]/30' : 'bg-emerald-500 text-white') : 'bg-slate-200 text-slate-400'
+                        }`}>
+                            {done && !isCurrent ? '✓' : i + 1}
+                        </div>
+                        {i < PROGRESS_STEPS.length - 1 && (
+                            <div className={`flex-1 h-0.5 rounded ${i < currentIdx ? 'bg-emerald-400' : 'bg-slate-200'}`} />
+                        )}
+                    </React.Fragment>
+                );
+            })}
+        </div>
+    );
+}
+
+function StarRating({ rating, onChange }: { rating: number; onChange: (r: number) => void }) {
+    return (
+        <div className="flex gap-1">
+            {[1, 2, 3, 4, 5].map(s => (
+                <button key={s} type="button" onClick={() => onChange(s)}
+                    className={`p-0.5 transition-transform hover:scale-110 ${s <= rating ? 'text-amber-400' : 'text-slate-300'}`}>
+                    <Star className="w-6 h-6" fill={s <= rating ? 'currentColor' : 'none'} />
+                </button>
+            ))}
+        </div>
+    );
+}
 
 export const Dashboard: React.FC = () => {
     const { user, token, orders, logout, setOrders } = useStore();
@@ -73,15 +128,15 @@ export const Dashboard: React.FC = () => {
         }
     };
 
+    // Signed in = a remembered profile; the session itself is an httpOnly cookie.
     useEffect(() => {
-        if (!token) return;
+        if (!user) return;
         let live = true;
         const loadOrders = async () => {
             setOrdersState('loading');
             try {
                 const res = await fetch(`${API}/orders`, {
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    credentials: 'include',
+                    credentials: 'include',   // cookie session (the interceptor adds a fallback token if needed)
                     cache: 'no-store',
                 });
                 if (!live) return;
@@ -102,7 +157,7 @@ export const Dashboard: React.FC = () => {
         };
         loadOrders();
         return () => { live = false; };
-    }, [token, setOrders, ordersAttempt]);
+    }, [user?.email, setOrders, ordersAttempt]);
 
     const handleLogout = async () => {
         try { await fetch(`${API}/auth/logout`, { method: 'POST', credentials: 'include' }); } catch (e) {}
@@ -110,9 +165,75 @@ export const Dashboard: React.FC = () => {
         navigate('/');
     };
 
+    const [feedbackOrder, setFeedbackOrder] = useState<string | null>(null);
+    const [feedbackRating, setFeedbackRating] = useState(0);
+    const [feedbackComment, setFeedbackComment] = useState('');
+    const [feedbackSending, setFeedbackSending] = useState(false);
+    const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [reviewRevisionOpen, setReviewRevisionOpen] = useState<string | null>(null);
+    const [reviewRevisionNote, setReviewRevisionNote] = useState<Record<string, string>>({});
 
-    const activeOrders = orders.filter(o => o.status !== 'Completed' && o.status !== 'Cancelled');
-    const pastOrders = orders.filter(o => o.status === 'Completed' || o.status === 'Cancelled');
+    const handleDeliveryDownload = async (orderId: string, fileId: string, fileName: string) => {
+        setDownloadingFile(fileId);
+        try {
+            const headers: Record<string, string> = {};
+            if (token) headers.Authorization = `Bearer ${token}`;
+            const res = await fetch(`${API}/order-workflow/client/download/${orderId}/${fileId}`, { headers, credentials: 'include' });
+            if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Download failed.'); }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = fileName;
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (e: any) { alert(e.message || 'Download failed.'); }
+        finally { setDownloadingFile(null); }
+    };
+
+    const handleClientApprove = async (orderId: string) => {
+        if (!confirm('Accept this delivery and mark the order as completed?')) return;
+        setActionLoading(orderId);
+        try {
+            const headers: Record<string, string> = {};
+            if (token) headers.Authorization = `Bearer ${token}`;
+            const res = await fetch(`${API}/order-workflow/client/approve/${orderId}`, {
+                method: 'POST', headers, credentials: 'include',
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to accept order.');
+            alert('Order completed! You can now rate your writer.');
+            setOrdersAttempt(a => a + 1);
+        } catch (e: any) { alert(e.message); }
+        finally { setActionLoading(null); }
+    };
+
+    const handleClientRevision = async (orderId: string) => {
+        const note = reviewRevisionNote[orderId] || '';
+        if (!note.trim()) return alert('Please describe the changes needed.');
+        setActionLoading(orderId);
+        try {
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (token) headers.Authorization = `Bearer ${token}`;
+            const res = await fetch(`${API}/order-workflow/client/revision/${orderId}`, {
+                method: 'POST', headers, credentials: 'include',
+                body: JSON.stringify({ note }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to request revision.');
+            alert('Revision request sent to the writer!');
+            setReviewRevisionOpen(null);
+            setOrdersAttempt(a => a + 1);
+        } catch (e: any) { alert(e.message); }
+        finally { setActionLoading(null); }
+    };
+
+    // Enhanced status categories using normalised statuses
+    const activeOrders = orders.filter(o => !['completed', 'cancelled', 'Completed', 'Cancelled'].includes(o.status));
+    const submittedOrders = orders.filter(o => normaliseStatus(o.status) === 'submitted');
+    const completedOrders = orders.filter(o => ['completed', 'Completed'].includes(o.status));
+    const pastOrders = orders.filter(o => ['completed', 'cancelled', 'Completed', 'Cancelled'].includes(o.status));
 
     return (
         <div className="min-h-screen bg-[#fafbfc] font-sans">
@@ -258,7 +379,7 @@ export const Dashboard: React.FC = () => {
                                         </div>
                                         <div>
                                             <p className="text-[10px] text-gray-400 font-bold uppercase">Completed</p>
-                                            <p className="text-xl font-black text-[#000a1e]">{pastOrders.length}</p>
+                                            <p className="text-xl font-black text-[#000a1e]">{completedOrders.length}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -328,11 +449,8 @@ export const Dashboard: React.FC = () => {
                                                         <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                                                             <td className="py-4 px-4 sm:px-6">
                                                                 <div className="font-bold text-[#000a1e] text-xs sm:text-sm">{oid}</div>
-                                                                <span className={`inline-block mt-1 text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase ${order.status === 'Completed' ? 'bg-emerald-100 text-emerald-700'
-                                                                    : order.status === 'Pending' ? 'bg-amber-100 text-amber-700'
-                                                                        : 'bg-blue-100 text-blue-700'
-                                                                    }`}>
-                                                                    {order.status}
+                                                                <span className={`inline-block mt-1 text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase ${(STATUS_CONFIG[normaliseStatus(order.status)] || STATUS_CONFIG.pending).bgColor} ${(STATUS_CONFIG[normaliseStatus(order.status)] || STATUS_CONFIG.pending).color}`}>
+                                                                    {(STATUS_CONFIG[normaliseStatus(order.status)] || STATUS_CONFIG.pending).label}
                                                                 </span>
                                                             </td>
                                                             <td className="py-4 px-4 sm:px-6">
@@ -430,6 +548,261 @@ export const Dashboard: React.FC = () => {
                         </div>
                     )}
 
+                    {/* ── Submissions Awaiting Client Review ────────── */}
+                    {activeTab === 'orders' && submittedOrders.length > 0 && (
+                        <div className="mt-6 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-sm font-bold text-[#1b2733] uppercase flex items-center gap-2">
+                                    <UploadCloud className="w-4 h-4 text-purple-600" /> Awaiting Your Review ({submittedOrders.length})
+                                </h2>
+                                <span className="text-xs text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full font-semibold border border-purple-200">
+                                    Action Required
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {submittedOrders.map(order => {
+                                    const oid = (order as any).orderId || (order as any).id;
+                                    const deliveryFiles = (order as any).deliveryFiles || [];
+                                    const isRevisionOpen = reviewRevisionOpen === oid;
+
+                                    return (
+                                        <div key={oid} className="bg-white rounded-2xl border-2 border-purple-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+                                            {/* Header */}
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div>
+                                                    <span className="text-[10px] font-bold text-slate-400">{oid}</span>
+                                                    <h3 className="text-sm font-bold text-[#0b1b33] mt-0.5 line-clamp-2">{(order as any).topicTitle || order.service}</h3>
+                                                </div>
+                                                <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 text-[10px] font-bold px-2 py-1 rounded-lg">
+                                                    <Clock className="w-3 h-3" /> Under Review
+                                                </span>
+                                            </div>
+
+                                            {/* Details */}
+                                            <div className="flex flex-wrap gap-3 text-[11px] text-slate-500 mb-3">
+                                                <span className="flex items-center gap-1"><FileText className="w-3 h-3" />{order.subject}</span>
+                                                <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{order.deadline}</span>
+                                                <span className="font-bold text-[#e37e25]">{formatOrderTotal(order.totalAmount, order.currency)}</span>
+                                            </div>
+
+                                            {/* Progress tracker */}
+                                            <div className="mb-4">
+                                                <OrderProgress status="submitted" />
+                                            </div>
+
+                                            {/* Delivered Files for Inspection */}
+                                            {deliveryFiles.length > 0 && (
+                                                <div className="mb-4">
+                                                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Delivered Files</h4>
+                                                    <div className="space-y-2">
+                                                        {deliveryFiles.map((f: any) => (
+                                                            <div key={f._id} className="flex items-center justify-between bg-purple-50 border border-purple-200 rounded-xl p-3">
+                                                                <div className="flex items-center gap-2 min-w-0 mr-2">
+                                                                    <FileText className="w-4 h-4 text-purple-600 shrink-0" />
+                                                                    <span className="text-xs font-medium text-slate-700 truncate">{f.originalName}</span>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => handleDeliveryDownload(oid, f._id, f.originalName)}
+                                                                    disabled={downloadingFile === f._id}
+                                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg transition disabled:opacity-50 shrink-0"
+                                                                >
+                                                                    <Download className="w-3.5 h-3.5" />{downloadingFile === f._id ? '...' : 'Download'}
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Primary Actions */}
+                                            <div className="flex items-center gap-2 mt-4">
+                                                <button
+                                                    onClick={() => handleClientApprove(oid)}
+                                                    disabled={actionLoading === oid}
+                                                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition disabled:opacity-50"
+                                                >
+                                                    <CheckCircle className="w-3.5 h-3.5" />
+                                                    {actionLoading === oid ? 'Processing...' : 'Accept & Complete'}
+                                                </button>
+                                                <button
+                                                    onClick={() => setReviewRevisionOpen(isRevisionOpen ? null : oid)}
+                                                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 bg-amber-50 text-amber-800 hover:bg-amber-100 text-xs font-bold rounded-xl transition border border-amber-200"
+                                                >
+                                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                                    Request Revision
+                                                </button>
+                                            </div>
+
+                                            {/* Revision Note Form */}
+                                            {isRevisionOpen && (
+                                                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                                                    <h5 className="text-xs font-bold text-amber-900 mb-1.5">Revision Instructions</h5>
+                                                    <textarea
+                                                        value={reviewRevisionNote[oid] || ''}
+                                                        onChange={e => setReviewRevisionNote({ ...reviewRevisionNote, [oid]: e.target.value })}
+                                                        placeholder="Specify the adjustments or changes you'd like the writer to make..."
+                                                        rows={3}
+                                                        className="w-full rounded-lg border border-amber-200 bg-white p-2.5 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none"
+                                                    />
+                                                    <div className="flex gap-2 mt-2">
+                                                        <button
+                                                            onClick={() => handleClientRevision(oid)}
+                                                            disabled={actionLoading === oid}
+                                                            className="flex-1 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition disabled:opacity-50"
+                                                        >
+                                                            {actionLoading === oid ? 'Sending...' : 'Send Revision Request'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setReviewRevisionOpen(null)}
+                                                            className="px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Completed Orders with Download & Feedback ────────── */}
+                    {activeTab === 'orders' && completedOrders.length > 0 && (
+                        <div className="mt-6 space-y-4">
+                            <h2 className="text-sm font-bold text-[#1b2733] uppercase flex items-center gap-2">
+                                <CheckCircle className="w-4 h-4 text-emerald-600" /> Completed Work ({completedOrders.length})
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {completedOrders.map(order => {
+                                    const oid = (order as any).orderId || (order as any).id;
+                                    const deliveryFiles = (order as any).deliveryFiles || [];
+                                    const feedback = (order as any).feedback;
+                                    const isFeedbackOpen = feedbackOrder === oid;
+
+                                    const handleSubmitFeedback = async () => {
+                                        if (!feedbackRating) return alert('Please select a rating.');
+                                        setFeedbackSending(true);
+                                        try {
+                                            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+                                            if (token) headers.Authorization = `Bearer ${token}`;
+                                            const res = await fetch(`${API}/order-workflow/client/feedback/${oid}`, {
+                                                method: 'POST', headers, credentials: 'include',
+                                                body: JSON.stringify({ rating: feedbackRating, comment: feedbackComment }),
+                                            });
+                                            const data = await res.json();
+                                            if (!res.ok) throw new Error(data.error || 'Failed.');
+                                            alert('Thank you for your feedback!');
+                                            setFeedbackOrder(null);
+                                            setFeedbackRating(0);
+                                            setFeedbackComment('');
+                                            setOrdersAttempt(a => a + 1); // refresh
+                                        } catch (e: any) { alert(e.message); }
+                                        finally { setFeedbackSending(false); }
+                                    };
+
+                                    return (
+                                        <div key={oid} className="bg-white rounded-2xl border border-emerald-200 p-5 hover:shadow-md transition-shadow">
+                                            {/* Header */}
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div>
+                                                    <span className="text-[10px] font-bold text-slate-400">{oid}</span>
+                                                    <h3 className="text-sm font-bold text-[#0b1b33] mt-0.5 line-clamp-2">{(order as any).topicTitle || order.service}</h3>
+                                                </div>
+                                                <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded-lg">
+                                                    <CheckCircle className="w-3 h-3" /> Completed
+                                                </span>
+                                            </div>
+
+                                            {/* Details */}
+                                            <div className="flex flex-wrap gap-3 text-[11px] text-slate-500 mb-3">
+                                                <span className="flex items-center gap-1"><FileText className="w-3 h-3" />{order.subject}</span>
+                                                <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{(order as any).completedAt ? new Date((order as any).completedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : order.deadline}</span>
+                                                <span className="font-bold text-[#e37e25]">{formatOrderTotal(order.totalAmount, order.currency)}</span>
+                                            </div>
+
+                                            {/* Progress tracker */}
+                                            <div className="mb-4">
+                                                <OrderProgress status="completed" />
+                                            </div>
+
+                                            {/* Delivery Files */}
+                                            {deliveryFiles.length > 0 && (
+                                                <div className="mb-3">
+                                                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Completed Work</h4>
+                                                    <div className="space-y-2">
+                                                        {deliveryFiles.map((f: any) => (
+                                                            <div key={f._id} className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                                                                <div className="flex items-center gap-2 min-w-0 mr-2">
+                                                                    <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                                                                    <span className="text-xs font-medium text-slate-700 truncate">{f.originalName}</span>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => handleDeliveryDownload(f._id, f.originalName)}
+                                                                    disabled={downloadingFile === f._id}
+                                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition disabled:opacity-50 shrink-0"
+                                                                >
+                                                                    <Download className="w-3.5 h-3.5" />{downloadingFile === f._id ? '...' : 'Download'}
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Actions */}
+                                            <div className="flex items-center gap-2 mt-3">
+                                                {deliveryFiles.length > 0 && (
+                                                    <button onClick={() => handleDeliveryDownload(deliveryFiles[deliveryFiles.length - 1]._id, deliveryFiles[deliveryFiles.length - 1].originalName)}
+                                                        className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 bg-[#002147] hover:bg-[#001233] text-white text-xs font-bold rounded-xl transition">
+                                                        <Download className="w-3.5 h-3.5" /> Download Work
+                                                    </button>
+                                                )}
+                                                {!feedback ? (
+                                                    <button onClick={() => { setFeedbackOrder(oid); setFeedbackRating(0); setFeedbackComment(''); }}
+                                                        className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 bg-amber-100 text-amber-800 hover:bg-amber-200 text-xs font-bold rounded-xl transition border border-amber-200">
+                                                        <Star className="w-3.5 h-3.5" /> Give Feedback
+                                                    </button>
+                                                ) : (
+                                                    <div className="flex-1 flex items-center gap-1 text-xs text-amber-600 font-semibold justify-center">
+                                                        {[...Array(feedback.rating)].map((_, i) => <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />)}
+                                                        <span className="ml-1">Reviewed</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Feedback Form */}
+                                            {isFeedbackOpen && !feedback && (
+                                                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                                                    <h4 className="text-xs font-bold text-[#0b1b33] mb-3">Rate this order</h4>
+                                                    <StarRating rating={feedbackRating} onChange={setFeedbackRating} />
+                                                    <textarea
+                                                        value={feedbackComment}
+                                                        onChange={e => setFeedbackComment(e.target.value)}
+                                                        placeholder="Share your experience (optional)"
+                                                        rows={3}
+                                                        className="w-full mt-3 rounded-lg border border-amber-200 bg-white p-3 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none"
+                                                    />
+                                                    <div className="flex gap-2 mt-3">
+                                                        <button onClick={handleSubmitFeedback} disabled={feedbackSending || !feedbackRating}
+                                                            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 bg-[#e37e25] hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition disabled:opacity-50">
+                                                            <Send className="w-3.5 h-3.5" />{feedbackSending ? 'Submitting...' : 'Submit Feedback'}
+                                                        </button>
+                                                        <button onClick={() => setFeedbackOrder(null)}
+                                                            className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                     {activeTab === 'loyalty' && (
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden min-h-[500px] flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-white to-amber-50">
                             <div className="w-24 h-24 bg-gradient-to-tr from-amber-400 to-[#e37e25] rounded-full flex flex-col items-center justify-center text-white shadow-xl shadow-amber-200 mb-6 border-4 border-white">

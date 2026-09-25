@@ -17,6 +17,7 @@ const NAV_ITEMS = [
     { path: '/writer/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/writer/membership', label: 'Membership', icon: Crown, approvedOnly: true },
     { path: '/writer/opportunities', label: 'Opportunities', icon: Inbox, memberOnly: true },
+    { path: '/writer/orders', label: 'Client Orders', icon: Briefcase },
     { path: '/writer/assignments', label: 'My Assignments', icon: Briefcase, memberOnly: true },
     { path: '/writer/history', label: 'History', icon: History },
     { path: '/writer/earnings', label: 'Earnings', icon: DollarSign },

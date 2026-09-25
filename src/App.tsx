@@ -40,6 +40,7 @@ const WriterDocuments = lazy(() => import('./pages/marketplace/writer/WriterDocu
 const WriterMessages = lazy(() => import('./pages/marketplace/writer/WriterMessages'));
 const WriterMembership = lazy(() => import('./pages/marketplace/writer/WriterMembership'));
 const MembershipCheckout = lazy(() => import('./pages/marketplace/writer/MembershipCheckout'));
+const WriterOrders = lazy(() => import('./pages/marketplace/writer/WriterOrders'));
 
 const PageLoader = () => (
     <div className="flex min-h-[60vh] items-center justify-center" role="status" aria-label="Loading">
@@ -118,6 +119,7 @@ export default function App() {
                         <Route path="messages" element={<WriterMessages />} />
                         <Route path="membership" element={<WriterMembership />} />
                         <Route path="membership/checkout" element={<MembershipCheckout />} />
+                        <Route path="orders" element={<WriterOrders />} />
                         <Route path="notifications" element={<WriterNotifications />} />
                         <Route path="settings" element={<WriterSettings />} />
                     </Route>

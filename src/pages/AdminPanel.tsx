@@ -22,6 +22,7 @@ import TrustSafetyTab from './marketplace/admin/TrustSafetyTab';
 import CatalogTab from './marketplace/admin/catalog/CatalogTab';
 import SiteContentTab from './marketplace/admin/SiteContentTab';
 import AdminPasswordDialog from './marketplace/admin/AdminPasswordDialog';
+import { AdminLogin, AdminSecurityDialog, restoreAdminSession, signOutAdmin } from './marketplace/admin/AdminAuth';
 
 import { API } from '../lib/api';
 import { formatOrderTotal } from '../lib/money';
@@ -59,6 +60,7 @@ interface Order {
     topExpert?: boolean;
     abstractPage?: boolean;
     totalAmount: number; currency?: string; status: string; assignedTo?: string;
+    adminApproved?: boolean; adminApprovedAt?: string;
     adminNotes?: string; transactionId?: string; payment?: { provider: 'RAZORPAY' | 'MANUAL'; status: 'PAID' | 'PENDING_VERIFICATION'; providerPaymentId?: string; amountMinor?: number; currency?: string }; createdAt: string; updatedAt: string;
 }
 interface User { _id: string; name: string; email: string; role: string; createdAt: string; lastLogin?: string; order_count: number; total_spent: number; }
@@ -66,10 +68,19 @@ interface Contact { _id: string; name: string; email: string; phone?: string; su
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 const statusConfig: Record<string, { color: string; icon: React.ReactNode }> = {
+    // Legacy statuses
     Pending: { color: 'bg-amber-100 text-amber-800 border-amber-200', icon: <Clock className="w-3 h-3" /> },
     'In Progress': { color: 'bg-blue-100 text-blue-800 border-blue-200', icon: <RefreshCw className="w-3 h-3 animate-spin" /> },
     Completed: { color: 'bg-emerald-100 text-emerald-800 border-emerald-200', icon: <CheckCircle2 className="w-3 h-3" /> },
     Cancelled: { color: 'bg-red-100 text-red-800 border-red-200', icon: <XCircle className="w-3 h-3" /> },
+    // New workflow statuses
+    pending: { color: 'bg-amber-100 text-amber-800 border-amber-200', icon: <Clock className="w-3 h-3" /> },
+    assigned: { color: 'bg-blue-100 text-blue-800 border-blue-200', icon: <Users className="w-3 h-3" /> },
+    in_progress: { color: 'bg-indigo-100 text-indigo-800 border-indigo-200', icon: <RefreshCw className="w-3 h-3 animate-spin" /> },
+    submitted: { color: 'bg-purple-100 text-purple-800 border-purple-200', icon: <UploadCloud className="w-3 h-3" /> },
+    revision_required: { color: 'bg-orange-100 text-orange-800 border-orange-200', icon: <AlertCircle className="w-3 h-3" /> },
+    completed: { color: 'bg-emerald-100 text-emerald-800 border-emerald-200', icon: <CheckCircle2 className="w-3 h-3" /> },
+    cancelled: { color: 'bg-red-100 text-red-800 border-red-200', icon: <XCircle className="w-3 h-3" /> },
 };
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -78,71 +89,6 @@ const StatusBadge = ({ status }: { status: string }) => {
         <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${cfg.color}`}>
             {cfg.icon}{status}
         </span>
-    );
-};
-
-// ─── Login Screen ─────────────────────────────────────────────────────────────
-const AdminLogin = ({ onLogin }: { onLogin: (t: string) => void }) => {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true); setError('');
-        try {
-            const data = await apiFetch('/admin/login', { method: 'POST', body: JSON.stringify({ username: username.trim(), password }) });
-            localStorage.setItem('ap_admin_token', data.token);
-            onLogin(data.token);
-        } catch (err: any) { setError(err.message); }
-        finally { setLoading(false); }
-    };
-
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-[#000a1e] via-[#001233] to-[#002147] flex items-center justify-center p-6">
-            <div className="w-full max-w-md">
-                {/* Logo */}
-                <div className="text-center mb-10">
-                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[#fea520]/10 border border-[#fea520]/30 mb-4 shadow-[0_0_40px_rgba(254,165,32,0.2)]">
-                        <Shield className="w-10 h-10 text-[#fea520]" />
-                    </div>
-                    <h1 className="text-3xl font-extrabold text-white mb-1">Admin Console</h1>
-                    <p className="text-white/40 text-sm">AssignmentMinds Control Centre</p>
-                </div>
-
-                <form onSubmit={handleSubmit} className="bg-white/5 backdrop-blur border border-white/10 rounded-3xl p-8 shadow-2xl space-y-5">
-                    {error && (
-                        <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl p-3 text-sm flex items-center gap-2">
-                            <AlertCircle className="w-4 h-4 flex-shrink-0" />{error}
-                        </div>
-                    )}
-                    <div>
-                        <label className="block text-xs font-bold text-white/60 uppercase tracking-widest mb-2">Username</label>
-                        <input
-                            type="text" value={username} onChange={e => setUsername(e.target.value)} required
-                            placeholder="Enter admin username"
-                            // Stop mobile keyboards turning "admin" into "Admin" or "correcting" it.
-                            autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete="username" name="username"
-                            className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-[#fea520]/50 focus:ring-2 focus:ring-[#fea520]/20 placeholder:text-white/20 font-medium"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-white/60 uppercase tracking-widest mb-2">Password</label>
-                        <input
-                            type="password" value={password} onChange={e => setPassword(e.target.value)} required
-                            placeholder="Enter password" autoComplete="current-password" name="password"
-                            className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-[#fea520]/50 focus:ring-2 focus:ring-[#fea520]/20 placeholder:text-white/20 font-medium"
-                        />
-                    </div>
-                    <button type="submit" disabled={loading}
-                        className="w-full bg-[#fea520] hover:bg-[#e09510] disabled:opacity-60 text-[#000a1e] font-extrabold py-3.5 rounded-[12px] transition-all shadow-lg hover:shadow-[0_0_20px_rgba(254,165,32,0.4)] flex items-center justify-center gap-2">
-                        {loading ? <><div className="w-4 h-4 border-2 border-[#000a1e]/30 border-t-[#000a1e] rounded-full animate-spin" />Authenticating...</> : 'Login to Dashboard'}
-                    </button>
-                    <p className="text-center text-white/20 text-xs pt-2">Default: admin / admin123</p>
-                </form>
-            </div>
-        </div>
     );
 };
 
@@ -166,8 +112,23 @@ const OrderDetailDrawer = ({
     const [adminNotes, setAdminNotes] = useState(order.adminNotes || '');
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [releasing, setReleasing] = useState(false);
     const [uploadingFile, setUploadingFile] = useState(false);
     const adminFileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleReleaseToWriters = async () => {
+        if (!confirm(`Approve order ${order.orderId} and release to writers with active membership plans?`)) return;
+        setReleasing(true);
+        try {
+            const data = await apiFetch(`/order-workflow/admin/release/${order.orderId}`, { method: 'POST' }, token);
+            onUpdate(data.order);
+            alert('Order approved and released to writers with active memberships!');
+        } catch (e: any) {
+            alert(e.message || 'Failed to release order.');
+        } finally {
+            setReleasing(false);
+        }
+    };
 
     const handleAdminFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || !e.target.files.length) return;
@@ -395,6 +356,36 @@ const OrderDetailDrawer = ({
                         )}
                     </div>
 
+                    {/* Writer Marketplace Release Section */}
+                    <div className={`rounded-2xl p-4 border ${order.adminApproved ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <Crown className="w-4 h-4 text-[#fea520]" />
+                                    <span className="text-xs font-bold uppercase tracking-wider text-[#000a1e]">
+                                        {order.adminApproved ? 'Writer Marketplace: Approved & Released' : 'Writer Marketplace: Awaiting Approval'}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    {order.adminApproved
+                                        ? 'This order is approved and visible to writers with active membership plans.'
+                                        : 'Writers cannot see or accept this order until admin approves and releases it.'}
+                                </p>
+                            </div>
+                            {!order.adminApproved && (!order.assignedTo || order.assignedTo === '') && (
+                                <button
+                                    type="button"
+                                    onClick={handleReleaseToWriters}
+                                    disabled={releasing}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-1.5 shadow-sm shrink-0 disabled:opacity-50"
+                                >
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    {releasing ? 'Releasing...' : 'Approve for Writers'}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Admin Controls */}
                     <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200 shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)] space-y-5">
                         <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
@@ -548,7 +539,18 @@ const OrdersTab = ({ token }: { token: string }) => {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-gray-600 font-medium">{order.deadline}</td>
                                             <td className="px-6 py-4 font-extrabold text-[#000a1e] whitespace-nowrap">{formatOrderTotal(order.totalAmount, order.currency)}</td>
-                                            <td className="px-6 py-4"><StatusBadge status={order.status} /></td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <StatusBadge status={order.status} />
+                                                {order.adminApproved ? (
+                                                    <div className="mt-1.5 flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 w-fit">
+                                                        <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Writers: Approved
+                                                    </div>
+                                                ) : (!order.assignedTo || order.assignedTo === '') && (
+                                                    <div className="mt-1.5 flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 w-fit">
+                                                        <Clock className="w-3 h-3 text-amber-600" /> Awaiting Writer Approval
+                                                    </div>
+                                                )}
+                                            </td>
                                             <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
                                                 <div className="flex items-center gap-2">
                                                     <button onClick={() => setSelected(order)} className="text-[#002147] hover:text-[#fea520] p-1.5 hover:bg-[#eef4ff] rounded-lg transition-colors" title="View Details"><Eye className="w-4 h-4" /></button>
@@ -1033,14 +1035,20 @@ const NAV: { id: TabId; label: string; title: string; icon: React.ReactNode; per
 ];
 
 export const AdminPanel: React.FC = () => {
-    const [token, setToken] = useState<string>(() => localStorage.getItem('ap_admin_token') || '');
+    // The session is an httpOnly cookie; `token` is a placeholder (or an in-memory
+    // fallback token when the browser blocks the cookie). Nothing is stored.
+    const [token, setToken] = useState<string>('');
+    const [restoring, setRestoring] = useState(true);
+    const [securityOpen, setSecurityOpen] = useState(false);
     const [access, setAccess] = useState<AdminAccess | null>(null);
     const [accessError, setAccessError] = useState('');
     const [tab, setTab] = useState<TabId | null>(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [changingPassword, setChangingPassword] = useState(false);
 
-    const clearSession = () => { localStorage.removeItem('ap_admin_token'); localStorage.removeItem('ap_admin_role'); setToken(''); setAccess(null); setTab(null); };
+    const clearSession = () => { signOutAdmin(); localStorage.removeItem('ap_admin_role'); setToken(''); setAccess(null); setTab(null); };
+
+    useEffect(() => { restoreAdminSession().then(t => { setToken(t); setRestoring(false); }); }, []);
     const handleLogout = clearSession;
 
     // Auto-logout when any API call returns 401 Unauthorized
@@ -1058,30 +1066,6 @@ export const AdminPanel: React.FC = () => {
             .then(data => { if (live) setAccess(data.admin); })
             .catch((e: any) => {
                 if (live) {
-                    console.warn('[AdminPanel] /admin/me returned error, falling back to token claims/default super admin:', e);
-                    try {
-                        const parts = token.split('.');
-                        if (parts.length === 3) {
-                            const payload = JSON.parse(atob(parts[1]));
-                            setAccess({
-                                id: payload.id || 'admin',
-                                username: payload.username || 'admin',
-                                role: payload.adminRole || 'SUPER_ADMIN',
-                                roleLabel: payload.adminRole === 'ADMIN' ? 'Admin' : 'Super Admin',
-                                permissions: [
-                                    'dashboard.view', 'writers.read', 'writers.review', 'writers.contact',
-                                    'writers.documents', 'writers.availability', 'writers.performance',
-                                    'assignments.manage', 'memberships.manage', 'subscriptions.read',
-                                    'subscriptions.manage', 'payments.read', 'payments.review',
-                                    'payouts.manage', 'leads.manage', 'recruitment.read',
-                                    'analytics.read', 'content.manage', 'risk.review',
-                                    'orders.read', 'orders.write', 'users.manage',
-                                    'settings.manage', 'admins.manage', 'audit.read'
-                                ]
-                            });
-                            return;
-                        }
-                    } catch {}
                     setAccessError(e.message || 'Could not load your access.');
                 }
             });
@@ -1091,6 +1075,7 @@ export const AdminPanel: React.FC = () => {
     const navItems = NAV.filter(i => hasPermission(access, ...i.perms));
     const current = navItems.find(i => i.id === tab) || navItems[0];
 
+    if (restoring) return <div className="min-h-screen bg-[#000a1e] flex items-center justify-center" role="status" aria-label="Loading"><div className="w-8 h-8 border-[3px] border-white/20 border-t-[#fea520] rounded-full animate-spin" /></div>;
     if (!token) return <AdminLogin onLogin={setToken} />;
 
     if (!access) {
@@ -1160,6 +1145,9 @@ export const AdminPanel: React.FC = () => {
                         <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold" title="Your role">
                             <Shield className="w-3.5 h-3.5" />{access.roleLabel}
                         </span>
+                        <button onClick={() => setSecurityOpen(true)} aria-label="Security and two-factor authentication" title="Security" className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50">
+                            <Shield className="w-3.5 h-3.5" /><span className="hidden sm:inline">Security</span>
+                        </button>
                         <button onClick={() => setChangingPassword(true)} aria-label="Change password" title="Change password" className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-50">
                             <KeyRound className="w-3.5 h-3.5" /><span className="hidden sm:inline">Password</span>
                         </button>
@@ -1189,6 +1177,7 @@ export const AdminPanel: React.FC = () => {
                 </main>
             </div>
             {changingPassword && <AdminPasswordDialog token={token} onClose={() => setChangingPassword(false)} />}
+            {securityOpen && <AdminSecurityDialog token={token} onClose={() => setSecurityOpen(false)} />}
         </div>
     );
 };

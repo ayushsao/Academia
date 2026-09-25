@@ -6,7 +6,7 @@ import { inputClass } from '../../../components/writer/FormKit';
 import { cn } from '../../../lib/utils';
 
 type Role = { id: string; label: string; permissions: string[] };
-type AdminRow = { _id: string; username: string; email?: string; role: string; roleLabel: string; isSelf: boolean; createdAt: string; lastLoginAt?: string };
+type AdminRow = { _id: string; username: string; email?: string; role: string; roleLabel: string; isSelf: boolean; createdAt: string; lastLoginAt?: string; twoFactor?: { enabled?: boolean } };
 
 const ROLE_BLURB: Record<string, string> = {
     SUPER_ADMIN: 'Full access, including team management and the audit log.',
@@ -68,6 +68,13 @@ export default function AdminTeamTab({ token }: { token: string }) {
         try { await api(`/admin/managers/${a._id}/role`, { method: 'PATCH', token, body: { role: next } }); setMsg({ ok: true, text: `${a.username} is now ${roles.find(r => r.id === next)?.label}. The change applies immediately.` }); load(); }
         catch (err) { setMsg({ ok: false, text: (err as Error).message }); } finally { setBusy(''); }
     };
+    // For an admin who lost their phone and recovery codes: they set up 2FA again at next sign-in.
+    const reset2fa = async (a: AdminRow) => {
+        if (!window.confirm(`Reset two-factor authentication for ${a.username}? They will set up a new authenticator at their next sign-in.`)) return;
+        setBusy(a._id); setMsg(null);
+        try { await api(`/admin/managers/${a._id}/2fa/reset`, { method: 'POST', token }); setMsg({ ok: true, text: `Two-factor authentication reset for ${a.username}.` }); load(); }
+        catch (err) { setMsg({ ok: false, text: (err as Error).message }); } finally { setBusy(''); }
+    };
     const remove = async (a: AdminRow) => {
         setBusy(a._id); setMsg(null);
         try { await api(`/admin/managers/${a._id}`, { method: 'DELETE', token }); setConfirmDelete(null); setMsg({ ok: true, text: `${a.username} removed. Their session ends immediately.` }); load(); }
@@ -113,12 +120,18 @@ export default function AdminTeamTab({ token }: { token: string }) {
                             <li key={a._id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center">
                                 <div className="min-w-0 flex-1">
                                     <p className="truncate font-semibold text-[#000a1e]">{a.username}{a.isSelf && <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-500">You</span>}</p>
+                                    <p className="mt-0.5">{a.twoFactor?.enabled
+                                        ? <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-700"><ShieldCheck className="h-3 w-3" />2FA on</span>
+                                        : <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-700">2FA not set up</span>}</p>
                                     <p className="text-xs text-gray-400">Added {new Date(a.createdAt || Date.now()).toLocaleDateString()} · {a.lastLoginAt ? `last sign-in ${new Date(a.lastLoginAt).toLocaleString()}` : 'never signed in'}</p>
                                 </div>
                                 <select value={a.role} disabled={a.isSelf || busy === a._id} onChange={e => changeRole(a, e.target.value)} aria-label={`Role for ${a.username}`}
                                     className={cn(inputClass, 'w-auto py-2 text-sm')}>
                                     {roles.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
                                 </select>
+                                {!a.isSelf && a.twoFactor?.enabled && (
+                                    <button onClick={() => reset2fa(a)} disabled={busy === a._id} aria-label={`Reset two-factor authentication for ${a.username}`} className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50">Reset 2FA</button>
+                                )}
                                 {!a.isSelf && (confirmDelete === a._id ? (
                                     <span className="flex gap-2">
                                         <button onClick={() => remove(a)} disabled={busy === a._id} className="rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white">Remove</button>

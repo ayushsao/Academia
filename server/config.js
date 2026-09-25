@@ -31,6 +31,18 @@ export const ADMIN_SECRET = secret('ADMIN_SECRET');
 export const OTP_SECRET = (process.env.OTP_SECRET || '').trim() || JWT_SECRET;
 export const FINGERPRINT_SECRET = (process.env.FINGERPRINT_SECRET || '').trim() || JWT_SECRET;
 
+// Encrypts admin two-factor secrets at rest. It must be stable across restarts
+// (a changing key would lock admins out of 2FA), so it never falls back to a
+// random value: TWO_FACTOR_KEY, else an explicitly configured ADMIN_SECRET.
+const explicitAdminSecret = (() => { const v = (process.env.ADMIN_SECRET || '').trim(); return v && v !== PUBLIC_DEFAULTS.ADMIN_SECRET ? v : ''; })();
+export const TWO_FACTOR_KEY = (process.env.TWO_FACTOR_KEY || '').trim() || explicitAdminSecret || 'insecure-default-2fa-key';
+if (IS_PRODUCTION && TWO_FACTOR_KEY === 'insecure-default-2fa-key')
+    warnings.push('TWO_FACTOR_KEY (or ADMIN_SECRET) is not set: admin 2FA secrets are encrypted with a default key. Set TWO_FACTOR_KEY.');
+
+// Admins must use two-factor authentication. On by default in production;
+// set ADMIN_2FA_REQUIRED=false to make it optional (never recommended).
+export const ADMIN_2FA_REQUIRED = (process.env.ADMIN_2FA_REQUIRED || (IS_PRODUCTION ? 'true' : 'false')).trim().toLowerCase() !== 'false';
+
 // Browser origins allowed to call the API with credentials: the app itself plus
 // any extra origins listed in CORS_ORIGINS (comma-separated, e.g. a custom domain).
 const normalizeOrigin = (o) => { try { const u = new URL(o.trim()); return `${u.protocol}//${u.host}`; } catch { return ''; } };
