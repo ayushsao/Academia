@@ -12,7 +12,8 @@ const toolsLimiter = rateLimit({
 router.post('/process', toolsLimiter, async (req, res) => {
     try {
         const { prompt } = req.body;
-        if (!prompt) return res.status(400).json({ error: 'Prompt is required.' });
+        if (typeof prompt !== 'string' || !prompt.trim()) return res.status(400).json({ error: 'Prompt is required.' });
+        if (prompt.length > 20000) return res.status(413).json({ error: 'That text is too long. Please shorten it and try again.' });
 
 
 
@@ -69,7 +70,9 @@ router.post('/process', toolsLimiter, async (req, res) => {
             console.error("Inception API Request Error:", err.message);
         }
 
-        return res.status(500).json({ error: `Inception AI Engine Failed.\nError: ${inceptionError}` });
+        // Upstream details stay in the server log, never in the response.
+        console.error('Inception AI failed:', inceptionError);
+        return res.status(502).json({ error: 'The AI tool is unavailable right now. Please try again shortly.' });
     } catch (err) {
         console.error('Tools error:', err);
         res.status(500).json({ error: 'Failed to process AI request.' });

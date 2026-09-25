@@ -2,17 +2,15 @@ import { Router } from 'express';
 import { Order, CatalogSubject, CatalogService, CatalogProject } from '../db.js';
 import { authenticateUser } from '../middleware.js';
 import { rateLimit } from 'express-rate-limit';
-import { validateInput, orderSchema, orderQuoteSchema } from '../validation.js';
+import { validateInput, orderSchema, orderQuoteSchema, orderCheckoutSchema, razorpayVerifySchema } from '../validation.js';
 import { quoteOrder, getRateCard, publicRateCard, quoteMatches, OrderPricingError } from '../services/orderPricing.js';
 import { ownedFileNames, streamOrderFile, customerCanAccess, receiveOrderFiles, storeOrderUploads } from '../services/orderFiles.js';
 import { quote, isLiveSelection, PricingError } from '../services/pricing.js';
-import { fromMinor } from '../services/money.js';
+import { fromMinor, toMinor } from '../services/money.js';
+import { razorpayEnabled, razorpayKeyId, verifyRazorpaySignature, PaymentProviderError } from '../services/paymentProviders.js';
+import { createOrderRecord, startCheckout, completeCheckout } from '../services/orderCheckout.js';
 
 const router = Router();
-
-function genOrderId() {
-    return 'ACAD-' + Math.floor(100000 + Math.random() * 900000);
-}
 
 // GET /api/orders — user's own orders
 router.get('/', authenticateUser, async (req, res) => {
@@ -72,38 +70,40 @@ async function priceCatalogOrder(sel, pages) {
     };
 }
 
-// POST /api/orders — place new order
-router.post('/', authenticateUser, validateInput(orderSchema), async (req, res) => {
-    try {
-        const {
-            service, subject, academicLevel, pages, deadline,
-            topicTitle, instructions, files,
-            turnitinReport, topExpert, abstractPage, transactionId
-        } = req.body;
+/**
+ * Everything an order stores, built on the server from the request: names,
+ * billable pages and the price are computed here, never taken from the client.
+ * Throws a 409 (with the current quote) when the customer's quote is stale.
+ * Returns { fields, currency, totalMinor }.
+ */
+async function prepareOrder(body, userId) {
+    const {
+        service, subject, academicLevel, pages, deadline,
+        topicTitle, instructions, files,
+        turnitinReport, topExpert, abstractPage,
+    } = body;
 
-        // Catalogue orders are priced by the admin's rules only (no legacy rates or add-ons).
-        const catalogPrice = req.body.catalog ? await priceCatalogOrder(req.body.catalog, pages) : null;
-        // Standard orders: the same quotation function the website used for the price shown.
-        const q = catalogPrice ? null : await quoteOrder({ service, pages: pages || 1, academicLevel, currency: req.body.quote?.currency, topExpert, abstractPage });
-        if (q && req.body.quote && !quoteMatches(q, req.body.quote))
-            return res.status(409).json({ error: 'The price has changed since your quote. Please review the new price.', quote: q });
-        const calcPages = q ? q.pages : pages || 1;
-        const serverComputedAmount = q ? q.total : 0;
+    // Catalogue orders are priced by the admin's rules only (no legacy rates or add-ons).
+    const catalogPrice = body.catalog ? await priceCatalogOrder(body.catalog, pages) : null;
+    // Standard orders: the same quotation function the website used for the price shown.
+    const q = catalogPrice ? null : await quoteOrder({ service, pages: pages || 1, academicLevel, currency: body.quote?.currency, topExpert, abstractPage });
+    if (q && body.quote && !quoteMatches(q, body.quote))
+        throw Object.assign(new OrderPricingError('The price has changed since your quote. Please review the new price.', 409), { quote: q });
+    const calcPages = q ? q.pages : pages || 1;
+    const serverComputedAmount = q ? q.total : 0;
 
-        const order = await Order.create({
-            orderId: genOrderId(),
-            userId: req.user.id,
+    const fields = {
+            userId,
             service, subject,
             academicLevel: academicLevel || 'Undergraduate',
             pages: calcPages,
             deadline, topicTitle,
             instructions: instructions || '',
-            files: await ownedFileNames(files || [], req.user.id),   // only the caller's own uploads
+            files: await ownedFileNames(files || [], userId),   // only the caller's own uploads
             turnitinReport: Boolean(turnitinReport),
             topExpert: Boolean(topExpert),
             abstractPage: Boolean(abstractPage),
             totalAmount: serverComputedAmount,
-            transactionId: transactionId || '',
             ...(q && {
                 currency: q.currency,
                 pricing: {
@@ -114,13 +114,59 @@ router.post('/', authenticateUser, validateInput(orderSchema), async (req, res) 
                 },
             }),
             ...(catalogPrice && { ...catalogPrice, topExpert: false, abstractPage: false }),
-        });
+    };
+    const currency = fields.currency || 'GBP';
+    const totalMinor = catalogPrice ? catalogPrice.catalog.totalMinor : toMinor(serverComputedAmount, currency);
+    return { fields, currency, totalMinor };
+}
 
+const orderError = (res, err, fallback) => {
+    if (err instanceof PricingError || err instanceof OrderPricingError || err instanceof PaymentProviderError)
+        return res.status(err.status).json({ error: err.message, ...(err.quote && { quote: err.quote }) });
+    console.error('[Orders]', err?.message);
+    res.status(500).json({ error: fallback });
+};
+
+// POST /api/orders — place an order paid manually (UPI / PayPal / bank reference).
+// The reference is recorded for the team to verify; it is never treated as proof of payment.
+router.post('/', authenticateUser, validateInput(orderSchema), async (req, res) => {
+    try {
+        const { fields } = await prepareOrder(req.body, req.user.id);
+        const reference = (req.body.transactionId || '').trim();
+        const order = await createOrderRecord({
+            ...fields,
+            transactionId: reference,
+            payment: { provider: 'MANUAL', status: 'PENDING_VERIFICATION' },
+        });
         res.status(201).json({ order });
-    } catch (err) {
-        if (err instanceof PricingError || err instanceof OrderPricingError) return res.status(err.status).json({ error: err.message, ...(err.quote && { quote: err.quote }) });
-        res.status(500).json({ error: 'Failed to create order.' });
-    }
+    } catch (err) { orderError(res, err, 'Failed to create order.'); }
+});
+
+// ── Online payment (Razorpay) ──────────────────────────────────────────────────
+const checkoutLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, message: { error: 'Too many payment attempts. Please try again later.' } });
+
+// POST /api/orders/checkout — prices the order on the server and opens a
+// Razorpay order for exactly that amount. Nothing is charged or created yet.
+router.post('/checkout', checkoutLimiter, authenticateUser, validateInput(orderCheckoutSchema), async (req, res) => {
+    try {
+        if (!razorpayEnabled()) return res.status(503).json({ error: 'Online payment is not available right now. Please use UPI or PayPal.' });
+        const { fields, currency, totalMinor } = await prepareOrder(req.body, req.user.id);
+        const checkout = await startCheckout({ userId: req.user.id, fields, amountMinor: totalMinor, currency });
+        res.json({ keyId: razorpayKeyId(), orderId: checkout.providerOrderId, amountMinor: totalMinor, currency });
+    } catch (err) { orderError(res, err, 'Could not start the payment.'); }
+});
+
+// POST /api/orders/checkout/confirm — Razorpay's callback. The signature is
+// checked, then the payment is re-fetched from Razorpay and must be captured
+// for exactly the checkout's amount and currency before the order is created.
+router.post('/checkout/confirm', checkoutLimiter, authenticateUser, validateInput(razorpayVerifySchema), async (req, res) => {
+    try {
+        const { razorpay_order_id: orderId, razorpay_payment_id: paymentId, razorpay_signature: signature } = req.body;
+        if (!verifyRazorpaySignature({ orderId, paymentId, signature }))
+            return res.status(400).json({ error: 'Payment could not be verified.' });
+        const order = await completeCheckout({ providerOrderId: orderId, paymentId, userId: req.user.id });
+        res.status(201).json({ order });
+    } catch (err) { orderError(res, err, 'Could not confirm the payment. If you were charged, contact support with your payment ID.'); }
 });
 
 // GET /api/orders/:id — single order

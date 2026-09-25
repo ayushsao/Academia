@@ -59,7 +59,7 @@ interface Order {
     topExpert?: boolean;
     abstractPage?: boolean;
     totalAmount: number; currency?: string; status: string; assignedTo?: string;
-    adminNotes?: string; transactionId?: string; createdAt: string; updatedAt: string;
+    adminNotes?: string; transactionId?: string; payment?: { provider: 'RAZORPAY' | 'MANUAL'; status: 'PAID' | 'PENDING_VERIFICATION'; providerPaymentId?: string; amountMinor?: number; currency?: string }; createdAt: string; updatedAt: string;
 }
 interface User { _id: string; name: string; email: string; role: string; createdAt: string; lastLogin?: string; order_count: number; total_spent: number; }
 interface Contact { _id: string; name: string; email: string; phone?: string; subject: string; message: string; status: string; createdAt: string; }
@@ -290,6 +290,7 @@ const OrderDetailDrawer = ({
                                 ['Pages', `${order.pages} pages (~${order.pages * 250} words)`],
                                 ['Deadline', order.deadline],
                                 ['Total Amount', formatOrderTotal(order.totalAmount, order.currency)],
+                                ['Payment', order.payment?.provider === 'RAZORPAY' && order.payment.status === 'PAID' ? 'Paid online · Razorpay (verified by server)' : 'Manual — verify the reference before starting work'],
                                 ['Transaction ID', order.transactionId || 'Not Provided'],
                             ] as [string, string][]).map(([k, v]) => (
                                 <div key={k}>

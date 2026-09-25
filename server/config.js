@@ -45,8 +45,9 @@ export function isAllowedOrigin(origin) {
     const normalized = normalizeOrigin(origin);
     if (!normalized) return false;
     if (ALLOWED_ORIGINS.has(normalized)) return true;
+    // Exact origins only: never "any *.vercel.app" — anyone can deploy there.
+    // Add preview or custom domains to CORS_ORIGINS.
     const { hostname, protocol } = new URL(normalized);
-    if (hostname.endsWith('.vercel.app')) return protocol === 'https:';
     // Local development only.
     if (!IS_PRODUCTION && (hostname === 'localhost' || hostname === '127.0.0.1' || /^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname))) return protocol === 'http:' || protocol === 'https:';
     return false;

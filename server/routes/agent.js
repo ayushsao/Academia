@@ -27,6 +27,7 @@ router.post('/chat', agentLimiter, async (req, res) => {
         if (!prompt || typeof prompt !== 'string') {
             return res.status(400).json({ error: 'Prompt is required.' });
         }
+        if (prompt.length > 4000) return res.status(413).json({ error: 'That message is too long.' });
 
         const webhookUrl = process.env.N8N_AGENT_WEBHOOK_URL;
         if (!webhookUrl) {
@@ -41,7 +42,7 @@ router.post('/chat', agentLimiter, async (req, res) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 prompt: prompt.trim(),
-                sessionId: sessionId || req.ip
+                sessionId: typeof sessionId === 'string' ? sessionId.slice(0, 100) : req.ip
             })
         });
 

@@ -271,181 +271,170 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     }
   };
 
-  const handleRazorpayPayment = async () => {
-    if (!user) {
-      alert("Please login first to place an order.");
-      return;
+  // ── Placing the order ──────────────────────────────────────────────────────
+  // Attachments upload first; the order details then go to the server, which
+  // prices the order itself (the quote shown here is only compared, never trusted).
+  const uploadAttachments = async (): Promise<string[]> => {
+    if (actualFileObjects.length === 0) return [];
+    const formData = new FormData();
+    actualFileObjects.forEach(f => formData.append('files', f));
+    const headers: Record<string, string> = {};
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+    const uploadRes = await fetch(`${API}/upload`, { method: 'POST', headers, credentials: 'include', body: formData });
+    if (!uploadRes.ok) {
+      const uErr = await uploadRes.json().catch(() => ({}));
+      throw new Error(uErr.error || 'Failed to upload attachments. Please check file type and size.');
     }
-
-    if (!quoteReady || (!catMode && (!stdQuote || stdQuote.pages !== pages))) {
-      alert('Please wait for the price to finish updating, then try again.');
-      return;
-    }
-
-    setIsRazorpayLoading(true);
-    setRazorpayError('');
-
-    const activeCurrency = (catMode && catQuote ? catQuote.currency : (shownStd?.currency || quoteCurrency || 'INR')).toUpperCase();
-    const activeAmount = catMode ? catTotal : grandTotal;
-    // Razorpay amount in minor units (pence / cents / paise), min 100 minor units
-    const amountMinor = Math.max(100, Math.round((activeAmount > 0 ? activeAmount : 1) * 100));
-
-    await openRazorpayCheckout({
-      amountPaise: amountMinor,
-      currency: activeCurrency,
-      name: 'AcademiaPro',
-      description: `${orderService || 'Academic Paper'} (${pages || 1} Pages)`,
-      prefill: {
-        name: user.name || '',
-        email: user.email || '',
-      },
-      onSuccess: async (paymentResult) => {
-        setIsPaymentVerified(true);
-        setTransactionId(paymentResult.razorpay_payment_id);
-        setIsRazorpayLoading(false);
-        // Automatically submit the order with the verified Razorpay payment ID
-        await handleCompleteOrder(paymentResult.razorpay_payment_id);
-      },
-      onError: (errMsg) => {
-        setIsRazorpayLoading(false);
-        setRazorpayError(errMsg);
-      },
-      onDismiss: () => {
-        setIsRazorpayLoading(false);
-      }
-    });
+    return (await uploadRes.json()).files || [];
   };
 
-  const handleCompleteOrder = async (explicitTxId?: string) => {
+  const orderDetails = (files: string[]) => ({
+    service: orderService,
+    subject: orderSubject,
+    pages: catMode && catQuote ? catQuote.pages : stdQuote!.pages,
+    deadline,
+    topicTitle,
+    instructions,
+    academicLevel,
+    files,
+    turnitinReport,
+    topExpert: catMode ? false : topExpert,
+    abstractPage: catMode ? false : abstractPage,
+    // The accepted quote: the server re-prices and refuses (409) if it no longer matches.
+    ...(!catMode && stdQuote && { quote: { currency: stdQuote.currency, total: stdQuote.total, pages: stdQuote.pages } }),
+    ...(catMode && catIds && catQuote && { catalog: { ...catIds, words: catWords, spacing: catSpacing, currency: catCurrency, quotedTotalMinor: catQuote.totalMinor } }),
+  });
+
+  const postJson = async (path: string, body: unknown) => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+    const res = await fetch(`${API}${path}`, { method: 'POST', headers, credentials: 'include', body: JSON.stringify(body) });
+    const data = await res.json().catch(() => ({}));
+    return { res, data };
+  };
+
+  // Session expiry and changed prices are handled the same way for both payment methods.
+  const handleOrderApiError = (status: number, data: any): boolean => {
+    if (status === 401) {
+      logout();
+      alert('Your session has expired. Please sign in again.');
+      navigate('/');
+      return true;
+    }
+    if (status === 409 && data?.quote) {
+      // Prices changed since the quote: show the new one and let the customer confirm again.
+      if (catMode) setCatQuote(data.quote); else std.replace(data.quote);
+      alert(data.error || 'The price has changed. Please review the new price and confirm again.');
+      return true;
+    }
+    return false;
+  };
+
+  const canPlaceOrder = () => {
     if (!user) {
-      alert("Please login first to place an order.");
-      return;
+      alert('Please login first to place an order.');
+      return false;
     }
-
-    const effectiveTxId = (explicitTxId || transactionId).trim();
-    if (!effectiveTxId || effectiveTxId.length < 5) {
-      alert("Please enter a valid Transaction ID / UTR Number or pay online with Razorpay.");
-      return;
-    }
-
     // The order is placed at exactly the quoted price; never without a complete quote.
     if (!quoteReady || (!catMode && (!stdQuote || stdQuote.pages !== pages))) {
       alert('Please wait for the price to finish updating, then try again.');
+      return false;
+    }
+    return true;
+  };
+
+  const orderPlaced = async (order: any, paymentReference: string) => {
+    setOrderNumber(order?.orderId || 'Order Placed');
+    addOrder(order);
+    setStep(3);
+
+    // Send EmailJS Notification for the Order
+    try {
+      const EmailJSConfig = {
+        serviceId: (import.meta as any).env.VITE_EMAILJS_SERVICE_ID || 'service_089l13d',
+        templateId: (import.meta as any).env.VITE_EMAILJS_TEMPLATE_ID || 'template_omo2hya',
+        publicKey: (import.meta as any).env.VITE_EMAILJS_PUBLIC_KEY || 'u1Lnz6UEF9jlDevVZ'
+      };
+      const emailjs = (await import('@emailjs/browser')).default;
+      await emailjs.send(
+        EmailJSConfig.serviceId as string,
+        EmailJSConfig.templateId as string,
+        {
+          name: user!.name,
+          email: user!.email,
+          subject: `New Order Placed: ${order?.orderId}`,
+          message: `User ${user!.name} placed a new order for ${orderService} (${orderSubject}). Topic: ${topicTitle}. Total: ${totalLabel}\n\nPayment: ${paymentReference}`
+        },
+        EmailJSConfig.publicKey as string
+      );
+    } catch (err) {
+      console.error("Order EmailJS trigger failed", err);
+    }
+  };
+
+  // Online payment: the server opens a Razorpay order for its own price, and the
+  // order is created only after the server has confirmed the payment with Razorpay.
+  const handleRazorpayPayment = async () => {
+    if (!canPlaceOrder()) return;
+    setIsRazorpayLoading(true);
+    setRazorpayError('');
+    try {
+      const files = await uploadAttachments();
+      const { res, data } = await postJson('/orders/checkout', orderDetails(files));
+      if (!res.ok) {
+        setIsRazorpayLoading(false);
+        if (!handleOrderApiError(res.status, data)) setRazorpayError(data.error || 'Could not start the payment.');
+        return;
+      }
+      await openRazorpayCheckout({
+        checkout: data,
+        name: 'AssignmentMinds',
+        description: `${orderService || 'Academic Paper'} · ${totalLabel}`,
+        prefill: { name: user!.name || '', email: user!.email || '' },
+        onSuccess: async (payment) => {
+          try {
+            const confirm = await postJson('/orders/checkout/confirm', payment);
+            if (!confirm.res.ok) throw new Error(confirm.data.error || 'We could not confirm your payment.');
+            setIsPaymentVerified(true);
+            setTransactionId(payment.razorpay_payment_id);
+            await orderPlaced(confirm.data.order, `Razorpay ${payment.razorpay_payment_id} (verified)`);
+          } catch (e: any) {
+            setRazorpayError(`${e?.message || 'We could not confirm your payment.'} Payment ID: ${payment.razorpay_payment_id}`);
+          } finally {
+            setIsRazorpayLoading(false);
+          }
+        },
+        onError: (errMsg) => {
+          setIsRazorpayLoading(false);
+          setRazorpayError(errMsg);
+        },
+        onDismiss: () => setIsRazorpayLoading(false),
+      });
+    } catch (e: any) {
+      setIsRazorpayLoading(false);
+      setRazorpayError(e?.message || 'Could not start the payment.');
+    }
+  };
+
+  // Manual payment (UPI / PayPal): the reference is sent for the team to verify.
+  const handleCompleteOrder = async () => {
+    if (!canPlaceOrder()) return;
+    const reference = transactionId.trim();
+    if (reference.length < 5) {
+      alert("Please enter a valid Transaction ID / UTR Number or pay online with Razorpay.");
       return;
     }
-
     setIsSubmitting(true);
-    let uploadedFileNames: string[] = [];
-
     try {
-      const token = authToken;
-
-      // 1. Upload files first if any
-      if (actualFileObjects.length > 0) {
-        const formData = new FormData();
-        actualFileObjects.forEach(f => formData.append('files', f));
-
-        const uploadHeaders: Record<string, string> = {};
-        if (token) uploadHeaders['Authorization'] = `Bearer ${token}`;
-
-        const uploadRes = await fetch(`${API}/upload`, {
-          method: 'POST',
-          headers: uploadHeaders,
-          credentials: 'include',
-          body: formData
-        });
-
-        if (!uploadRes.ok) {
-          const uErr = await uploadRes.json().catch(() => ({}));
-          throw new Error(uErr.error || 'Failed to upload attachments. Please check file type and size.');
-        }
-
-        const uData = await uploadRes.json();
-        uploadedFileNames = uData.files || [];
-      }
-
-      // 2. Submit order to backend
-      const payload = {
-        service: orderService,
-        subject: orderSubject,
-        pages: catMode && catQuote ? catQuote.pages : stdQuote!.pages,
-        deadline,
-        topicTitle,
-        instructions,
-        academicLevel,
-        files: uploadedFileNames,
-        turnitinReport,
-        topExpert: catMode ? false : topExpert,
-        abstractPage: catMode ? false : abstractPage,
-        totalAmount: catMode ? catTotal : stdQuote!.total, // display only: the server prices every order
-        transactionId: effectiveTxId,
-        // The accepted quote: the server re-prices and refuses (409) if it no longer matches.
-        ...(!catMode && stdQuote && { quote: { currency: stdQuote.currency, total: stdQuote.total, pages: stdQuote.pages } }),
-        ...(catMode && catIds && catQuote && { catalog: { ...catIds, words: catWords, spacing: catSpacing, currency: catCurrency, quotedTotalMinor: catQuote.totalMinor } }),
-      };
-
-      const orderHeaders: Record<string, string> = {
-        'Content-Type': 'application/json'
-      };
-      if (token) orderHeaders['Authorization'] = `Bearer ${token}`;
-
-      const res = await fetch(`${API}/orders`, {
-        method: 'POST',
-        headers: orderHeaders,
-        credentials: 'include',
-        body: JSON.stringify(payload)
-      });
-
+      const files = await uploadAttachments();
+      const { res, data } = await postJson('/orders', { ...orderDetails(files), transactionId: reference });
       if (!res.ok) {
-        if (res.status === 401) {
-          logout();
-          alert("Session expired. Please log out and sign in again.");
-          navigate('/');
-          return;
-        }
-        const data = await res.json().catch(() => ({}));
-        if (res.status === 409 && data.quote) {
-          // Prices changed since the quote: show the new one and let the customer confirm again.
-          if (catMode) setCatQuote(data.quote); else std.replace(data.quote);
-          alert(data.error || 'The price has changed. Please review the new price and confirm again.');
-          return;
-        }
-        throw new Error(data.error || 'Failed to place order');
+        if (!handleOrderApiError(res.status, data)) throw new Error(data.error || 'Failed to place order');
+        return;
       }
-
-      const data = await res.json();
-      setOrderNumber(data.order?.orderId || 'Order Placed');
-
-      // Update local store as fallback display
-      addOrder(data.order);
-
-      setStep(3);
-
-      // Send EmailJS Notification for the Order
-      try {
-        const EmailJSConfig = {
-          serviceId: (import.meta as any).env.VITE_EMAILJS_SERVICE_ID || 'service_089l13d',
-          templateId: (import.meta as any).env.VITE_EMAILJS_TEMPLATE_ID || 'template_omo2hya',
-          publicKey: (import.meta as any).env.VITE_EMAILJS_PUBLIC_KEY || 'u1Lnz6UEF9jlDevVZ'
-        };
-        const emailjs = (await import('@emailjs/browser')).default;
-        await emailjs.send(
-          EmailJSConfig.serviceId as string,
-          EmailJSConfig.templateId as string,
-          {
-            name: user.name,
-            email: user.email,
-            subject: `New Order Placed: ${data.order?.orderId}`,
-            message: `User ${user.name} placed a new order for ${orderService} (${orderSubject}). Topic: ${topicTitle}. Total: ${totalLabel}\n\nTransaction ID (Payment Reference): ${transactionId}`
-          },
-          EmailJSConfig.publicKey as string
-        );
-      } catch (err) {
-        console.error("Order EmailJS trigger failed", err);
-      }
+      await orderPlaced(data.order, `Manual reference ${reference} (to be verified)`);
     } catch (e: any) {
-      const errDetail = e instanceof Error ? e.message : JSON.stringify(e);
-      alert(`[Debug Error] Failed to place order. Details: ${errDetail}. Please screenshot this and send it.`);
+      alert(`We couldn't place your order: ${e?.message || 'please try again'}.`);
       console.error("Order completion failed:", e);
     } finally {
       setIsSubmitting(false);

@@ -429,7 +429,7 @@ router.patch('/managers/:id/role', authenticateAdmin, async (req, res) => {
         const previous = normalizeRole(target.role);
         target.role = role;
         await target.save();
-        invalidateAdminCache(target._id);
+        await invalidateAdminCache(target._id);
         await recordAudit(req, 'ADMIN_ROLE_CHANGED', { targetType: 'ADMIN', targetId: target._id, reason: `${target.username}: ${ROLE_LABELS[previous]} → ${ROLE_LABELS[role]}` });
         res.json({ admin: { id: target._id, username: target.username, role, roleLabel: ROLE_LABELS[role] } });
     } catch (err) {
@@ -445,7 +445,7 @@ router.delete('/managers/:id', authenticateAdmin, async (req, res) => {
         if (SUPER_ROLES.includes(target.role) && (await superAdminCount()) <= 1)
             return res.status(400).json({ error: 'Cannot delete the last Super Admin.' });
         await target.deleteOne();
-        invalidateAdminCache(target._id);
+        await invalidateAdminCache(target._id);
         await recordAudit(req, 'ADMIN_DELETED', { targetType: 'ADMIN', targetId: target._id, reason: target.username });
         res.json({ message: 'Admin deleted successfully.' });
     } catch (err) {
@@ -453,13 +453,15 @@ router.delete('/managers/:id', authenticateAdmin, async (req, res) => {
     }
 });
 
-// POST /api/admin/track (public — no auth needed)
-router.post('/track', async (req, res) => {
+// POST /api/admin/track (public — no auth needed; rate-limited and length-capped)
+const trackLimiter = rateLimit({ windowMs: 60 * 1000, max: 60, message: { error: 'Too many requests.' } });
+router.post('/track', trackLimiter, async (req, res) => {
     try {
-        const { page } = req.body;
-        const userAgent = req.headers['user-agent'] || '';
-        const referrer = req.headers['referer'] || req.body.referrer || '';
-        await PageView.create({ page: page || '/', userAgent, referrer });
+        const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
+        const page = str(req.body?.page, 300) || '/';
+        const userAgent = str(req.headers['user-agent'], 300);
+        const referrer = str(req.headers['referer'] || req.body?.referrer, 300);
+        await PageView.create({ page, userAgent, referrer });
         res.json({ ok: true });
     } catch (err) {
         res.status(500).json({ error: 'Internal server error.' });

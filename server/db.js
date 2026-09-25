@@ -52,6 +52,17 @@ const orderSchema = new mongoose.Schema({
   adminNotes: { type: String, default: '' },
   transactionId: { type: String, default: '' },
   currency: { type: String, default: 'GBP' },
+  // How the order was paid. RAZORPAY + PAID only after the server confirmed the
+  // payment with Razorpay; MANUAL references (UPI/PayPal/UTR) need admin checks.
+  payment: {
+    type: new mongoose.Schema({
+      provider: { type: String, enum: ['RAZORPAY', 'MANUAL'], default: 'MANUAL' },
+      status: { type: String, enum: ['PAID', 'PENDING_VERIFICATION'], default: 'PENDING_VERIFICATION' },
+      providerOrderId: String, providerPaymentId: String,
+      amountMinor: Number, currency: String, paidAt: Date,
+    }, { _id: false }),
+    default: undefined,
+  },
   // Standard orders: the accepted quotation (same numbers the customer saw).
   pricing: {
     type: new mongoose.Schema({
@@ -109,6 +120,23 @@ const pageViewSchema = new mongoose.Schema({
 
 export const User = mongoose.model('User', userSchema);
 export const Order = mongoose.model('Order', orderSchema);
+
+// An online payment in progress for a customer order: the server-priced order
+// fields and the exact amount Razorpay must confirm before the order exists.
+const orderCheckoutSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  fields: { type: mongoose.Schema.Types.Mixed, required: true },
+  amountMinor: { type: Number, required: true },
+  currency: { type: String, required: true },
+  providerOrderId: { type: String, index: { unique: true, sparse: true } },
+  providerPaymentId: String,
+  status: { type: String, enum: ['CREATED', 'CONFIRMING', 'PAID'], default: 'CREATED', index: true },
+  orderRef: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
+  needsAttention: String,
+}, { timestamps: true });
+// Abandoned checkouts are cleaned up after a week (completed ones are kept).
+orderCheckoutSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7 * 24 * 3600, partialFilterExpression: { status: 'CREATED' } });
+export const OrderCheckout = mongoose.model('OrderCheckout', orderCheckoutSchema);
 export const Contact = mongoose.model('Contact', contactSchema);
 export const Admin = mongoose.model('Admin', adminSchema);
 export const SiteSettings = mongoose.model('SiteSettings', siteSettingsSchema);

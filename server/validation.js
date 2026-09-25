@@ -38,7 +38,7 @@ export const orderSchema = z.object({
     topExpert: z.boolean().optional(),
     abstractPage: z.boolean().optional(),
     totalAmount: z.number().min(0).optional(), // ignored: the server always prices the order
-    transactionId: z.string().optional(),
+    transactionId: z.string().trim().max(120).optional(),   // manual payment reference (UPI / PayPal / UTR)
     // The quotation the customer accepted; the order is refused (409) if it no longer matches.
     quote: z.object({
         currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/),
@@ -58,6 +58,9 @@ export const orderSchema = z.object({
 }).strict(); // Reject extra fields
 
 // POST /api/orders/quote — inputs that affect the price of a standard order.
+// POST /api/orders/checkout — same order details, paid online (no manual reference).
+export const orderCheckoutSchema = orderSchema.omit({ transactionId: true });
+
 export const orderQuoteSchema = z.object({
     service: z.string().trim().max(120).optional().default(''),
     pages: z.coerce.number().int().min(1, 'Enter at least 1 page').max(100000),

@@ -9,6 +9,8 @@ export { JWT_SECRET, ADMIN_SECRET } from './config.js';
 import { JWT_SECRET, ADMIN_SECRET } from './config.js';
 
 const SESSION_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+// Only our own HMAC tokens are accepted (never "none" or another algorithm).
+const VERIFY = { algorithms: ['HS256'] };
 
 // Signs a user JWT and sets the auth cookie. Returns the token so callers can
 // also hand it to clients that use Bearer auth.
@@ -27,7 +29,7 @@ export function authenticateUser(req, res, next) {
     if (!token)
         return res.status(401).json({ error: 'Unauthorized: No token provided' });
     try {
-        req.user = jwt.verify(token, JWT_SECRET);
+        req.user = jwt.verify(token, JWT_SECRET, VERIFY);
         next();
     } catch {
         return res.status(401).json({ error: 'Unauthorized: Invalid or expired token' });
@@ -39,9 +41,10 @@ export function authenticateUser(req, res, next) {
 // within ADMIN_ROLE_TTL_MS instead of when their 12-hour token expires.
 const ADMIN_ROLE_TTL_MS = 60 * 1000;
 const adminRoleCache = new Map();
-export const invalidateAdminCache = (adminId) => {
+// Awaited by callers: a removed admin or changed role must take effect on the very next request.
+export const invalidateAdminCache = async (adminId) => {
     adminRoleCache.delete(String(adminId));
-    cacheDel(`admin:role:${adminId}`).catch(() => {});
+    await cacheDel(`admin:role:${adminId}`).catch(() => {});
 };
 
 async function currentAdminRole(adminId) {
@@ -65,7 +68,7 @@ export async function authenticateAdmin(req, res, next) {
         return res.status(401).json({ error: 'Unauthorized: No admin token' });
     let payload;
     try {
-        payload = jwt.verify(token, ADMIN_SECRET);
+        payload = jwt.verify(token, ADMIN_SECRET, VERIFY);
     } catch {
         return res.status(401).json({ error: 'Unauthorized: Invalid admin token' });
     }
@@ -99,7 +102,7 @@ export async function identifyPrincipal(req, _res, next) {
     for (const [token, secret, kind] of candidates) {
         if (!token) continue;
         let payload;
-        try { payload = jwt.verify(token, secret); } catch { continue; } // wrong secret or expired
+        try { payload = jwt.verify(token, secret, VERIFY); } catch { continue; } // wrong secret or expired
         if (kind === 'user' && !req.user) req.user = payload;
         if (kind === 'admin' && !req.admin) {
             try {
