@@ -79,8 +79,8 @@ export function loadRazorpayScript(): Promise<boolean> {
 }
 
 /**
- * STEP 1: Calls backend endpoint POST /api/create-order
- * Minimum amount: 100 paise
+ * STEP 1: Calls backend endpoint POST /api/create-order (with automatic fallback)
+ * Minimum amount: 100 minor units
  */
 export async function createOrder(
   amountPaise: number,
@@ -88,27 +88,63 @@ export async function createOrder(
   receipt?: string,
   notes?: Record<string, string>
 ): Promise<RazorpayOrderResponse> {
-  return api<RazorpayOrderResponse>('/create-order', {
-    method: 'POST',
-    body: {
-      amount: amountPaise,
-      currency,
-      receipt,
-      notes
+  const payload = {
+    amount: amountPaise,
+    currency,
+    receipt,
+    notes
+  };
+
+  try {
+    return await api<RazorpayOrderResponse>('/create-order', {
+      method: 'POST',
+      body: payload
+    });
+  } catch (err: any) {
+    if (err?.status === 404) {
+      try {
+        return await api<RazorpayOrderResponse>('/orders/create-order', {
+          method: 'POST',
+          body: payload
+        });
+      } catch {
+        return await api<RazorpayOrderResponse>('/payments/create-order', {
+          method: 'POST',
+          body: payload
+        });
+      }
     }
-  });
+    throw err;
+  }
 }
 
 /**
- * STEP 3: Calls backend endpoint POST /api/verify-payment
+ * STEP 3: Calls backend endpoint POST /api/verify-payment (with automatic fallback)
  */
 export async function verifyPayment(
   paymentData: RazorpayPaymentSuccessResponse
 ): Promise<{ success: boolean; message: string; order_id: string; payment_id: string }> {
-  return api('/verify-payment', {
-    method: 'POST',
-    body: paymentData
-  });
+  try {
+    return await api('/verify-payment', {
+      method: 'POST',
+      body: paymentData
+    });
+  } catch (err: any) {
+    if (err?.status === 404) {
+      try {
+        return await api('/orders/verify-payment', {
+          method: 'POST',
+          body: paymentData
+        });
+      } catch {
+        return await api('/payments/verify-payment', {
+          method: 'POST',
+          body: paymentData
+        });
+      }
+    }
+    throw err;
+  }
 }
 
 /**

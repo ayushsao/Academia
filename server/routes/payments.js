@@ -26,7 +26,7 @@ function getRazorpayClient() {
  * Return: { order_id, amount, currency, key_id }
  * Minimum amount: 100 paise
  */
-router.post('/create-order', async (req, res) => {
+router.post(['/create-order', '/api/create-order', '/orders/create-order', '/payments/create-order'], async (req, res) => {
     try {
         const { amount, currency = 'INR', receipt, notes } = req.body;
 
@@ -93,7 +93,7 @@ router.post('/create-order', async (req, res) => {
  * Compare generated signature with razorpay_signature
  * Return success only if signatures match
  */
-router.post('/verify-payment', (req, res) => {
+router.post(['/verify-payment', '/api/verify-payment', '/orders/verify-payment', '/payments/verify-payment'], (req, res) => {
     try {
         const order_id = req.body.razorpay_order_id || req.body.order_id;
         const payment_id = req.body.razorpay_payment_id || req.body.payment_id;

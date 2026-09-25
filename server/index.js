@@ -108,6 +108,9 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/content', contentRouter);
 app.use('/api/catalog', catalogRouter);
 app.use('/api', paymentsRouter);
+app.use('/api/orders', paymentsRouter);
+app.use('/api/payments', paymentsRouter);
+app.use('/', paymentsRouter);
 
 app.get('/api/health', (req, res) =>
     res.json({ status: 'OK', timestamp: new Date().toISOString() })

@@ -285,13 +285,14 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     setIsRazorpayLoading(true);
     setRazorpayError('');
 
-    // Minimum 100 paise (₹1). Convert INR amount or grand total
-    const inrAmount = upiAmount > 0 ? upiAmount : Math.max(1, grandTotal);
-    const amountPaise = Math.max(100, Math.round(inrAmount * 100));
+    const activeCurrency = (catMode && catQuote ? catQuote.currency : (shownStd?.currency || quoteCurrency || 'INR')).toUpperCase();
+    const activeAmount = catMode ? catTotal : grandTotal;
+    // Razorpay amount in minor units (pence / cents / paise), min 100 minor units
+    const amountMinor = Math.max(100, Math.round((activeAmount > 0 ? activeAmount : 1) * 100));
 
     await openRazorpayCheckout({
-      amountPaise,
-      currency: 'INR',
+      amountPaise: amountMinor,
+      currency: activeCurrency,
       name: 'AcademiaPro',
       description: `${orderService || 'Academic Paper'} (${pages || 1} Pages)`,
       prefill: {
