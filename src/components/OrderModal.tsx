@@ -13,11 +13,16 @@ import { ServiceType, SubjectType } from '../types';
 import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
 
-import { API } from '../lib/api';
+import { API, api } from '../lib/api';
+import { formatMoney, fromMinor } from '../lib/money';
+import type { CatalogOrderContext, PublicPricing, PublicQuote } from '../lib/catalogContent';
+import { useOrderQuote, type OrderQuote } from '../lib/orderQuote';
 
 interface OrderModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Opened from a catalogue page: priced from the admin's pricing rules. */
+  catalog?: CatalogOrderContext | null;
   initialConfig?: {
     service?: ServiceType;
     subject?: SubjectType;
@@ -27,6 +32,8 @@ interface OrderModalProps {
     topicTitle?: string;
     instructions?: string;
     files?: string[];
+    /** The quotation calculated on the previous step; shown as-is while its inputs are unchanged. */
+    quote?: OrderQuote;
   };
 }
 
@@ -34,6 +41,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   isOpen,
   onClose,
   initialConfig,
+  catalog,
 }) => {
   const getNextWeek = () => {
     const d = new Date();
@@ -53,12 +61,14 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actualFileObjects, setActualFileObjects] = useState<File[]>([]);
 
-  const [errors, setErrors] = useState<{ topicTitle?: string; instructions?: string; files?: string }>({});
+  const [errors, setErrors] = useState<{ topicTitle?: string; instructions?: string; files?: string; pricing?: string }>({});
 
   // Add-ons (Start unselected to match base quote accurately)
   const [turnitinReport, setTurnitinReport] = useState<boolean>(true); // Free anyway
-  const [topExpert, setTopExpert] = useState<boolean>(false);
-  const [abstractPage, setAbstractPage] = useState<boolean>(false);
+  const [topExpert, setTopExpert] = useState<boolean>(!!initialConfig?.quote?.input.topExpert);
+  const [abstractPage, setAbstractPage] = useState<boolean>(!!initialConfig?.quote?.input.abstractPage);
+  // Currency of the accepted quote (the home calculator lets customers pick one).
+  const [quoteCurrency, setQuoteCurrency] = useState<string>(initialConfig?.quote?.currency || 'GBP');
 
   const [transactionId, setTransactionId] = useState<string>('');
   const [orderNumber, setOrderNumber] = useState<string>('');
@@ -76,7 +86,11 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       setSubject(initialConfig?.subject || '');
       setPages(initialConfig?.pages || 0); // 0 pages by default if empty
       setDeadline(initialConfig?.deadline || getNextWeek());
-      if (initialConfig?.academicLevel) setAcademicLevel(initialConfig.academicLevel);
+      setAcademicLevel(initialConfig?.academicLevel || (initialConfig?.quote?.academicLevel as typeof academicLevel) || 'Undergraduate');
+      setQuoteCurrency(initialConfig?.quote?.currency || 'GBP');
+      setTopExpert(!!initialConfig?.quote?.input.topExpert);
+      setAbstractPage(!!initialConfig?.quote?.input.abstractPage);
+      setErrors({});
       if (initialConfig?.topicTitle) setTopicTitle(initialConfig.topicTitle);
       if (initialConfig?.instructions) setInstructions(initialConfig.instructions);
       if (initialConfig?.files && initialConfig.files.length > 0) setFiles(initialConfig.files);
@@ -84,49 +98,86 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     }
   }, [isOpen, initialConfig]);
 
+  // Catalogue mode: the price comes from the admin's active pricing rule (API),
+  // and the server re-prices the order on submit. Without an online price the
+  // standard form is used.
+  const [catState, setCatState] = useState<'off' | 'loading' | 'ready' | 'error'>('off');
+  const [catPricing, setCatPricing] = useState<PublicPricing | null>(null);
+  const [catCurrency, setCatCurrency] = useState('');
+  const [catWords, setCatWords] = useState(0);
+  const [catSpacing, setCatSpacing] = useState('');
+  const [catQuote, setCatQuote] = useState<PublicQuote | null>(null);
+  const [catQuoteError, setCatQuoteError] = useState('');
+  const [catAttempt, setCatAttempt] = useState(0);
+  const catIds = catalog ? { subjectId: catalog.subjectId, ...(catalog.serviceId && { serviceId: catalog.serviceId }), ...(catalog.projectId && { projectId: catalog.projectId }) } : null;
+  const catKey = catIds ? new URLSearchParams(catIds).toString() : '';
+
+  React.useEffect(() => {
+    if (!isOpen || !catalog) { setCatState('off'); return; }
+    let live = true;
+    setCatState('loading'); setCatQuote(null); setCatQuoteError('');
+    api<{ pricing: PublicPricing }>(`/catalog/pricing?${catKey}`)
+      .then(({ pricing }) => {
+        if (!live) return;
+        if (!pricing.rates.length) { setCatState('off'); return; }
+        const rate = pricing.rates.find(r => r.currency === catalog.currency) || pricing.rates[0];
+        setCatPricing(pricing);
+        setCatCurrency(rate.currency);
+        setCatSpacing(catalog.spacing && pricing.spacingOptions.some(o => o.key === catalog.spacing) ? catalog.spacing : pricing.defaultSpacing);
+        setCatWords(catalog.words && catalog.words > 0 ? catalog.words : rate.wordsPerPage);
+        setCatState('ready');
+      })
+      .catch((e: any) => { if (live) setCatState(e?.status === 404 ? 'off' : 'error'); });
+    return () => { live = false; };
+  }, [isOpen, catKey, catAttempt]);
+
+  React.useEffect(() => {
+    if (catState !== 'ready' || !catIds || !(catWords > 0)) { setCatQuote(null); return; }
+    let live = true;
+    const t = setTimeout(() => {
+      api<{ quote: PublicQuote }>('/catalog/quote', { method: 'POST', body: { ...catIds, words: catWords, spacing: catSpacing, currency: catCurrency } })
+        .then(r => { if (live) { setCatQuote(r.quote); setCatQuoteError(''); } })
+        .catch((e: any) => { if (live) { setCatQuote(null); setCatQuoteError(e?.message || 'Could not calculate a price.'); } });
+    }, 300);
+    return () => { live = false; clearTimeout(t); };
+  }, [catState, catKey, catWords, catSpacing, catCurrency]);
+
+  // Standard orders: one server quote, reused from the previous step and only
+  // re-quoted when the customer changes an input on this form.
+  const catActive = !!catalog && catState !== 'off';
+  const std = useOrderQuote(
+    { service, pages, academicLevel, currency: quoteCurrency, topExpert, abstractPage },
+    { enabled: isOpen && !catActive && pages >= 1, initial: initialConfig?.quote ?? null },
+  );
+
+  // Keep the floating chat button off the order form's buttons.
+  React.useEffect(() => {
+    if (!isOpen) return;
+    document.body.classList.add('order-open');
+    return () => document.body.classList.remove('order-open');
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
-  const getBaseRate = (srv: ServiceType | ''): number => {
-    switch (srv) {
-      case 'Take My Online Exam': return 50;
-      case 'Take My Online Class': return 45;
-      case 'Ghost Writer': return 30;
-      case 'MBA Essay Writing Service': return 28;
-      case 'Data Analysis & SPSS':
-      case 'Programming Assignment Help':
-        return 25;
-      case 'Dissertation & Thesis':
-      case 'Dissertation Help':
-      case 'Thesis Help':
-        return 22;
-      case 'Research Proposal Writing Service': return 20;
-      case 'Literature Review':
-      case 'Research Paper Writing':
-      case 'Assessment Help':
-        return 18;
-      case 'Case Study Analysis':
-      case 'Term Paper Help':
-        return 16;
-      case 'Academic Writing':
-      case 'Pay Someone To Do My Homework':
-      case 'Coursework Help':
-        return 15;
-      case 'Essay Help': return 14;
-      case 'Homework Help':
-      case 'Powerpoint Presentation Services':
-        return 12;
-      case 'Editing & Proofreading':
-      case 'Essay Editing Service':
-        return 10;
-      default: return 15;
-    }
-  };
+  const catMode = !!catalog && catState !== 'off';
 
-  const basePricePerPage = getBaseRate(service);
-  const levelMultiplier = academicLevel === 'PhD / Doctoral' ? 1.35 : academicLevel === 'Master\'s' ? 1.15 : 1.0;
-  const subtotal = Math.round(pages * basePricePerPage * levelMultiplier);
-  const addOnsTotal = (turnitinReport ? 0 : 0) + (topExpert ? 15 : 0) + (abstractPage ? 10 : 0);
-  const grandTotal = subtotal + addOnsTotal;
+  // The quote shown on this form: the current one, or the last one while a changed input is re-quoted.
+  const stdQuote = std.quote;
+  const shownStd = std.quote || (pages >= 1 ? std.lastQuote : null);
+  const sym = shownStd?.symbol || '£';
+  const grandTotal = shownStd?.total ?? 0;
+  const addOnLabel = (key: string) => { const a = shownStd?.addOnOptions.find(o => o.key === key); return a ? `${sym} ${a.price}` : '…'; };
+  // What the customer sees and pays (catalogue: the server quote in its own currency).
+  const catTotal = catQuote ? fromMinor(catQuote.totalMinor, catQuote.currency) : 0;
+  const totalLabel = catMode ? (catQuote ? formatMoney(catQuote.totalMinor, catQuote.currency) : '—') : `${sym} ${grandTotal}`;
+  const showUpi = !catMode || catQuote?.currency === 'INR';
+  const showPaypal = !catMode || (!!catQuote && catQuote.currency !== 'INR');
+  const upiAmount = catMode ? catTotal : shownStd?.upi.amount ?? 0;
+  const paypalAmount = catMode ? `${catTotal}${catQuote?.currency || ''}` : `${grandTotal}${shownStd?.currency || 'GBP'}`;
+  // Ready to order only when the price shown is the quote for exactly these inputs.
+  const quoteReady = catMode ? !!catQuote : !!stdQuote;
+  const orderSubject = catMode ? catalog!.subjectName : subject;
+  const orderService = catMode ? (catalog!.serviceName || catalog!.subjectName) : service;
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -149,7 +200,12 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   };
 
   const validateStep1 = () => {
-    const newErrors: { topicTitle?: string; instructions?: string; files?: string } = {};
+    const newErrors: { topicTitle?: string; instructions?: string; files?: string; pricing?: string } = {};
+    if (!catMode) {
+      if (!service) newErrors.pricing = 'Please choose the type of paper.';
+      else if (!subject) newErrors.pricing = 'Please choose a subject.';
+      else if (pages < 1) newErrors.pricing = 'Enter at least 1 page.';
+    }
     if (!topicTitle.trim()) {
       newErrors.topicTitle = 'Topic title is required';
     } else if (topicTitle.length < 5) {
@@ -167,6 +223,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   };
 
   const handleNextStep = () => {
+    if (!quoteReady && (catMode || (service && subject && pages >= 1))) return;
     if (step === 1 && validateStep1()) {
       setStep(2);
     }
@@ -180,6 +237,12 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
     if (!transactionId || transactionId.trim().length < 5) {
       alert("Please enter a valid Transaction ID / UTR Number to confirm your payment.");
+      return;
+    }
+
+    // The order is placed at exactly the quoted price; never without a complete quote.
+    if (!quoteReady || (!catMode && (!stdQuote || stdQuote.pages !== pages))) {
+      alert('Please wait for the price to finish updating, then try again.');
       return;
     }
 
@@ -208,19 +271,22 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
       // 2. Submit order to backend
       const payload = {
-        service,
-        subject,
-        pages,
+        service: orderService,
+        subject: orderSubject,
+        pages: catMode && catQuote ? catQuote.pages : stdQuote!.pages,
         deadline,
         topicTitle,
         instructions,
         academicLevel,
         files: uploadedFileNames,
         turnitinReport,
-        topExpert,
-        abstractPage,
-        totalAmount: grandTotal,
-        transactionId: transactionId.trim()
+        topExpert: catMode ? false : topExpert,
+        abstractPage: catMode ? false : abstractPage,
+        totalAmount: catMode ? catTotal : stdQuote!.total, // display only: the server prices every order
+        transactionId: transactionId.trim(),
+        // The accepted quote: the server re-prices and refuses (409) if it no longer matches.
+        ...(!catMode && stdQuote && { quote: { currency: stdQuote.currency, total: stdQuote.total, pages: stdQuote.pages } }),
+        ...(catMode && catIds && catQuote && { catalog: { ...catIds, words: catWords, spacing: catSpacing, currency: catCurrency, quotedTotalMinor: catQuote.totalMinor } }),
       };
 
       const res = await fetch(`${API}/orders`, {
@@ -240,6 +306,12 @@ export const OrderModal: React.FC<OrderModalProps> = ({
           return;
         }
         const data = await res.json().catch(() => ({}));
+        if (res.status === 409 && data.quote) {
+          // Prices changed since the quote: show the new one and let the customer confirm again.
+          if (catMode) setCatQuote(data.quote); else std.replace(data.quote);
+          alert(data.error || 'The price has changed. Please review the new price and confirm again.');
+          return;
+        }
         throw new Error(data.error || 'Failed to place order');
       }
 
@@ -266,7 +338,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
             name: user.name,
             email: user.email,
             subject: `New Order Placed: ${data.order?.orderId}`,
-            message: `User ${user.name} placed a new order for ${service} (${subject}). Topic: ${topicTitle}. Total: £${grandTotal}\n\nTransaction ID (Payment Reference): ${transactionId}`
+            message: `User ${user.name} placed a new order for ${orderService} (${orderSubject}). Topic: ${topicTitle}. Total: ${totalLabel}\n\nTransaction ID (Payment Reference): ${transactionId}`
           },
           EmailJSConfig.publicKey as string
         );
@@ -335,6 +407,18 @@ export const OrderModal: React.FC<OrderModalProps> = ({
         <div className="p-6 sm:p-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
           {step === 1 && (
             <div className="space-y-6">
+              {catMode ? (
+                <div className="rounded-xl border border-[#d1e4ff] bg-[#eef4ff] p-4" data-testid="order-catalog-summary">
+                  <span className="block text-xs font-bold text-[#44474e] uppercase">Your selection</span>
+                  <p className="mt-1 text-sm font-bold text-[#000a1e]">{[catalog!.subjectName, catalog!.serviceName, catalog!.projectTitle].filter(Boolean).join(' › ')}</p>
+                  {catState === 'loading' && <p className="mt-1 text-xs text-[#708ab5]">Loading pricing…</p>}
+                  {catState === 'error' && (
+                    <p role="alert" className="mt-1 text-xs font-semibold text-red-600">
+                      Pricing couldn’t be loaded. <button type="button" onClick={() => setCatAttempt(a => a + 1)} className="underline">Try again</button>
+                    </p>
+                  )}
+                </div>
+              ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[#44474e] uppercase mb-1.5">Type of Paper</label>
@@ -371,10 +455,52 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   </select>
                 </div>
               </div>
+              )}
+              {errors.pricing && <p role="alert" className="text-red-500 text-[10px] uppercase font-bold tracking-wider -mt-3">{errors.pricing}</p>}
+              {!catMode && std.error && pages >= 1 && <p role="alert" className="text-red-500 text-[10px] uppercase font-bold tracking-wider -mt-3">{std.error}</p>}
+
+              {catMode && catState === 'ready' && catPricing && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {catPricing.spacingOptions.length > 1 && (
+                    <div>
+                      <label htmlFor="order-spacing" className="block text-xs font-bold text-[#44474e] uppercase mb-1.5">Spacing</label>
+                      <select id="order-spacing" value={catSpacing} onChange={(e) => setCatSpacing(e.target.value)}
+                        className="w-full bg-[#eef4ff] border border-[#d1e4ff] rounded-xl p-3 text-sm font-semibold text-[#000a1e]">
+                        {catPricing.spacingOptions.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  {catPricing.rates.length > 1 && (
+                    <div>
+                      <label htmlFor="order-currency" className="block text-xs font-bold text-[#44474e] uppercase mb-1.5">Currency</label>
+                      <select id="order-currency" value={catCurrency} onChange={(e) => setCatCurrency(e.target.value)}
+                        className="w-full bg-[#eef4ff] border border-[#d1e4ff] rounded-xl p-3 text-sm font-semibold text-[#000a1e]">
+                        {catPricing.rates.map(r => <option key={r.currency} value={r.currency}>{r.currency}</option>)}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#44474e] uppercase mb-1.5">Length (Pages / Words)</label>
+                  <label className="block text-xs font-bold text-[#44474e] uppercase mb-1.5">{catMode ? 'Length (Words)' : 'Length (Pages / Words)'}</label>
+                  {catMode ? (
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min="1"
+                        aria-label="Word count"
+                        value={catWords || ''}
+                        disabled={catState !== 'ready'}
+                        onChange={(e) => setCatWords(Math.max(0, Math.min(1000000, parseInt(e.target.value) || 0)))}
+                        className="w-32 bg-[#eef4ff] border border-[#d1e4ff] rounded-xl p-3 text-sm font-bold text-[#000a1e]"
+                      />
+                      <span className="text-xs text-[#708ab5] font-semibold" data-testid="order-pages">
+                        {catQuote ? `= ${catQuote.pages} ${catQuote.pages === 1 ? 'page' : 'pages'} × ${formatMoney(catQuote.unitPriceMinor, catQuote.currency)}` : catQuoteError || ' '}
+                      </span>
+                    </div>
+                  ) : (
                   <div className="flex items-center gap-3">
                     <input
                       type="number"
@@ -384,8 +510,9 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                       onChange={(e) => setPages(Math.max(1, parseInt(e.target.value) || 1))}
                       className="w-24 bg-[#eef4ff] border border-[#d1e4ff] rounded-xl p-3 text-sm font-bold text-[#000a1e]"
                     />
-                    <span className="text-xs text-[#708ab5] font-semibold">≈ {pages * 250} Words</span>
+                    <span className="text-xs text-[#708ab5] font-semibold">{shownStd ? `≈ ${pages * shownStd.wordsPerPage} Words` : ''}</span>
                   </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#44474e] uppercase mb-1.5">Deadline</label>
@@ -494,6 +621,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                     <span className="text-xs font-bold text-emerald-700">FREE</span>
                   </div>
 
+                  {!catMode && (<>
                   <div
                     onClick={() => setTopExpert(!topExpert)}
                     className="p-3.5 rounded-xl border border-[#d1e4ff] bg-[#f8f9ff] flex items-center justify-between cursor-pointer hover:bg-white transition-colors"
@@ -507,7 +635,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                         <span className="text-[11px] text-[#708ab5]">Assign your task to a top-rated expert</span>
                       </div>
                     </div>
-                    <span className="text-xs font-bold text-[#000a1e]">£ 15</span>
+                    <span className="text-xs font-bold text-[#000a1e]">{addOnLabel('topExpert')}</span>
                   </div>
 
                   <div
@@ -523,8 +651,9 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                         <span className="text-[11px] text-[#708ab5]">Standalone abstract and relevant keywords</span>
                       </div>
                     </div>
-                    <span className="text-xs font-bold text-[#000a1e]">£ 10</span>
+                    <span className="text-xs font-bold text-[#000a1e]">{addOnLabel('abstractPage')}</span>
                   </div>
+                  </>)}
                 </div>
               </div>
 
@@ -533,41 +662,44 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 <div className="flex items-start gap-3">
                   <ShieldCheck className="w-5 h-5 text-[#002147] flex-shrink-0 mt-0.5" />
                   <div className="text-xs text-[#002147] leading-relaxed">
-                    <strong>Secure Manual Payment:</strong> Scan the UPI QR code (India) OR use PayPal (International). Enter your Transaction/Reference ID below to instantly verify your order.
+                    <strong>Secure Manual Payment:</strong> {showUpi && showPaypal ? 'Scan the UPI QR code (India) OR use PayPal (International).' : showUpi ? 'Scan the UPI QR code or pay to the UPI ID.' : 'Pay with PayPal.'} Enter your Transaction/Reference ID below to instantly verify your order.
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className={`grid grid-cols-1 gap-4 ${showUpi && showPaypal ? 'md:grid-cols-2' : ''}`}>
                   {/* UPI Block (India) */}
+                  {showUpi && (
                   <div className="bg-white p-4 rounded-xl border border-[#d1e4ff] flex flex-col items-center text-center shadow-sm relative overflow-hidden">
                     <div className="absolute top-0 right-0 bg-emerald-50 text-emerald-700 text-[9px] font-extrabold px-2 py-1 rounded-bl-xl border-b border-l border-emerald-100 uppercase tracking-wider">India</div>
 
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Scan to Pay (UPI)</p>
                     <div className="p-1 border border-gray-100 rounded-xl bg-white shadow-sm mb-3">
                       <img loading="lazy" decoding="async"
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(`upi://pay?pa=academiapro@ybl&pn=AcademiaPro&am=${grandTotal * 106}&cu=INR`)}`}
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(`upi://pay?pa=academiapro@ybl&pn=AcademiaPro&am=${upiAmount}&cu=INR`)}`}
                         alt="UPI QR Code"
                         className="w-24 h-24 object-contain"
                       />
                     </div>
-                    <p className="text-xl font-extrabold text-[#000a1e] mb-1">₹ {(grandTotal * 106).toLocaleString('en-IN')}</p>
-                    <p className="text-[10px] text-emerald-600 font-bold mb-3">£ {grandTotal} Converted (1£ = ₹106)</p>
+                    <p className="text-xl font-extrabold text-[#000a1e] mb-1">₹ {upiAmount.toLocaleString('en-IN')}</p>
+                    {!catMode && shownStd && <p className="text-[10px] text-emerald-600 font-bold mb-3">{sym} {grandTotal} Converted (1{sym} = ₹{shownStd.upi.rate})</p>}
 
                     <div className="w-full">
                       <span className="text-[10px] font-semibold text-gray-500 block mb-1">Or Send to Direct UPI ID:</span>
                       <span className="font-mono text-xs bg-[#eef4ff] text-[#002147] px-2 py-1 rounded-md border border-[#d1e4ff] select-all w-full block truncate">academiapro@ybl</span>
                     </div>
                   </div>
+                  )}
 
                   {/* PayPal Block (International) */}
+                  {showPaypal && (
                   <div className="bg-[#f0f8ff] p-4 rounded-xl border border-[#b8daff] flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden">
                     <div className="absolute top-0 right-0 bg-blue-100 text-[#003087] text-[9px] font-extrabold px-2 py-1 rounded-bl-xl border-b border-l border-blue-200 uppercase tracking-wider">Global</div>
 
                     <svg className="w-8 h-8 mb-3" fill="#003087" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106z"></path><path d="M21.573 6.534c.03-.15.054-.294.077-.437a3.84 3.84 0 0 0-.022-.246c-1.353 6.942-5.467 8.357-10.428 8.357H9.01c-.524 0-.968.382-1.05.9l-1.12 7.106-.057.362A.64.64 0 0 0 7.416 23.3h3.585c.524 0 .968-.382 1.05-.9l.865-5.473a1.055 1.055 0 0 1 1.05-.888h.619c2.868 0 5.253-.434 6.79-1.921 1.4-1.353 2.062-3.411 1.704-5.836a5.534 5.534 0 0 0-1.506-1.748z" fill="#009cde"></path></svg>
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Pay via PayPal</p>
-                    <p className="text-2xl font-extrabold text-[#003087] mb-3">£ {grandTotal}</p>
+                    <p className="text-2xl font-extrabold text-[#003087] mb-3">{totalLabel}</p>
 
-                    <a href={`https://paypal.me/yourusername/${grandTotal}GBP`} target="_blank" rel="noopener noreferrer"
+                    <a href={`https://paypal.me/yourusername/${paypalAmount}`} target="_blank" rel="noopener noreferrer"
                       className="bg-[#003087] hover:bg-[#001c52] text-white px-5 py-2.5 rounded-lg text-xs font-bold shadow-sm transition-colors cursor-pointer w-full mb-3 inline-block">
                       Pay Automatically ↗
                     </a>
@@ -577,6 +709,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                       <span className="font-mono text-xs bg-white text-[#003087] px-2 py-1 rounded-md border border-[#b8daff] select-all w-full block truncate">your.email@gmail.com</span>
                     </div>
                   </div>
+                  )}
                 </div>
 
                 <div>
@@ -611,11 +744,11 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-[#708ab5]">Discipline:</span>
-                  <strong className="text-[#000a1e]">{subject} ({service})</strong>
+                  <strong className="text-[#000a1e]">{orderSubject} ({orderService})</strong>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-[#708ab5]">Pages / Words:</span>
-                  <strong className="text-[#000a1e]">{pages} Pages ({pages * 250} Words)</strong>
+                  <strong className="text-[#000a1e]">{catMode && catQuote ? `${catQuote.pages} Pages (${catQuote.words} Words)` : `${shownStd?.pages ?? pages} Pages (${shownStd?.words ?? '—'} Words)`}</strong>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-[#708ab5]">Target Delivery:</span>
@@ -623,7 +756,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 </div>
                 <div className="flex justify-between text-xs pt-2 border-t border-[#d1e4ff]">
                   <span className="text-[#000a1e] font-bold">Total Escrow Amount:</span>
-                  <strong className="text-lg font-extrabold text-[#000a1e]">£ {grandTotal}</strong>
+                  <strong className="text-lg font-extrabold text-[#000a1e]">{totalLabel}</strong>
                 </div>
               </div>
 
@@ -644,7 +777,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
           <div className="bg-[#f8f9ff] px-6 sm:px-8 py-4 border-t border-[#d1e4ff] flex justify-between items-center">
             <div>
               <span className="text-xs text-[#708ab5] block uppercase font-semibold">Total Price</span>
-              <span className="text-2xl font-extrabold text-[#000a1e]">£ {grandTotal}</span>
+              <span className="text-2xl font-extrabold text-[#000a1e]" data-testid="order-total">{totalLabel}</span>
             </div>
 
             <div className="flex gap-3">
@@ -659,7 +792,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               {step === 1 ? (
                 <button
                   onClick={handleNextStep}
-                  className="bg-[#000a1e] text-white hover:bg-[#002147] px-6 py-3 rounded-xl text-sm font-bold shadow-sm flex items-center gap-1.5 transition-all"
+                  disabled={!quoteReady && (catMode || (!!service && !!subject && pages >= 1))}
+                  className="bg-[#000a1e] text-white hover:bg-[#002147] px-6 py-3 rounded-xl text-sm font-bold shadow-sm flex items-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span>Continue</span>
                   <ArrowRight className="w-4 h-4 text-[#fea520]" />
@@ -667,7 +801,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               ) : (
                 <button
                   onClick={handleCompleteOrder}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !quoteReady}
                   className="bg-[#fea520] hover:bg-[#e36100] text-[#000a1e] hover:text-white px-7 py-3 rounded-xl text-sm font-bold shadow-soft flex items-center gap-1.5 transition-all disabled:opacity-75 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (

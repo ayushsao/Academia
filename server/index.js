@@ -26,6 +26,9 @@ import notificationsRouter from './routes/notifications.js';
 import adminInsightsRouter from './routes/adminInsights.js';
 import contentRouter, { contentAdminRouter } from './routes/content.js';
 import riskAdminRouter from './routes/riskAdmin.js';
+import catalogAdminRouter from './routes/catalogAdmin.js';
+import catalogContentAdminRouter from './routes/catalogContentAdmin.js';
+import catalogRouter from './routes/catalog.js';
 import { startNotificationWorker } from './services/notifications.js';
 import { backfillWriterDirectory } from './services/writerDirectory.js';
 import { startAssignmentScheduler } from './services/assignmentService.js';
@@ -94,12 +97,15 @@ app.use('/api/admin/assignments', assignmentAdminRouter); // likewise
 app.use('/api/admin/insights', adminInsightsRouter); // likewise
 app.use('/api/admin/content', contentAdminRouter); // likewise
 app.use('/api/admin/risk', riskAdminRouter); // likewise
+app.use('/api/admin/catalog', catalogAdminRouter); // likewise
+app.use('/api/admin/catalog', catalogContentAdminRouter); // content blocks, FAQs, SEO, media library
 app.use('/api/admin', adminRouter);
 app.use('/api/writers', writersRouter);
 app.use('/api/membership', membershipRouter);
 app.use('/api/assignments', assignmentsRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/content', contentRouter);
+app.use('/api/catalog', catalogRouter);
 
 app.get('/api/health', (req, res) =>
     res.json({ status: 'OK', timestamp: new Date().toISOString() })

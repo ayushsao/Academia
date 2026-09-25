@@ -154,18 +154,20 @@ router.get('/stats', authenticateAdmin, async (req, res) => {
             Order.countDocuments({ status: 'Cancelled' }),
             Order.aggregate([
                 { $match: { status: { $ne: 'Cancelled' } } },
-                { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+                { $group: { _id: { $ifNull: ['$currency', 'GBP'] }, total: { $sum: '$totalAmount' } } }
             ]),
         ]);
 
-        const totalRevenue = revenueResult[0]?.total || 0;
+        // Totals are per currency (catalogue orders can be in any currency); GBP is the headline figure.
+        const totalRevenue = revenueResult.find(r => r._id === 'GBP')?.total || 0;
+        const otherRevenue = revenueResult.filter(r => r._id !== 'GBP').map(r => ({ currency: r._id, total: r.total })).sort((a, b) => a.currency.localeCompare(b.currency));
 
         // Revenue per day for the last 7 days
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
         const recentRevenue = await Order.aggregate([
-            { $match: { status: { $ne: 'Cancelled' }, createdAt: { $gte: sevenDaysAgo } } },
+            { $match: { status: { $ne: 'Cancelled' }, createdAt: { $gte: sevenDaysAgo }, currency: { $in: ['GBP', null] } } },
             {
                 $group: {
                     _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
@@ -177,7 +179,7 @@ router.get('/stats', authenticateAdmin, async (req, res) => {
         ]);
 
         res.json({
-            totalOrders, totalUsers, totalRevenue,
+            totalOrders, totalUsers, totalRevenue, otherRevenue,
             pendingOrders, inProgressOrders, completedOrders, cancelledOrders,
             unreadContacts, recentRevenue
         });
@@ -291,7 +293,7 @@ router.get('/users', authenticateAdmin, async (req, res) => {
             const [orderCount, totalSpentRes] = await Promise.all([
                 Order.countDocuments({ userId: u._id }),
                 Order.aggregate([
-                    { $match: { userId: u._id, status: { $ne: 'Cancelled' } } },
+                    { $match: { userId: u._id, status: { $ne: 'Cancelled' }, currency: { $in: ['GBP', null] } } },
                     { $group: { _id: null, total: { $sum: '$totalAmount' } } }
                 ])
             ]);

@@ -12,6 +12,10 @@
   ],
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "https://academia-iw7x.onrender.com/api/catalog/sitemap.xml"
+    },
+    {
       "source": "/((?!assets/).*)",
       "destination": "/index.html"
     }

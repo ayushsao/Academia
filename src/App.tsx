@@ -11,6 +11,8 @@ const named = <T extends Record<string, any>>(load: () => Promise<T>, name: keyo
 const Dashboard = named(() => import('./pages/Dashboard'), 'Dashboard');
 const AdminPanel = named(() => import('./pages/AdminPanel'), 'AdminPanel');
 const DynamicPage = named(() => import('./pages/DynamicPage'), 'DynamicPage');
+const CatalogPage = named(() => import('./pages/CatalogPage'), 'CatalogPage');
+const SubjectsPage = named(() => import('./pages/SubjectsPage'), 'SubjectsPage');
 const ResourcesPage = named(() => import('./pages/ResourcesPage'), 'ResourcesPage');
 const ReviewsPage = named(() => import('./pages/ReviewsPage'), 'ReviewsPage');
 const ChatWidget = named(() => import('./components/ChatWidget'), 'ChatWidget');
@@ -71,6 +73,10 @@ export default function App() {
                 <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/p/:slug" element={<DynamicPage />} />
+                    <Route path="/subjects" element={<SubjectsPage />} />
+                    <Route path="/subjects/:subject" element={<CatalogPage />} />
+                    <Route path="/subjects/:subject/:service" element={<CatalogPage />} />
+                    <Route path="/subjects/:subject/:service/:project" element={<CatalogPage />} />
                     <Route path="/resources" element={<ResourcesPage />} />
                     <Route path="/reviews" element={<ReviewsPage />} />
                     <Route

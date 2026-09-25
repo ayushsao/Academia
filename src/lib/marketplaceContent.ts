@@ -4,7 +4,7 @@ import { api } from './api';
 // Admin-editable marketplace copy (Admin → Site Content), served by GET /api/content/marketplace.
 export type ContentItem = { title: string; text: string };
 export type QA = { q: string; a: string };
-export type JourneyStep = { key: 'REGISTER' | 'VERIFY' | 'PROFILE' | 'APPROVAL' | 'MEMBERSHIP' | 'OPPORTUNITIES' | 'ASSIGNMENTS' | 'RATING'; title: string; text: string };
+export type JourneyStep = { key: 'REGISTER' | 'PROFILE' | 'APPROVAL' | 'MEMBERSHIP' | 'OPPORTUNITIES' | 'ASSIGNMENTS' | 'RATING'; title: string; text: string };
 
 export interface MarketplaceContent {
     recruitment: {
@@ -48,7 +48,6 @@ export const DEFAULT_MARKETPLACE_CONTENT: ContentResponse = {
             ],
             steps: [
                 { key: 'REGISTER', title: 'Register', text: 'Create your account with your name, email, country and mobile number.' },
-                { key: 'VERIFY', title: 'Verify', text: 'Confirm your email and phone with one-time codes. Each phone number can be verified on one account.' },
                 { key: 'PROFILE', title: 'Complete your profile', text: 'Add your education, subjects, skills, CV and writing samples.' },
                 { key: 'APPROVAL', title: 'Approval', text: 'Our HR team reviews your credentials and may ask for more information.' },
                 { key: 'MEMBERSHIP', title: 'Membership', text: 'Approved writers choose a monthly or annual plan to access the platform.' },

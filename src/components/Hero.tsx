@@ -28,9 +28,11 @@ import {
   Check
 } from 'lucide-react';
 import { ServiceType, SubjectType } from '../types';
+import { useOrderQuote, fetchOrderQuote, CURRENCY_BY_SYMBOL, type OrderQuote } from '../lib/orderQuote';
 
 interface HeroProps {
   onOpenOrder: (prefill?: {
+    quote?: OrderQuote;
     service?: ServiceType;
     subject?: SubjectType;
     pages?: number;
@@ -136,37 +138,13 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
     else if (track === 'Online Class') setService('Take My Online Class');
   };
 
-  // Dynamic pricing calculation based on service type, track, level & currency
-  const getBaseRate = (srv: ServiceType | ''): number => {
-    switch (srv) {
-      case 'Take My Online Exam': return 50;
-      case 'Take My Online Class': return 45;
-      case 'Ghost Writer': return 30;
-      case 'MBA Essay Writing Service': return 28;
-      case 'Data Analysis & SPSS':
-      case 'Programming Assignment Help': return 25;
-      case 'Dissertation & Thesis':
-      case 'Dissertation Help':
-      case 'Thesis Help': return 22;
-      case 'Research Proposal Writing Service':
-      case 'Research Paper Writing': return 20;
-      case 'Literature Review':
-      case 'Assessment Help': return 18;
-      case 'Case Study Analysis':
-      case 'Term Paper Help': return 16;
-      case 'Academic Writing':
-      case 'Pay Someone To Do My Homework':
-      case 'Coursework Help': return 15;
-      case 'Essay Help': return 14;
-      case 'Editing & Proofreading': return 10;
-      default: return selectedTrack === 'Technical' ? 25 : selectedTrack === 'Online Class' ? 35 : 15;
-    }
-  };
+  // Price comes from the server quote (the same one the order form and the order use).
+  const orderService: ServiceType = (service as ServiceType) || (selectedTrack === 'Technical' ? 'Programming Assignment Help' : selectedTrack === 'Online Class' ? 'Take My Online Class' : 'Academic Writing');
+  const quoteInput = { service: orderService, pages, academicLevel, currency: CURRENCY_BY_SYMBOL[currency] };
+  const { quote, lastQuote, ensure, error: quoteError } = useOrderQuote(quoteInput, { enabled: pages > 0 });
+  const shownQuote = quote || lastQuote;
 
-  const levelMultiplier = academicLevel === "Master's" ? 1.25 : academicLevel === 'PhD / Doctoral' ? 1.5 : 1.0;
-  const currencyRate = currency === '$' ? 1.28 : currency === '€' ? 1.18 : currency === 'A$' ? 1.95 : 1.0;
-
-  const calculatedPrice = pages === 0 ? 0 : Math.round(pages * getBaseRate(service) * levelMultiplier * currencyRate);
+  const calculatedPrice = pages === 0 ? 0 : shownQuote?.total ?? 0;
   const originalCatalogPrice = Math.round(calculatedPrice * 2.04);
 
   useEffect(() => {
@@ -207,10 +185,16 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
     }
   };
 
-  const handleSubmitQuote = (e: React.FormEvent) => {
+  const handleSubmitQuote = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Hand the order form the exact quote shown here (fetched now if the inputs just changed).
+    let finalQuote: OrderQuote | undefined;
+    try {
+      finalQuote = pages === 0 ? await fetchOrderQuote({ ...quoteInput, pages: 1 }) : await ensure();
+    } catch { finalQuote = undefined; /* the order form will quote again */ }
     onOpenOrder({
-      service: (service as ServiceType) || (selectedTrack === 'Technical' ? 'Programming Assignment Help' : selectedTrack === 'Online Class' ? 'Take My Online Class' : 'Academic Writing'),
+      quote: finalQuote,
+      service: orderService,
       subject: (subject as SubjectType) || 'Business & Mgt',
       pages: pages === 0 ? 1 : pages,
       deadline: `${deadline} (${deadlineTime})`,
@@ -1197,9 +1181,13 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                         </span>
                       </div>
                     )}
+                    {quoteError && pages > 0 && !quote ? (
+                      <span role="alert" className="text-xs font-semibold text-red-600">{quoteError}</span>
+                    ) : (
                     <span className="text-sm font-medium text-[#708ab5] flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 stroke-[2.5]" /> Free Plagiarism Check Included
                     </span>
+                    )}
                   </div>
                   <div className="flex items-start text-[#000a1e]">
                     <span className="text-[24px] font-black mt-1 mr-1">{currency}</span>

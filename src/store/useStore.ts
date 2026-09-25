@@ -12,6 +12,7 @@ export interface Order {
   topic_title?: string;
   instructions: string;
   totalAmount: number;
+  currency?: string;
   total_amount?: number;
   status: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled';
   createdAt: string;

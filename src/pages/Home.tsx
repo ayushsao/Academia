@@ -24,6 +24,7 @@ import { SideDrawer } from '../components/SideDrawer';
 import { AcademicToolsSection } from '../components/AcademicToolsSection';
 import { TopUtilityBar } from '../components/TopUtilityBar';
 import { ServicesTabs } from '../components/ServicesTabs';
+import { SubjectsSection } from '../components/catalog/SubjectsDirectory';
 import { TrustLogosMarquee } from '../components/TrustLogosMarquee';
 import { SamplesShowcase } from '../components/SamplesShowcase';
 import { BlogGrid } from '../components/BlogGrid';
@@ -31,6 +32,7 @@ import { FloatingElements } from '../components/FloatingElements';
 import { PopupFunnel } from '../components/PopupFunnel';
 import { JoinAsWriterSection } from '../components/JoinAsWriterSection';
 import { Consultant, Discipline, ServiceType, SubjectType } from '../types';
+import type { OrderQuote } from '../lib/orderQuote';
 
 // Modals are only downloaded when first opened (they render nothing while closed).
 const OrderModal = lazy(() => import('../components/OrderModal').then(m => ({ default: m.OrderModal })));
@@ -60,6 +62,7 @@ export default function App() {
     topicTitle?: string;
     instructions?: string;
     files?: string[];
+    quote?: OrderQuote;
   }>({});
 
   const [activeSection, setActiveSection] = useState<string>('academic-support');
@@ -79,6 +82,7 @@ export default function App() {
     topicTitle?: string;
     instructions?: string;
     files?: string[];
+    quote?: OrderQuote;
   }) => {
     if (prefill && Object.keys(prefill).length > 0) {
       setOrderPrefill(prefill);
@@ -183,6 +187,9 @@ export default function App() {
         <ScrollReveal>
           <ServicesTabs />
         </ScrollReveal>
+
+        {/* Subjects published in Admin → Catalog (hidden while there are none). */}
+        <SubjectsSection />
 
         <ScrollReveal>
           <TimelineJourney

@@ -37,9 +37,35 @@ export const orderSchema = z.object({
     turnitinReport: z.boolean().optional(),
     topExpert: z.boolean().optional(),
     abstractPage: z.boolean().optional(),
-    totalAmount: z.number().min(0).optional(),
-    transactionId: z.string().optional()
+    totalAmount: z.number().min(0).optional(), // ignored: the server always prices the order
+    transactionId: z.string().optional(),
+    // The quotation the customer accepted; the order is refused (409) if it no longer matches.
+    quote: z.object({
+        currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/),
+        total: z.number().min(0).max(100_000_000),
+        pages: z.number().int().min(1).max(100000),
+    }).strict().optional(),
+    // Orders placed from a catalogue page are priced from the admin's pricing rules.
+    catalog: z.object({
+        subjectId: z.string().regex(/^[a-f0-9]{24}$/i, 'Invalid id'),
+        serviceId: z.string().regex(/^[a-f0-9]{24}$/i, 'Invalid id').optional(),
+        projectId: z.string().regex(/^[a-f0-9]{24}$/i, 'Invalid id').optional(),
+        words: z.number().int().min(1).max(1_000_000).optional(),
+        spacing: z.string().trim().toUpperCase().max(20).optional(),
+        currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/).optional(),
+        quotedTotalMinor: z.number().int().min(0).optional(), // what the customer was shown
+    }).strict().optional(),
 }).strict(); // Reject extra fields
+
+// POST /api/orders/quote — inputs that affect the price of a standard order.
+export const orderQuoteSchema = z.object({
+    service: z.string().trim().max(120).optional().default(''),
+    pages: z.coerce.number().int().min(1, 'Enter at least 1 page').max(100000),
+    academicLevel: z.string().trim().max(40).optional(),
+    currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/).optional(),
+    topExpert: z.boolean().optional(),
+    abstractPage: z.boolean().optional(),
+}).strict();
 
 export const contactSchema = z.object({
     name: z.string().min(2).max(50),
@@ -356,3 +382,119 @@ export const validateInput = (schema, source = 'body') => (req, res, next) => {
     req[source] = result.data;
     next();
 };
+
+// ── Admin CRM: catalogue & pricing ─────────────────────────────────────────────
+const plain = (max) => z.string().trim().max(max).transform(s => s.replace(/<[^>]*>/g, '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, ''));
+const slugField = z.string().trim().toLowerCase().max(120)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug may contain lowercase letters, numbers and single hyphens only');
+const catalogStatus = z.enum(['ACTIVE', 'INACTIVE']);
+const sortOrder = z.coerce.number().int().min(-100000).max(100000);
+
+export const catalogSubjectSchema = z.object({
+    name: plain(120).pipe(z.string().min(2, 'Name must be at least 2 characters')),
+    slug: slugField.optional().or(z.literal('')),
+    description: plain(5000).default(''),
+    status: catalogStatus.default('ACTIVE'),
+    published: z.boolean().default(false),
+    sortOrder: sortOrder.default(0),
+}).strict();
+
+export const catalogServiceSchema = catalogSubjectSchema.extend({ subjectId: objectId }).strict();
+
+export const catalogProjectSchema = z.object({
+    subjectId: objectId.optional(),      // derived from the service; must match if sent
+    serviceId: objectId,
+    title: plain(160).pipe(z.string().min(2, 'Title must be at least 2 characters')),
+    slug: slugField.optional().or(z.literal('')),
+    description: plain(10000).default(''),
+    status: catalogStatus.default('ACTIVE'),
+    published: z.boolean().default(false),
+    sortOrder: sortOrder.default(0),
+}).strict();
+
+export const catalogStatusSchema = z.object({ status: catalogStatus }).strict();
+export const catalogPublishSchema = z.object({ published: z.boolean() }).strict();
+
+export const pricingRuleSchema = z.object({
+    subjectId: objectId,
+    serviceId: objectId.nullable().optional().or(z.literal('')),
+    projectId: objectId.nullable().optional().or(z.literal('')),
+    label: plain(120).default(''),
+    wordsPerPage: z.coerce.number().int().min(50, 'Words per page must be at least 50').max(2000).nullable().optional(),
+    basePrice: z.coerce.number().min(0, 'Base price cannot be negative').max(1_000_000),   // major units, per page
+    multiplier: z.coerce.number().min(0, 'Multiplier cannot be negative').max(100)
+        .refine(v => Math.round(v * 10000) === v * 10000 || Math.abs(Math.round(v * 10000) - v * 10000) < 1e-6, 'Use at most 4 decimal places'),
+    currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/, 'Use a 3-letter currency code'),
+    formula: z.string().trim().max(40).default('BASE_X_MULTIPLIER'),
+    effectiveDate: z.coerce.date({ message: 'Enter a valid effective date' }),
+    status: catalogStatus.default('ACTIVE'),
+}).strict();
+
+export const wordConfigSchema = z.object({
+    defaultWordsPerPage: z.coerce.number().int().min(50).max(2000),
+    rounding: z.enum(['CEIL', 'ROUND', 'EXACT']),
+    minPages: z.coerce.number().min(0).max(1000),
+    maxPages: z.coerce.number().min(1).max(100000),
+    spacingOptions: z.array(z.object({
+        key: z.string().trim().toUpperCase().regex(/^[A-Z0-9_]{2,20}$/, 'Spacing keys use capital letters, digits and _'),
+        label: plain(40).pipe(z.string().min(1)),
+        factor: z.coerce.number().min(0.1).max(10),
+    }).strict()).min(1, 'Add at least one spacing option').max(6),
+    defaultSpacing: z.string().trim().toUpperCase(),
+}).strict()
+    .refine(c => c.maxPages >= c.minPages, { message: 'Maximum pages must be at least the minimum', path: ['maxPages'] })
+    .refine(c => c.spacingOptions.some(s => s.key === c.defaultSpacing), { message: 'Default spacing must be one of the options', path: ['defaultSpacing'] })
+    .refine(c => new Set(c.spacingOptions.map(s => s.key)).size === c.spacingOptions.length, { message: 'Spacing keys must be unique', path: ['spacingOptions'] });
+
+export const quoteSchema = z.object({
+    subjectId: objectId,
+    serviceId: objectId.optional().or(z.literal('')),
+    projectId: objectId.optional().or(z.literal('')),
+    words: z.coerce.number().min(0).max(1_000_000).optional(),
+    pages: z.coerce.number().min(0).max(100000).optional(),
+    spacing: z.string().trim().toUpperCase().max(20).optional(),
+    currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/).optional(),
+}).strict();
+
+// ── Dynamic content CMS (blocks, FAQs, SEO, media) ─────────────────────────────
+const contentEntity = z.enum(['SUBJECT', 'SERVICE', 'PROJECT']);
+export const contentBlockSchema = z.object({
+    entityType: contentEntity,
+    entityId: objectId,
+    type: z.enum(['HEADING', 'RICH_TEXT', 'INTRODUCTION', 'FEATURES', 'AVAILABLE_PROJECTS', 'PROGRAMMING_LANGUAGES', 'FAQ', 'CTA', 'IMAGE', 'CUSTOM_HTML', 'SEO_CONTENT']),
+    title: z.string().max(400).default(''),
+    content: z.record(z.string(), z.any()).default({}),   // per-type rules in services/contentBlocks.js
+    mediaIds: z.array(objectId).max(12).default([]),
+    status: catalogStatus.default('ACTIVE'),
+    sortOrder: sortOrder.optional(),
+}).strict();
+
+export const reorderSchema = z.object({
+    entityType: contentEntity,
+    entityId: objectId,
+    ids: z.array(objectId).min(1).max(500),
+}).strict();
+
+export const faqSchema = z.object({
+    entityType: contentEntity,
+    entityId: objectId,
+    question: plain(300).pipe(z.string().min(3, 'Write a question')),
+    answer: z.string().max(20000),
+    status: catalogStatus.default('ACTIVE'),
+    sortOrder: sortOrder.optional(),
+}).strict();
+
+const absoluteOrEmpty = z.string().trim().max(500).refine(v => v === '' || /^https?:\/\/[^\s]+$/i.test(v), 'Use a full URL starting with https://');
+export const seoInputSchema = z.object({
+    slug: slugField.optional().or(z.literal('')),
+    metaTitle: plain(120).default(''),
+    metaDescription: plain(320).default(''),
+    keywords: z.array(plain(60)).max(30).default([]),
+    canonicalUrl: absoluteOrEmpty.default(''),
+    ogTitle: plain(120).default(''),
+    ogDescription: plain(320).default(''),
+    ogImageMediaId: objectId.nullable().optional(),
+    robots: z.enum(['index,follow', 'noindex,follow', 'index,nofollow', 'noindex,nofollow']).default('index,follow'),
+}).strict();
+
+export const mediaAltSchema = z.object({ alt: plain(200) }).strict();

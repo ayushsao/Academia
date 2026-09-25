@@ -5,7 +5,7 @@ export const ChatWidget = () => {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end pointer-events-none">
+        <div data-chat-widget className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end pointer-events-none">
             {isOpen && (
                 <div className="pointer-events-auto mb-6 bg-white/70 backdrop-blur-3xl border border-white/50 rounded-[32px] shadow-[0_24px_80px_-12px_rgba(0,0,0,0.15),0_0_0_1px_rgba(255,255,255,0.4)_inset] overflow-hidden w-[350px] h-[550px] sm:w-[400px] sm:h-[650px] flex flex-col transition-all duration-500 animate-in fade-in slide-in-from-bottom-8">
                     {/* Apple Intelligence style header */}

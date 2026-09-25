@@ -44,6 +44,7 @@
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "react-router-dom": "^7.18.2",
+    "sanitize-html": "^2.17.7",
     "tailwind-merge": "^3.7.0",
     "vite": "^6.2.3",
     "xss-clean": "^0.1.4",

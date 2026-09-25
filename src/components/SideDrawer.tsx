@@ -12,6 +12,7 @@ import {
   Check
 } from 'lucide-react';
 import { ServiceType, SubjectType } from '../types';
+import { useOrderQuote, fetchRateCard, type OrderQuote, type RateCard } from '../lib/orderQuote';
 
 interface SideDrawerProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ interface SideDrawerProps {
     subject: SubjectType;
     pages: number;
     deadline: string;
+    quote?: OrderQuote;
   }) => void;
 }
 
@@ -41,30 +43,30 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
   const [pages, setPages] = useState<number>(0);
   const [deadline, setDeadline] = useState<string>(getNextWeek());
 
-  const servicesList: { name: ServiceType; rate: number; desc: string }[] = [
-    { name: 'Academic Writing', rate: 15, desc: 'Original essays, research papers, and assignments' },
-    { name: 'Dissertation & Thesis', rate: 22, desc: 'Doctoral chapters, proposals, and methodology' },
-    { name: 'Editing & Proofreading', rate: 10, desc: 'Style polishing, syntax, and institutional compliance' },
-    { name: 'Data Analysis & SPSS', rate: 25, desc: 'Quantitative modeling, R, Python, and statistical tests' },
-    { name: 'Literature Review', rate: 18, desc: 'Comprehensive scholarly synthesis with citations' },
-    { name: 'Case Study Analysis', rate: 16, desc: 'IRAC methodology and practical frameworks' },
-    { name: 'Essay Editing Service', rate: 10, desc: 'Comprehensive grammatical checks and structural refinement' },
-    { name: 'MBA Essay Writing Service', rate: 28, desc: 'Premium executive-level admissions and business essays' },
-    { name: 'Essay Help', rate: 14, desc: 'General guidance, structuring, and academic essay assistance' },
-    { name: 'Research Proposal Writing Service', rate: 20, desc: 'Drafting convincing research frameworks for university approval' },
-    { name: 'Research Paper Writing', rate: 18, desc: 'In-depth academic exploration and citation formatting' },
-    { name: 'Ghost Writer', rate: 30, desc: 'Completely anonymous, transfer-of-rights premium manuscript writing' },
-    { name: 'Programming Assignment Help', rate: 25, desc: 'Code implementation, debugging, and software architecture' },
-    { name: 'Assessment Help', rate: 18, desc: 'Targeted support for ongoing university assessments' },
-    { name: 'Pay Someone To Do My Homework', rate: 15, desc: 'Delegate your general weekly homework and coursework' },
-    { name: 'Take My Online Class', rate: 45, desc: 'End-to-end continuous support for a full academic module' },
-    { name: 'Take My Online Exam', rate: 50, desc: 'Live proxy attendance and precise problem solving' },
-    { name: 'Dissertation Help', rate: 22, desc: 'Targeted chapter construction and academic formatting' },
-    { name: 'Term Paper Help', rate: 16, desc: 'End-of-semester comprehensive report structuring' },
-    { name: 'Homework Help', rate: 12, desc: 'Quick-turnaround solutions and instructional tutoring' },
-    { name: 'Coursework Help', rate: 15, desc: 'Semester-long continuous assignment integration' },
-    { name: 'Thesis Help', rate: 22, desc: 'Master\'s and PhD level thesis development and defense prep' },
-    { name: 'Powerpoint Presentation Services', rate: 12, desc: 'Visually stunning, academically structured slide decks' }
+  const servicesList: { name: ServiceType; desc: string }[] = [
+    { name: 'Academic Writing', desc: 'Original essays, research papers, and assignments' },
+    { name: 'Dissertation & Thesis', desc: 'Doctoral chapters, proposals, and methodology' },
+    { name: 'Editing & Proofreading', desc: 'Style polishing, syntax, and institutional compliance' },
+    { name: 'Data Analysis & SPSS', desc: 'Quantitative modeling, R, Python, and statistical tests' },
+    { name: 'Literature Review', desc: 'Comprehensive scholarly synthesis with citations' },
+    { name: 'Case Study Analysis', desc: 'IRAC methodology and practical frameworks' },
+    { name: 'Essay Editing Service', desc: 'Comprehensive grammatical checks and structural refinement' },
+    { name: 'MBA Essay Writing Service', desc: 'Premium executive-level admissions and business essays' },
+    { name: 'Essay Help', desc: 'General guidance, structuring, and academic essay assistance' },
+    { name: 'Research Proposal Writing Service', desc: 'Drafting convincing research frameworks for university approval' },
+    { name: 'Research Paper Writing', desc: 'In-depth academic exploration and citation formatting' },
+    { name: 'Ghost Writer', desc: 'Completely anonymous, transfer-of-rights premium manuscript writing' },
+    { name: 'Programming Assignment Help', desc: 'Code implementation, debugging, and software architecture' },
+    { name: 'Assessment Help', desc: 'Targeted support for ongoing university assessments' },
+    { name: 'Pay Someone To Do My Homework', desc: 'Delegate your general weekly homework and coursework' },
+    { name: 'Take My Online Class', desc: 'End-to-end continuous support for a full academic module' },
+    { name: 'Take My Online Exam', desc: 'Live proxy attendance and precise problem solving' },
+    { name: 'Dissertation Help', desc: 'Targeted chapter construction and academic formatting' },
+    { name: 'Term Paper Help', desc: 'End-of-semester comprehensive report structuring' },
+    { name: 'Homework Help', desc: 'Quick-turnaround solutions and instructional tutoring' },
+    { name: 'Coursework Help', desc: 'Semester-long continuous assignment integration' },
+    { name: 'Thesis Help', desc: 'Master\'s and PhD level thesis development and defense prep' },
+    { name: 'Powerpoint Presentation Services', desc: 'Visually stunning, academically structured slide decks' }
   ];
 
   const subjectsList: SubjectType[] = [
@@ -78,15 +80,27 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
     'Psychology & Sociology',
   ];
 
-  const currentRate = servicesList.find(s => s.name === selectedService)?.rate || 15;
-  const totalPrice = pages * currentRate;
+  // Rates and totals come from the server; the same quote is handed to the order form.
+  const [rateCard, setRateCard] = useState<RateCard | null>(null);
+  React.useEffect(() => {
+    if (isOpen && !rateCard) fetchRateCard().then(setRateCard).catch(() => { /* labels stay blank */ });
+  }, [isOpen, rateCard]);
+  const rateLabel = (name: string) => (rateCard ? `${rateCard.currencies[rateCard.baseCurrency]?.symbol ?? ''}${rateCard.rates[name] ?? rateCard.defaultRate}` : '…');
+  const { quote, lastQuote, ensure } = useOrderQuote(
+    { service: selectedService, pages, academicLevel: 'Undergraduate', currency: rateCard?.baseCurrency || 'GBP' },
+    { enabled: isOpen && pages > 0 },
+  );
+  const totalPrice = pages > 0 ? (quote || lastQuote)?.total ?? 0 : 0;
 
-  const handleProceed = () => {
+  const handleProceed = async () => {
+    let finalQuote: OrderQuote | undefined;
+    if (pages > 0) { try { finalQuote = await ensure(); } catch { finalQuote = undefined; } }
     onProceedToOrder({
       service: selectedService,
       subject: selectedSubject,
       pages,
       deadline,
+      quote: finalQuote,
     });
     onClose();
   };
@@ -168,7 +182,7 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
                       <div className="text-[10px] text-[#708ab5]">{srv.desc}</div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-[#865300]">£{srv.rate}/p</span>
+                      <span className="text-xs font-semibold text-[#865300]">{rateLabel(srv.name)}/p</span>
                       {selectedService === srv.name && <Check className="w-3.5 h-3.5 text-[#002147]" />}
                     </div>
                   </div>

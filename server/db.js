@@ -51,6 +51,30 @@ const orderSchema = new mongoose.Schema({
   assignedTo: { type: String, default: '' },
   adminNotes: { type: String, default: '' },
   transactionId: { type: String, default: '' },
+  currency: { type: String, default: 'GBP' },
+  // Standard orders: the accepted quotation (same numbers the customer saw).
+  pricing: {
+    type: new mongoose.Schema({
+      words: Number, pages: Number, wordsPerPage: Number,
+      baseCurrency: String, basePrice: Number, exchangeRate: Number, levelMultiplier: Number,
+      subtotal: Number, addOns: [{ _id: false, key: String, label: String, price: Number }], addOnsTotal: Number,
+      discountPercent: Number, discount: Number, total: Number, currency: String,
+    }, { _id: false }),
+    default: undefined,
+  },
+  // Set for orders placed from a catalogue page: the selection and the server-side quote.
+  catalog: {
+    type: new mongoose.Schema({
+      subjectId: { type: mongoose.Schema.Types.ObjectId, ref: 'CatalogSubject' },
+      serviceId: { type: mongoose.Schema.Types.ObjectId, ref: 'CatalogService', default: null },
+      projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'CatalogProject', default: null },
+      projectTitle: { type: String, default: '' },
+      words: Number, spacing: String, wordsPerPage: Number,
+      unitPriceMinor: Number, totalMinor: Number,
+      pricingRuleId: { type: mongoose.Schema.Types.ObjectId, ref: 'PricingRule' },
+    }, { _id: false }),
+    default: undefined,
+  },
 }, { timestamps: true });
 
 const contactSchema = new mongoose.Schema({
@@ -733,3 +757,154 @@ export const WriterAssignment = Assignment;
 export const WriterSubmission = AssignmentSubmission;
 export const WriterRating = AssignmentRating;
 export const WriterNotification = Notification;
+
+// ── Admin CRM: academic catalogue & pricing ────────────────────────────────────
+// Subject → Service → Project. Each level can be switched on/off (status) and
+// published/unpublished independently; the public catalogue only shows items
+// that are ACTIVE, published and whose parents are too. Money is integer minor
+// units of `currency` (as elsewhere). Words-per-page and multipliers are data,
+// never constants: see PricingRule and the catalog word config (services/pricing.js).
+export const CATALOG_STATUSES = ['ACTIVE', 'INACTIVE'];
+
+const catalogFileSchema = new mongoose.Schema({
+  storedName: { type: String, required: true },
+  originalName: { type: String, required: true },
+  mimeType: { type: String, required: true },
+  size: { type: Number, required: true },
+  kind: { type: String, enum: ['IMAGE', 'FILE'], required: true },
+}, { _id: true, timestamps: { createdAt: true, updatedAt: false } });
+
+// Per-page SEO for subjects/services/projects. Empty fields fall back to the
+// entity's own name/description/image when the page is rendered (routes/catalog.js).
+export const ROBOTS_OPTIONS = ['index,follow', 'noindex,follow', 'index,nofollow', 'noindex,nofollow'];
+const seoSchema = new mongoose.Schema({
+  metaTitle: { type: String, default: '' },
+  metaDescription: { type: String, default: '' },
+  keywords: { type: [String], default: [] },
+  canonicalUrl: { type: String, default: '' },
+  ogTitle: { type: String, default: '' },
+  ogDescription: { type: String, default: '' },
+  ogImage: { type: catalogFileSchema, default: null },
+  robots: { type: String, enum: ROBOTS_OPTIONS, default: 'index,follow' },
+}, { _id: false });
+
+const catalogSubjectSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
+  slug: { type: String, required: true, unique: true },
+  description: { type: String, default: '' },
+  image: { type: catalogFileSchema, default: null },
+  status: { type: String, enum: CATALOG_STATUSES, default: 'ACTIVE', index: true },
+  seo: { type: seoSchema, default: () => ({}) },
+  published: { type: Boolean, default: false, index: true },
+  publishedAt: { type: Date },
+  sortOrder: { type: Number, default: 0 },
+}, { timestamps: true });
+catalogSubjectSchema.index({ sortOrder: 1, name: 1 });
+
+const catalogServiceSchema = new mongoose.Schema({
+  subjectId: { type: ObjectId, ref: 'CatalogSubject', required: true, index: true },
+  name: { type: String, required: true, trim: true },
+  seo: { type: seoSchema, default: () => ({}) },
+  slug: { type: String, required: true },
+  description: { type: String, default: '' },
+  status: { type: String, enum: CATALOG_STATUSES, default: 'ACTIVE', index: true },
+  published: { type: Boolean, default: false, index: true },
+  publishedAt: { type: Date },
+  sortOrder: { type: Number, default: 0 },
+}, { timestamps: true });
+catalogServiceSchema.index({ subjectId: 1, slug: 1 }, { unique: true });   // slug unique within its subject
+catalogServiceSchema.index({ subjectId: 1, sortOrder: 1, name: 1 });
+
+const catalogProjectSchema = new mongoose.Schema({
+  subjectId: { type: ObjectId, ref: 'CatalogSubject', required: true, index: true },   // always the service's subject
+  serviceId: { type: ObjectId, ref: 'CatalogService', required: true, index: true },
+  title: { type: String, required: true, trim: true },
+  slug: { type: String, required: true },
+  description: { type: String, default: '' },
+  files: { type: [catalogFileSchema], default: [] },   // images and downloadable files
+  seo: { type: seoSchema, default: () => ({}) },
+  status: { type: String, enum: CATALOG_STATUSES, default: 'ACTIVE', index: true },
+  published: { type: Boolean, default: false, index: true },
+  publishedAt: { type: Date },
+  sortOrder: { type: Number, default: 0 },
+}, { timestamps: true });
+catalogProjectSchema.index({ serviceId: 1, slug: 1 }, { unique: true });   // slug unique within its service
+catalogProjectSchema.index({ serviceId: 1, sortOrder: 1, title: 1 });
+
+// A pricing rule applies to a subject, optionally narrowed to one service or one
+// project (the most specific active rule in effect wins). `formula` selects a
+// calculation from services/pricing.js so new formulas can be added later.
+const pricingRuleSchema = new mongoose.Schema({
+  subjectId: { type: ObjectId, ref: 'CatalogSubject', required: true, index: true },
+  serviceId: { type: ObjectId, ref: 'CatalogService', default: null, index: true },
+  projectId: { type: ObjectId, ref: 'CatalogProject', default: null, index: true },
+  label: { type: String, default: '' },
+  wordsPerPage: { type: Number, default: null, min: 1 },        // null → catalog word config default
+  basePriceMinor: { type: Number, required: true, min: 0 },     // per page, in minor units
+  multiplier: { type: Number, required: true, min: 0 },
+  currency: { type: String, required: true },
+  formula: { type: String, default: 'BASE_X_MULTIPLIER' },
+  effectiveDate: { type: Date, required: true },
+  status: { type: String, enum: CATALOG_STATUSES, default: 'ACTIVE', index: true },
+}, { timestamps: true });
+pricingRuleSchema.index({ subjectId: 1, serviceId: 1, projectId: 1, currency: 1, status: 1, effectiveDate: -1 });
+
+// ── Dynamic content: blocks, FAQs, media library ───────────────────────────────
+// Content lives in data, not code: admins add any number of typed blocks to a
+// subject/service/project. `content` is a per-type JSON payload validated and
+// sanitised in services/contentBlocks.js; `media` references library files.
+export const CONTENT_ENTITY_TYPES = ['SUBJECT', 'SERVICE', 'PROJECT'];
+export const BLOCK_TYPES = ['HEADING', 'RICH_TEXT', 'INTRODUCTION', 'FEATURES', 'AVAILABLE_PROJECTS', 'PROGRAMMING_LANGUAGES', 'FAQ', 'CTA', 'IMAGE', 'CUSTOM_HTML', 'SEO_CONTENT'];
+
+const blockMediaSchema = new mongoose.Schema({
+  mediaId: { type: ObjectId, ref: 'CatalogMedia' },
+  storedName: { type: String, required: true },
+  originalName: { type: String, required: true },
+  mimeType: { type: String, required: true },
+  kind: { type: String, enum: ['IMAGE', 'FILE'], required: true },
+  alt: { type: String, default: '' },
+}, { _id: false });
+
+const contentBlockSchema = new mongoose.Schema({
+  entityType: { type: String, enum: CONTENT_ENTITY_TYPES, required: true },
+  entityId: { type: ObjectId, required: true },
+  type: { type: String, enum: BLOCK_TYPES, required: true },
+  title: { type: String, default: '' },
+  content: { type: mongoose.Schema.Types.Mixed, default: {} },
+  media: { type: [blockMediaSchema], default: [] },
+  sortOrder: { type: Number, default: 0 },
+  status: { type: String, enum: CATALOG_STATUSES, default: 'ACTIVE' },
+}, { timestamps: true, minimize: false });
+contentBlockSchema.index({ entityType: 1, entityId: 1, sortOrder: 1 });
+contentBlockSchema.index({ 'media.storedName': 1 });
+
+const catalogFaqSchema = new mongoose.Schema({
+  entityType: { type: String, enum: CONTENT_ENTITY_TYPES, required: true },
+  entityId: { type: ObjectId, required: true },
+  question: { type: String, required: true },
+  answer: { type: String, required: true },     // sanitised rich text
+  sortOrder: { type: Number, default: 0 },
+  status: { type: String, enum: CATALOG_STATUSES, default: 'ACTIVE' },
+}, { timestamps: true });
+catalogFaqSchema.index({ entityType: 1, entityId: 1, sortOrder: 1 });
+
+// Reusable uploads for blocks and SEO images (picked in the admin media selector).
+const catalogMediaSchema = new mongoose.Schema({
+  storedName: { type: String, required: true, unique: true },
+  originalName: { type: String, required: true },
+  mimeType: { type: String, required: true },
+  size: { type: Number, required: true },
+  kind: { type: String, enum: ['IMAGE', 'FILE'], required: true, index: true },
+  alt: { type: String, default: '' },
+  uploadedBy: { type: String, default: '' },
+}, { timestamps: true });
+catalogMediaSchema.index({ createdAt: -1 });
+
+export const ContentBlock = mongoose.model('ContentBlock', contentBlockSchema);
+export const CatalogFaq = mongoose.model('CatalogFaq', catalogFaqSchema);
+export const CatalogMedia = mongoose.model('CatalogMedia', catalogMediaSchema);
+
+export const CatalogSubject = mongoose.model('CatalogSubject', catalogSubjectSchema);
+export const CatalogService = mongoose.model('CatalogService', catalogServiceSchema);
+export const CatalogProject = mongoose.model('CatalogProject', catalogProjectSchema);
+export const PricingRule = mongoose.model('PricingRule', pricingRuleSchema);

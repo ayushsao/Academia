@@ -6,6 +6,7 @@ import { OrderModal } from '../components/OrderModal';
 import { AcademiaLogo } from '../components/AcademiaLogo';
 
 import { API } from '../lib/api';
+import { formatOrderTotal } from '../lib/money';
 
 export const Dashboard: React.FC = () => {
     const { user, token, orders, logout, setOrders } = useStore();
@@ -253,7 +254,7 @@ export const Dashboard: React.FC = () => {
                                                         {order.deadline}
                                                     </td>
                                                     <td className="py-4 px-4 sm:px-6 font-black text-[#e37e25] text-sm">
-                                                        £{order.totalAmount}
+                                                        {formatOrderTotal(order.totalAmount, order.currency)}
                                                     </td>
                                                     <td className="py-4 px-4 sm:px-6">
                                                         {order.totalAmount > 0 ? (

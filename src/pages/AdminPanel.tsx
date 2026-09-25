@@ -5,7 +5,7 @@ import {
     TrendingUp, AlertCircle, Clock, CheckCircle2, XCircle,
     Shield, Mail, DollarSign, FileText, Menu, Award,
     BarChart2, Settings, Tag, Globe, Save, Activity,
-    PenTool, History, CheckSquare, Crown, ClipboardList, Gauge, Megaphone, ShieldAlert, FileEdit, KeyRound
+    PenTool, History, CheckSquare, Crown, ClipboardList, Gauge, Megaphone, ShieldAlert, FileEdit, KeyRound, Library
 } from 'lucide-react';
 
 import AdminWritersTab from './marketplace/admin/AdminWritersTab';
@@ -18,10 +18,12 @@ import MarketplaceDashboard from './marketplace/admin/MarketplaceDashboard';
 import RecruitmentTab from './marketplace/admin/RecruitmentTab';
 import { hasPermission, type AdminAccess } from './marketplace/admin/access';
 import TrustSafetyTab from './marketplace/admin/TrustSafetyTab';
+import CatalogTab from './marketplace/admin/catalog/CatalogTab';
 import SiteContentTab from './marketplace/admin/SiteContentTab';
 import AdminPasswordDialog from './marketplace/admin/AdminPasswordDialog';
 
 import { API } from '../lib/api';
+import { formatOrderTotal } from '../lib/money';
 
 // ─── API helpers ─────────────────────────────────────────────────────────────
 async function apiFetch(path: string, opts: RequestInit = {}, token?: string) {
@@ -42,7 +44,7 @@ async function apiFetch(path: string, opts: RequestInit = {}, token?: string) {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Stats {
-    totalOrders: number; totalUsers: number; totalRevenue: number;
+    totalOrders: number; totalUsers: number; totalRevenue: number; otherRevenue?: { currency: string; total: number }[];
     pendingOrders: number; inProgressOrders: number; completedOrders: number;
     cancelledOrders: number; unreadContacts: number;
     recentRevenue: { day: string; revenue: number }[];
@@ -55,7 +57,7 @@ interface Order {
     turnitinReport?: boolean;
     topExpert?: boolean;
     abstractPage?: boolean;
-    totalAmount: number; status: string; assignedTo?: string;
+    totalAmount: number; currency?: string; status: string; assignedTo?: string;
     adminNotes?: string; transactionId?: string; createdAt: string; updatedAt: string;
 }
 interface User { _id: string; name: string; email: string; role: string; createdAt: string; lastLogin?: string; order_count: number; total_spent: number; }
@@ -255,7 +257,7 @@ const OrderDetailDrawer = ({
                                 ['Academic Level', order.academicLevel],
                                 ['Pages', `${order.pages} pages (~${order.pages * 250} words)`],
                                 ['Deadline', order.deadline],
-                                ['Total Amount', `£${order.totalAmount}`],
+                                ['Total Amount', formatOrderTotal(order.totalAmount, order.currency)],
                                 ['Transaction ID', order.transactionId || 'Not Provided'],
                             ] as [string, string][]).map(([k, v]) => (
                                 <div key={k}>
@@ -482,7 +484,7 @@ const OrdersTab = ({ token }: { token: string }) => {
                                                 <div className="text-gray-400 text-xs">{order.service}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-gray-600 font-medium">{order.deadline}</td>
-                                            <td className="px-6 py-4 font-extrabold text-[#000a1e] whitespace-nowrap">£{order.totalAmount}</td>
+                                            <td className="px-6 py-4 font-extrabold text-[#000a1e] whitespace-nowrap">{formatOrderTotal(order.totalAmount, order.currency)}</td>
                                             <td className="px-6 py-4"><StatusBadge status={order.status} /></td>
                                             <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
                                                 <div className="flex items-center gap-2">
@@ -709,7 +711,7 @@ const OverviewTab = ({ token }: { token: string }) => {
         <div className="space-y-8">
             {/* Stat Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard label="Total Revenue" value={`£${Number(stats.totalRevenue).toFixed(0)}`} icon={<DollarSign className="w-5 h-5 text-emerald-600" />} accent="bg-emerald-600" />
+                <StatCard label="Total Revenue" value={[`£${Number(stats.totalRevenue).toFixed(0)}`, ...(stats.otherRevenue || []).map(r => formatOrderTotal(Math.round(r.total), r.currency))].join(' + ')} icon={<DollarSign className="w-5 h-5 text-emerald-600" />} accent="bg-emerald-600" />
                 <StatCard label="Total Orders" value={stats.totalOrders} sub={`${stats.pendingOrders} pending`} icon={<ShoppingBag className="w-5 h-5 text-[#002147]" />} accent="bg-[#002147]" />
                 <StatCard label="Total Users" value={stats.totalUsers} icon={<Users className="w-5 h-5 text-purple-600" />} accent="bg-purple-600" />
                 <StatCard label="Unread Messages" value={stats.unreadContacts} icon={<MessageSquare className="w-5 h-5 text-[#fea520]" />} accent="bg-[#fea520]" />
@@ -943,7 +945,7 @@ const SettingsTab = ({ token }: { token: string }) => {
 };
 
 // ─── Main Admin Panel ─────────────────────────────────────────────────────────
-type TabId = 'dashboard' | 'overview' | 'orders' | 'users' | 'writers' | 'applications' | 'assignments' | 'memberships' | 'recruitment' | 'content' | 'trust' | 'audit' | 'contacts' | 'analytics' | 'settings' | 'admins';
+type TabId = 'dashboard' | 'overview' | 'orders' | 'users' | 'writers' | 'applications' | 'assignments' | 'memberships' | 'recruitment' | 'catalog' | 'content' | 'trust' | 'audit' | 'contacts' | 'analytics' | 'settings' | 'admins';
 
 // Each tab lists the permissions that unlock it (any one is enough). The server
 // enforces the same permissions; this only keeps the navigation honest.
@@ -957,6 +959,7 @@ const NAV: { id: TabId; label: string; title: string; icon: React.ReactNode; per
     { id: 'assignments', label: 'Assignments', title: 'Assignments', icon: <ClipboardList className="w-5 h-5" />, perms: ['assignments.manage', 'payouts.manage'] },
     { id: 'memberships', label: 'Memberships', title: 'Memberships & Payments', icon: <Crown className="w-5 h-5" />, perms: ['subscriptions.read', 'memberships.manage', 'payments.read'] },
     { id: 'recruitment', label: 'Recruitment', title: 'Writer Recruitment', icon: <Megaphone className="w-5 h-5" />, perms: ['recruitment.read'] },
+    { id: 'catalog', label: 'Catalog & Pricing', title: 'Catalog & Pricing', icon: <Library className="w-5 h-5" />, perms: ['catalog.manage', 'pricing.manage'] },
     { id: 'content', label: 'Site Content', title: 'Site Content', icon: <FileEdit className="w-5 h-5" />, perms: ['content.manage'] },
     { id: 'trust', label: 'Trust & Safety', title: 'Trust & Safety', icon: <ShieldAlert className="w-5 h-5" />, perms: ['risk.review'] },
     { id: 'contacts', label: 'Messages', title: 'Contact Messages', icon: <MessageSquare className="w-5 h-5" />, perms: ['leads.manage'] },
@@ -1117,6 +1120,7 @@ export const AdminPanel: React.FC = () => {
                     {current?.id === 'analytics' && <AnalyticsTab token={token} />}
                     {current?.id === 'settings' && <SettingsTab token={token} />}
                     {current?.id === 'admins' && <AdminTeamTab token={token} />}
+                    {current?.id === 'catalog' && <CatalogTab token={token} access={access} />}
                     {current?.id === 'content' && <SiteContentTab token={token} />}
                     {current?.id === 'trust' && <TrustSafetyTab token={token} access={access} />}
                 </main>

@@ -12,7 +12,7 @@ import { useMarketplaceContent, DEFAULT_MARKETPLACE_CONTENT, type JourneyStep } 
 import { Spinner } from '../../components/writer/WriterBits';
 
 const STEP_ICONS: Record<JourneyStep['key'], React.ElementType> = {
-    REGISTER: UserRound, VERIFY: ShieldCheck, PROFILE: ClipboardCheck, APPROVAL: BadgeCheck,
+    REGISTER: UserRound, PROFILE: ClipboardCheck, APPROVAL: BadgeCheck,
     MEMBERSHIP: Crown, OPPORTUNITIES: Compass, ASSIGNMENTS: Briefcase, RATING: Star,
 };
 const BENEFIT_ICONS = [SlidersHorizontal, Target, Wallet, Lock, TrendingUp, Users];

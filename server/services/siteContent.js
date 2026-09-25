@@ -14,7 +14,7 @@ import { MEMBERSHIP_DISCLAIMER } from './membershipSettings.js';
 export const CONTENT_KEY = 'marketplace_content';
 
 // The recruitment journey is fixed; admins edit the wording of each step.
-export const JOURNEY_STEPS = ['REGISTER', 'VERIFY', 'PROFILE', 'APPROVAL', 'MEMBERSHIP', 'OPPORTUNITIES', 'ASSIGNMENTS', 'RATING'];
+export const JOURNEY_STEPS = ['REGISTER', 'PROFILE', 'APPROVAL', 'MEMBERSHIP', 'OPPORTUNITIES', 'ASSIGNMENTS', 'RATING'];
 
 export const DEFAULT_CONTENT = {
     recruitment: {
@@ -35,7 +35,6 @@ export const DEFAULT_CONTENT = {
         ],
         steps: [
             { key: 'REGISTER', title: 'Register', text: 'Create your account with your name, email, country and mobile number.' },
-            { key: 'VERIFY', title: 'Verify', text: 'Confirm your email and phone with one-time codes. Each phone number can be verified on one account.' },
             { key: 'PROFILE', title: 'Complete your profile', text: 'Add your education, subjects, skills, CV and writing samples.' },
             { key: 'APPROVAL', title: 'Approval', text: 'Our HR team reviews your credentials and may ask for more information.' },
             { key: 'MEMBERSHIP', title: 'Membership', text: 'Approved writers choose a monthly or annual plan to access the platform.' },
@@ -191,11 +190,17 @@ export function parseContent(input) {
 
 // Saved content merged over defaults section by section, so new sections added
 // in code appear automatically.
+// Saved wording for the current fixed steps; retired steps (e.g. an old "Verify" step) are dropped.
+function journeySteps(saved) {
+    const byKey = new Map((Array.isArray(saved) ? saved : []).map(s => [s.key, s]));
+    return DEFAULT_CONTENT.recruitment.steps.map(d => byKey.get(d.key) || d);
+}
+
 export async function getContent() {
     const row = await SiteSettings.findOne({ key: CONTENT_KEY }).lean();
     const saved = row?.value || {};
     const content = {
-        recruitment: { ...DEFAULT_CONTENT.recruitment, ...(saved.recruitment || {}) },
+        recruitment: { ...DEFAULT_CONTENT.recruitment, ...(saved.recruitment || {}), steps: journeySteps(saved.recruitment?.steps) },
         faq: saved.faq || DEFAULT_CONTENT.faq,
         pricing: { ...DEFAULT_CONTENT.pricing, ...(saved.pricing || {}) },
         terms: { ...DEFAULT_CONTENT.terms, ...(saved.terms || {}) },
