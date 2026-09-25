@@ -4,7 +4,7 @@ import { AcademiaLogo } from './AcademiaLogo';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { useNavigate, Link } from 'react-router-dom';
-import { useFeaturedWriters, FeaturedWriterLink } from './writer/FeaturedWriters';
+import { useFeaturedWriters, FeaturedWriterLink, SampleWriterItem, SAMPLE_WRITERS } from './writer/FeaturedWriters';
 
 interface NavbarProps {
   onOpenOrder: () => void;
@@ -171,18 +171,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                   <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
                     <div>
                       <h3 className="font-extrabold text-[#000a1e] text-lg">Academic writers</h3>
-                      <p className="text-xs text-gray-500 font-medium">Real writers from our network. <BadgeCheck className="inline h-3 w-3 text-[#b86e00]" aria-label="verified" /> marks writers who passed our review.</p>
+                      <p className="text-xs text-gray-500 font-medium">{featuredWriters?.length === 0 ? <>Sample profiles for now — our writers appear here as they join.</> : <>Writers from our network. <BadgeCheck className="inline h-3 w-3 text-[#b86e00]" aria-label="verified" /> marks writers who passed our review.</>}</p>
                     </div>
-                    <button onClick={onOpenOrder} className="text-xs font-bold bg-[#fea520] hover:bg-[#e36100] text-[#000a1e] px-4 py-2 rounded shadow-sm transition-colors cursor-pointer">
-                      Hire Any Writer
-                    </button>
                   </div>
 
                   <div className="grid grid-cols-4 gap-4">
                     {featuredWriters === null
                       ? Array.from({ length: 8 }, (_, i) => <div key={i} className="h-14 animate-pulse rounded-lg bg-gray-50" />)
                       : featuredWriters.length === 0
-                        ? <p className="col-span-4 py-4 text-center text-sm text-gray-500">Our writers will appear here as they join.</p>
+                        ? SAMPLE_WRITERS.map(sw => <React.Fragment key={sw.name}><SampleWriterItem s={sw} onClick={onOpenOrder} /></React.Fragment>)
                         : featuredWriters.map(w => <React.Fragment key={w.id}><FeaturedWriterLink w={w} /></React.Fragment>)}
                   </div>
 
@@ -351,7 +348,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                   {link.hasDropdown && mobileExpandedMenu === link.label && link.label === 'Hire Writers' && (
                     <div className="flex flex-col gap-2 mt-2 bg-gray-50/50 p-3 rounded-lg border border-gray-100 max-h-[300px] overflow-y-auto">
                       {(featuredWriters || []).map(w => <React.Fragment key={w.id}><FeaturedWriterLink w={w} compact onNavigate={() => setMobileMenuOpen(false)} /></React.Fragment>)}
-                      {featuredWriters?.length === 0 && <p className="p-2 text-xs text-gray-500">Our writers will appear here as they join.</p>}
+                      {featuredWriters?.length === 0 && SAMPLE_WRITERS.map(sw => <React.Fragment key={sw.name}><SampleWriterItem s={sw} compact onClick={() => { setMobileMenuOpen(false); onOpenOrder(); }} /></React.Fragment>)}
                       <Link to="/hire-writers" onClick={() => setMobileMenuOpen(false)} className="p-2 text-xs font-bold text-[#002147]">Browse all writers →</Link>
                       <Link to="/become-a-writer" onClick={() => setMobileMenuOpen(false)} className="mt-1 rounded-lg bg-[#002147] p-2.5 text-center text-xs font-bold text-white">Join as a writer</Link>
                     </div>
