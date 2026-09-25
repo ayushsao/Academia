@@ -37,9 +37,8 @@ export function computeOnboarding({ writer, profile, skills, documents, applicat
     const profileComplete = Boolean(profile && profile.bio?.length >= 150 && profile.education?.length
         && profile.subjects?.length && profile.academicLevels?.length && profile.languages?.length
         && profile.expertiseAreas?.length && profile.writingExperience?.length >= 50);
+    // Email and phone one-time-code verification is not part of onboarding.
     const checks = {
-        emailVerified: writer.emailVerified,
-        phoneVerified: writer.phoneVerified,
         profileComplete,
         photoUploaded: Boolean(profile?.profilePhoto),
         skillsAdded: skills.length > 0,
@@ -48,9 +47,7 @@ export function computeOnboarding({ writer, profile, skills, documents, applicat
     const missing = Object.entries(checks).filter(([, ok]) => !ok).map(([key]) => key);
 
     let nextStep;
-    if (!checks.emailVerified) nextStep = 'VERIFY_EMAIL';
-    else if (!checks.phoneVerified) nextStep = 'VERIFY_PHONE';
-    else if (['DRAFT', 'INFO_REQUESTED'].includes(application?.status)) nextStep = missing.length ? 'COMPLETE_PROFILE' : 'SUBMIT_APPLICATION';
+    if (['DRAFT', 'INFO_REQUESTED'].includes(application?.status)) nextStep = missing.length ? 'COMPLETE_PROFILE' : 'SUBMIT_APPLICATION';
     else if (['SUBMITTED', 'UNDER_REVIEW'].includes(application?.status)) nextStep = 'AWAIT_REVIEW';
     else if (writer.status === 'APPROVED') nextStep = 'CHOOSE_MEMBERSHIP';
     else if (writer.status === 'ACTIVE') nextStep = 'DASHBOARD';
@@ -65,13 +62,11 @@ export function computeOnboarding({ writer, profile, skills, documents, applicat
     };
 }
 
-// Only approved (or already active) writers with verified contact details may
-// start a paid membership. The subscription module must call this before charging.
+// Only approved (or already active) writers may start a paid membership.
+// The subscription module must call this before charging.
 export function membershipEligibility(writer) {
     if (!WORKING_WRITER_STATUSES.includes(writer.status))
         return { eligible: false, reason: 'Your application must be approved before you can activate a membership.' };
-    if (!writer.emailVerified || !writer.phoneVerified)
-        return { eligible: false, reason: 'Verify your email and phone number first.' };
     return { eligible: true, reason: null };
 }
 
@@ -248,8 +243,6 @@ export async function applyAdminAction(bundle, { action, reason }, admin) {
         throw new WriterError(`Cannot ${action.replace('_', ' ')} an application that is ${application?.status?.toLowerCase().replace('_', ' ')}.`, 409);
     if (spec.from.writer && !spec.from.writer.includes(writer.status))
         throw new WriterError(`Cannot ${action} a writer whose status is ${writer.status.toLowerCase().replace('_', ' ')}.`, 409);
-    if (action === 'approve' && (!writer.emailVerified || !writer.phoneVerified))
-        throw new WriterError('The writer must verify their email and phone before approval.', 409);
 
     const next = spec.apply(writer);
     const fromWriterStatus = writer.status;

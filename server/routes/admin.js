@@ -6,7 +6,7 @@ import { ADMIN_ROLES, ROLE_LABELS, PERMISSIONS, normalizeRole, permissionsFor, r
 import { recordAudit } from '../services/audit.js';
 import { AbuseError, assertNotLocked, recordLoginFailure, clearLoginFailures } from '../services/abuse.js';
 import { IS_PRODUCTION } from '../config.js';
-import { streamOrderFile } from '../services/orderFiles.js';
+import { streamOrderFile, receiveOrderFiles, storeOrderUploads } from '../services/orderFiles.js';
 import crypto from 'crypto';
 
 const require = createRequire(import.meta.url);
@@ -97,6 +97,7 @@ const ROUTE_PERMISSIONS = [
     ['GET', /^\/stats$/, 'orders.read'],
     ['GET', /^\/orders/, 'orders.read'],
     ['PATCH', /^\/orders\//, 'orders.write'],
+    ['POST', /^\/orders\//, 'orders.write'],
     ['DELETE', /^\/orders\//, 'users.manage'],
     ['*', /^\/users/, 'users.manage'],
     ['*', /^\/contacts/, 'leads.manage'],
@@ -242,6 +243,7 @@ router.patch('/orders/:id', authenticateAdmin, async (req, res) => {
         if (status !== undefined) update.status = status;
         if (adminNotes !== undefined) update.adminNotes = adminNotes;
         if (assignedTo !== undefined) update.assignedTo = assignedTo;
+        if (Array.isArray(req.body.files)) update.files = req.body.files;
 
         const order = await Order.findOneAndUpdate(
             { orderId: req.params.id },
@@ -257,6 +259,36 @@ router.patch('/orders/:id', authenticateAdmin, async (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
+// POST /api/admin/orders/:id/files — attach uploaded files to order
+router.post('/orders/:id/files', receiveOrderFiles, async (req, res) => {
+    try {
+        const order = await Order.findOne({ orderId: req.params.id });
+        if (!order) return res.status(404).json({ error: 'Order not found.' });
+
+        const files = await storeOrderUploads(req.files || [], order.userId);
+        const updatedFiles = [...(order.files || []), ...files];
+
+        const updated = await Order.findOneAndUpdate(
+            { orderId: req.params.id },
+            { $set: { files: updatedFiles } },
+            { new: true }
+        ).populate('userId', 'name email');
+
+        await recordAudit(req, 'ORDER_FILES_ATTACHED', {
+            targetType: 'ORDER',
+            targetId: order.orderId,
+            reason: `Attached ${files.length} file(s)`
+        });
+
+        res.json({
+            order: { ...updated.toObject(), user_name: updated.userId?.name, user_email: updated.userId?.email },
+            files: updated.files
+        });
+    } catch (err) {
+        res.status(err.status || 500).json({ error: err.status ? err.message : 'Failed to attach files.' });
     }
 });
 

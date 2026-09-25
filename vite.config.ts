@@ -5,7 +5,7 @@ import { defineConfig, loadEnv, type Plugin } from 'vite';
 
 // Anything prefixed VITE_ can end up in the public bundle. Values that look like
 // secrets must never be shipped; these few are designed to be public.
-const PUBLIC_ENV_KEYS = new Set(['VITE_EMAILJS_PUBLIC_KEY', 'VITE_GOOGLE_CLIENT_ID']);
+const PUBLIC_ENV_KEYS = new Set(['VITE_EMAILJS_PUBLIC_KEY', 'VITE_GOOGLE_CLIENT_ID', 'VITE_RAZORPAY_KEY_ID']);
 const SECRET_NAME = /KEY|SECRET|TOKEN|PASSWORD|PRIVATE/i;
 
 function forbidSecretsInBundle(env: Record<string, string>): Plugin {

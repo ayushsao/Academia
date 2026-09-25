@@ -84,7 +84,8 @@ export async function checkRegistration({ email, phoneE164 }) {
     if (isDisposableEmail(email)) throw new AbuseError('Please use a permanent email address. Temporary inbox services can’t be used for writer accounts.');
     // Aliases of an existing writer's mailbox (dots, +tags, googlemail) are the same person.
     if (await Writer.exists({ emailCanonical: canonicalEmail(email) })) throw new AbuseError(GENERIC_DUPLICATE, 409);
-    if (phoneE164 && await Writer.exists({ phoneE164, phoneVerified: true })) throw new AbuseError(GENERIC_DUPLICATE, 409);
+    // One writer account per phone number (there is no phone verification step).
+    if (phoneE164 && await Writer.exists({ phoneE164 })) throw new AbuseError(GENERIC_DUPLICATE, 409);
 }
 
 // Runs after the account exists: records softer signals for review.

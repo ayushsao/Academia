@@ -17,6 +17,7 @@ export interface Order {
   status: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled';
   createdAt: string;
   created_at?: string;
+  files?: string[];
 }
 
 interface AppState {

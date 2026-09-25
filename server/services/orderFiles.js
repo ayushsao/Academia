@@ -16,15 +16,49 @@ const multer = require('multer');
 const MB = 1024 * 1024;
 const MAX_FILES = 5;
 const MAX_BYTES = 50 * MB;
-// Detected kind → allowed extensions and the MIME type we serve it with.
-const KINDS = {
-    pdf: { exts: ['.pdf'], mime: 'application/pdf' },
-    doc: { exts: ['.doc'], mime: 'application/msword' },
-    zip: { exts: ['.docx'], mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
-    jpeg: { exts: ['.jpg', '.jpeg'], mime: 'image/jpeg' },
-    png: { exts: ['.png'], mime: 'image/png' },
-    webp: { exts: ['.webp'], mime: 'image/webp' },
+
+export const EXT_MIMES = {
+    '.pdf': 'application/pdf',
+    '.doc': 'application/msword',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.xls': 'application/vnd.ms-excel',
+    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    '.ppt': 'application/vnd.ms-powerpoint',
+    '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    '.zip': 'application/zip',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.webp': 'image/webp',
+    '.rtf': 'application/rtf',
+    '.txt': 'text/plain',
+    '.csv': 'text/csv',
 };
+
+// Detected kind → allowed extensions
+const KINDS = {
+    pdf: { exts: ['.pdf'] },
+    doc: { exts: ['.doc', '.xls', '.ppt'] },
+    zip: { exts: ['.docx', '.xlsx', '.pptx', '.zip'] },
+    jpeg: { exts: ['.jpg', '.jpeg'] },
+    png: { exts: ['.png'] },
+    webp: { exts: ['.webp'] },
+    rtf: { exts: ['.rtf'] },
+    text: { exts: ['.txt', '.csv'] },
+};
+
+function looksLikeText(buf) {
+    if (buf.includes(0)) return false;
+    try { new TextDecoder('utf-8', { fatal: true }).decode(buf); return true; } catch { return false; }
+}
+
+export function sniffOrderFileKind(buf) {
+    const base = sniffKind(buf);
+    if (base) return base;
+    if (buf.length >= 5 && buf.slice(0, 5).toString('ascii') === '{\\rtf') return 'rtf';
+    if (looksLikeText(buf)) return 'text';
+    return null;
+}
 
 class OrderFileError extends Error { constructor(message, status = 400) { super(message); this.status = status; } }
 
@@ -48,9 +82,9 @@ export function receiveOrderFiles(req, res, next) {
 
 const safeName = (name) => path.basename(String(name)).replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_+/g, '_').slice(-80) || 'file';
 
-async function readHead(file, n = 16) {
+async function readHead(file, n = 64) {
     const fh = await fs.promises.open(file, 'r');
-    try { const buf = Buffer.alloc(n); await fh.read(buf, 0, n, 0); return buf; } finally { await fh.close(); }
+    try { const buf = Buffer.alloc(n); const { bytesRead } = await fh.read(buf, 0, n, 0); return buf.subarray(0, bytesRead); } finally { await fh.close(); }
 }
 
 async function sha256(file) {
@@ -67,16 +101,27 @@ export async function storeOrderUploads(files, userId) {
     const accepted = [];
     try {
         for (const f of files) {
-            const kind = sniffKind(await readHead(f.path));
+            const head = await readHead(f.path, 64);
+            const kind = sniffOrderFileKind(head);
             const ext = path.extname(f.originalname).toLowerCase();
-            if (!kind || !KINDS[kind].exts.includes(ext)) throw new OrderFileError(`“${safeName(f.originalname)}” isn’t a supported file. Upload PDF, Word (DOC/DOCX) or image (JPG/PNG/WEBP) files.`);
+            if (!kind || !KINDS[kind].exts.includes(ext)) {
+                throw new OrderFileError(`“${safeName(f.originalname)}” isn’t a supported file. Upload PDF, Word, Excel, PowerPoint, Text, Image or ZIP files.`);
+            }
             accepted.push({ f, kind, ext });
         }
         const stored = [];
-        for (const { f, kind } of accepted) {
+        for (const { f, ext } of accepted) {
             const storedName = `${crypto.randomBytes(16).toString('hex')}-${safeName(f.originalname)}`;
             await fs.promises.rename(f.path, path.join(ORDER_UPLOADS_DIR, storedName));
-            await UploadedFile.create({ storedName, userId, originalName: f.originalname.slice(0, 200), mimeType: KINDS[kind].mime, size: f.size, sha256: await sha256(path.join(ORDER_UPLOADS_DIR, storedName)) });
+            const mimeType = EXT_MIMES[ext] || 'application/octet-stream';
+            await UploadedFile.create({
+                storedName,
+                userId,
+                originalName: f.originalname.slice(0, 200),
+                mimeType,
+                size: f.size,
+                sha256: await sha256(path.join(ORDER_UPLOADS_DIR, storedName))
+            });
             stored.push(storedName);
         }
         return stored;
@@ -93,7 +138,10 @@ export async function ownedFileNames(names, userId) {
     return names.map(String).filter(n => owned.has(n));
 }
 
-const mimeFor = (name) => Object.values(KINDS).find(k => k.exts.includes(path.extname(name).toLowerCase()))?.mime || 'application/octet-stream';
+const mimeFor = (name) => {
+    const ext = path.extname(name).toLowerCase();
+    return EXT_MIMES[ext] || 'application/octet-stream';
+};
 
 // Streams a stored order file as a download with hardened headers.
 export async function streamOrderFile(res, storedName) {

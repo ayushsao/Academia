@@ -23,7 +23,7 @@ type Dashboard = {
 };
 
 const PROFILE_ITEM_LABELS: Record<string, string> = {
-    emailVerified: 'Email verified', phoneVerified: 'Phone verified', profileComplete: 'Professional profile', photoUploaded: 'Profile photo',
+    profileComplete: 'Professional profile', photoUploaded: 'Profile photo',
     skillsAdded: 'Skills', resumeUploaded: 'Resume / CV', headline: 'Headline', timezone: 'Time zone (Settings)', writingSample: 'Writing sample', certificate: 'Certificate',
 };
 

@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { API, api } from '../../lib/api';
 
-const ONBOARDING_STEPS = ['VERIFY_EMAIL', 'VERIFY_PHONE', 'COMPLETE_PROFILE', 'SUBMIT_APPLICATION'];
+const ONBOARDING_STEPS = ['COMPLETE_PROFILE', 'SUBMIT_APPLICATION'];
 
 export default function WriterLogin() {
     const navigate = useNavigate();

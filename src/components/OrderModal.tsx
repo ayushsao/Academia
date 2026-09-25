@@ -7,7 +7,10 @@ import {
   ShieldCheck,
   Lock,
   FileText,
-  Award
+  Award,
+  CreditCard,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { ServiceType, SubjectType } from '../types';
 import { useStore } from '../store/useStore';
@@ -17,6 +20,7 @@ import { API, api } from '../lib/api';
 import { formatMoney, fromMinor } from '../lib/money';
 import type { CatalogOrderContext, PublicPricing, PublicQuote } from '../lib/catalogContent';
 import { useOrderQuote, type OrderQuote } from '../lib/orderQuote';
+import { openRazorpayCheckout } from '../lib/razorpay';
 
 interface OrderModalProps {
   isOpen: boolean;
@@ -32,6 +36,7 @@ interface OrderModalProps {
     topicTitle?: string;
     instructions?: string;
     files?: string[];
+    fileObjects?: File[];
     /** The quotation calculated on the previous step; shown as-is while its inputs are unchanged. */
     quote?: OrderQuote;
   };
@@ -60,6 +65,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [files, setFiles] = useState<string[]>(initialConfig?.files || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actualFileObjects, setActualFileObjects] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
 
   const [errors, setErrors] = useState<{ topicTitle?: string; instructions?: string; files?: string; pricing?: string }>({});
 
@@ -72,6 +78,9 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
   const [transactionId, setTransactionId] = useState<string>('');
   const [orderNumber, setOrderNumber] = useState<string>('');
+  const [isRazorpayLoading, setIsRazorpayLoading] = useState(false);
+  const [razorpayError, setRazorpayError] = useState<string>('');
+  const [isPaymentVerified, setIsPaymentVerified] = useState(false);
 
   const addOrder = useStore(state => state.addOrder);
   const user = useStore(state => state.user);
@@ -91,9 +100,21 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       setTopExpert(!!initialConfig?.quote?.input.topExpert);
       setAbstractPage(!!initialConfig?.quote?.input.abstractPage);
       setErrors({});
-      if (initialConfig?.topicTitle) setTopicTitle(initialConfig.topicTitle);
-      if (initialConfig?.instructions) setInstructions(initialConfig.instructions);
-      if (initialConfig?.files && initialConfig.files.length > 0) setFiles(initialConfig.files);
+      setTopicTitle(initialConfig?.topicTitle || '');
+      setInstructions(initialConfig?.instructions || '');
+      setIsPaymentVerified(false);
+      setRazorpayError('');
+      setIsRazorpayLoading(false);
+      if (initialConfig?.fileObjects && initialConfig.fileObjects.length > 0) {
+        setActualFileObjects(initialConfig.fileObjects);
+        setFiles(initialConfig.fileObjects.map(f => f.name));
+      } else if (initialConfig?.files && initialConfig.files.length > 0) {
+        setFiles(initialConfig.files);
+        setActualFileObjects([]);
+      } else {
+        setFiles([]);
+        setActualFileObjects([]);
+      }
       setStep(1);
     }
   }, [isOpen, initialConfig]);
@@ -179,18 +200,39 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const orderSubject = catMode ? catalog!.subjectName : subject;
   const orderService = catMode ? (catalog!.serviceName || catalog!.subjectName) : service;
 
+  const addFiles = (selectedFiles: File[]) => {
+    if (!selectedFiles.length) return;
+    const maxAllowed = 5;
+    const maxSize = 50 * 1024 * 1024; // 50MB
+
+    const oversized = selectedFiles.find(f => f.size > maxSize);
+    if (oversized) {
+      setErrors(prev => ({ ...prev, files: `File "${oversized.name}" exceeds the 50MB limit.` }));
+      return;
+    }
+
+    if (files.length + selectedFiles.length > maxAllowed) {
+      setErrors(prev => ({ ...prev, files: `Maximum ${maxAllowed} files allowed.` }));
+      return;
+    }
+
+    setErrors(prev => ({ ...prev, files: undefined }));
+    setFiles(prev => [...prev, ...selectedFiles.map(f => f.name)]);
+    setActualFileObjects(prev => [...prev, ...selectedFiles]);
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const selectedFiles = Array.from(e.target.files);
-      const newFileNames = selectedFiles.map((f: File) => f.name);
+      addFiles(Array.from(e.target.files));
+      e.target.value = '';
+    }
+  };
 
-      if (files.length + newFileNames.length > 5) {
-        setErrors(prev => ({ ...prev, files: 'Maximum 5 files allowed.' }));
-        return;
-      }
-      setErrors(prev => ({ ...prev, files: undefined }));
-      setFiles(prev => [...prev, ...newFileNames]);
-      setActualFileObjects(prev => [...prev, ...selectedFiles]);
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      addFiles(Array.from(e.dataTransfer.files));
     }
   };
 
@@ -229,14 +271,59 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     }
   };
 
-  const handleCompleteOrder = async () => {
+  const handleRazorpayPayment = async () => {
     if (!user) {
       alert("Please login first to place an order.");
       return;
     }
 
-    if (!transactionId || transactionId.trim().length < 5) {
-      alert("Please enter a valid Transaction ID / UTR Number to confirm your payment.");
+    if (!quoteReady || (!catMode && (!stdQuote || stdQuote.pages !== pages))) {
+      alert('Please wait for the price to finish updating, then try again.');
+      return;
+    }
+
+    setIsRazorpayLoading(true);
+    setRazorpayError('');
+
+    // Minimum 100 paise (₹1). Convert INR amount or grand total
+    const inrAmount = upiAmount > 0 ? upiAmount : Math.max(1, grandTotal);
+    const amountPaise = Math.max(100, Math.round(inrAmount * 100));
+
+    await openRazorpayCheckout({
+      amountPaise,
+      currency: 'INR',
+      name: 'AcademiaPro',
+      description: `${orderService || 'Academic Paper'} (${pages || 1} Pages)`,
+      prefill: {
+        name: user.name || '',
+        email: user.email || '',
+      },
+      onSuccess: async (paymentResult) => {
+        setIsPaymentVerified(true);
+        setTransactionId(paymentResult.razorpay_payment_id);
+        setIsRazorpayLoading(false);
+        // Automatically submit the order with the verified Razorpay payment ID
+        await handleCompleteOrder(paymentResult.razorpay_payment_id);
+      },
+      onError: (errMsg) => {
+        setIsRazorpayLoading(false);
+        setRazorpayError(errMsg);
+      },
+      onDismiss: () => {
+        setIsRazorpayLoading(false);
+      }
+    });
+  };
+
+  const handleCompleteOrder = async (explicitTxId?: string) => {
+    if (!user) {
+      alert("Please login first to place an order.");
+      return;
+    }
+
+    const effectiveTxId = (explicitTxId || transactionId).trim();
+    if (!effectiveTxId || effectiveTxId.length < 5) {
+      alert("Please enter a valid Transaction ID / UTR Number or pay online with Razorpay.");
       return;
     }
 
@@ -257,16 +344,23 @@ export const OrderModal: React.FC<OrderModalProps> = ({
         const formData = new FormData();
         actualFileObjects.forEach(f => formData.append('files', f));
 
+        const uploadHeaders: Record<string, string> = {};
+        if (token) uploadHeaders['Authorization'] = `Bearer ${token}`;
+
         const uploadRes = await fetch(`${API}/upload`, {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }, // if upload needs auth
+          headers: uploadHeaders,
+          credentials: 'include',
           body: formData
         });
 
-        if (uploadRes.ok) {
-          const uData = await uploadRes.json();
-          uploadedFileNames = uData.files || [];
+        if (!uploadRes.ok) {
+          const uErr = await uploadRes.json().catch(() => ({}));
+          throw new Error(uErr.error || 'Failed to upload attachments. Please check file type and size.');
         }
+
+        const uData = await uploadRes.json();
+        uploadedFileNames = uData.files || [];
       }
 
       // 2. Submit order to backend
@@ -283,18 +377,21 @@ export const OrderModal: React.FC<OrderModalProps> = ({
         topExpert: catMode ? false : topExpert,
         abstractPage: catMode ? false : abstractPage,
         totalAmount: catMode ? catTotal : stdQuote!.total, // display only: the server prices every order
-        transactionId: transactionId.trim(),
+        transactionId: effectiveTxId,
         // The accepted quote: the server re-prices and refuses (409) if it no longer matches.
         ...(!catMode && stdQuote && { quote: { currency: stdQuote.currency, total: stdQuote.total, pages: stdQuote.pages } }),
         ...(catMode && catIds && catQuote && { catalog: { ...catIds, words: catWords, spacing: catSpacing, currency: catCurrency, quotedTotalMinor: catQuote.totalMinor } }),
       };
 
+      const orderHeaders: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      if (token) orderHeaders['Authorization'] = `Bearer ${token}`;
+
       const res = await fetch(`${API}/orders`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: orderHeaders,
+        credentials: 'include',
         body: JSON.stringify(payload)
       });
 
@@ -552,11 +649,16 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               {/* File Dropzone */}
               <div>
                 <label className="block text-xs font-bold text-[#44474e] uppercase mb-1.5">Upload Files (Rubrics, Prompts)</label>
-                <label className={`border-2 border-dashed ${errors.files ? 'border-red-500' : 'border-[#d1e4ff]'} hover:border-[#002147] bg-[#f8f9ff] rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer transition-colors`}>
+                <label
+                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                  onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+                  onDrop={handleDrop}
+                  className={`border-2 border-dashed ${isDragging ? 'border-[#fea520] bg-amber-50/50' : errors.files ? 'border-red-500 bg-[#f8f9ff]' : 'border-[#d1e4ff] bg-[#f8f9ff]'} hover:border-[#002147] rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer transition-colors`}
+                >
                   <UploadCloud className="w-8 h-8 text-[#708ab5] mb-2" />
                   <span className="text-xs font-bold text-[#000a1e]">Click to upload or drag files here</span>
-                  <span className="text-[11px] text-[#708ab5]">PDF, DOCX, XLSX, ZIP up to 50MB (max 5)</span>
-                  <input type="file" multiple onChange={handleFileUpload} className="hidden" />
+                  <span className="text-[11px] text-[#708ab5]">PDF, DOCX, DOC, XLSX, PPTX, TXT, ZIP up to 50MB (max 5)</span>
+                  <input type="file" multiple accept=".pdf,.doc,.docx,.xlsx,.xls,.pptx,.ppt,.txt,.csv,.rtf,.zip,.jpg,.jpeg,.png,.webp" onChange={handleFileUpload} className="hidden" />
                 </label>
                 {errors.files && <p className="text-red-500 text-[10px] uppercase font-bold tracking-wider mt-1 mb-2">{errors.files}</p>}
                 {files.length > 0 && (
@@ -657,14 +759,79 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 </div>
               </div>
 
-              {/* Payment Info Section */}
-              <div className="bg-[#f8f9ff] rounded-xl p-5 border border-[#d1e4ff] space-y-4">
-                <div className="flex items-start gap-3">
-                  <ShieldCheck className="w-5 h-5 text-[#002147] flex-shrink-0 mt-0.5" />
-                  <div className="text-xs text-[#002147] leading-relaxed">
-                    <strong>Secure Manual Payment:</strong> {showUpi && showPaypal ? 'Scan the UPI QR code (India) OR use PayPal (International).' : showUpi ? 'Scan the UPI QR code or pay to the UPI ID.' : 'Pay with PayPal.'} Enter your Transaction/Reference ID below to instantly verify your order.
+              {/* Payment Section */}
+              <div className="space-y-4">
+                {/* 1. Instant Online Payment via Razorpay */}
+                <div className="bg-gradient-to-br from-[#000a1e] via-[#001738] to-[#002147] text-white p-5 rounded-2xl shadow-lg border border-[#fea520]/40 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#fea520]/20 flex items-center justify-center text-[#fea520] border border-[#fea520]/30 shadow-inner">
+                        <CreditCard className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold flex items-center gap-2">
+                          <span>Instant Online Checkout</span>
+                          <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] px-2 py-0.5 rounded-full font-semibold">Recommended</span>
+                        </div>
+                        <p className="text-xs text-white/70">Cards, UPI, Netbanking & Wallets via Razorpay Standard Checkout</p>
+                      </div>
+                    </div>
+                    <span className="text-xl font-extrabold text-[#fea520]">{totalLabel}</span>
                   </div>
+
+                  {isPaymentVerified ? (
+                    <div className="bg-emerald-950/70 border border-emerald-500/50 rounded-xl p-3.5 flex items-center gap-3 text-emerald-300 text-xs font-semibold">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                      <div>
+                        <span className="font-bold text-sm block text-emerald-200">Payment Verified Successfully!</span>
+                        <span className="font-mono text-xs text-white/90">Razorpay ID: {transactionId}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleRazorpayPayment}
+                      disabled={isRazorpayLoading || !quoteReady}
+                      className="w-full bg-[#fea520] hover:bg-[#e36100] text-[#000a1e] hover:text-white font-extrabold py-3.5 px-4 rounded-xl text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-lg active:scale-[0.99]"
+                    >
+                      {isRazorpayLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin text-[#000a1e]" />
+                          <span>Opening Razorpay Checkout...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="w-4 h-4" />
+                          <span>Pay {totalLabel} Online with Razorpay</span>
+                          <ArrowRight className="w-4 h-4 ml-1" />
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  {razorpayError && (
+                    <div className="bg-red-950/80 border border-red-500/50 rounded-xl p-3 flex items-center gap-2.5 text-red-200 text-xs">
+                      <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                      <span>{razorpayError}</span>
+                    </div>
+                  )}
                 </div>
+
+                {/* Divider */}
+                <div className="relative flex py-1 items-center">
+                  <div className="flex-grow border-t border-[#d1e4ff]"></div>
+                  <span className="flex-shrink mx-4 text-[11px] font-bold text-[#74777f] uppercase tracking-wider">Or Pay Manually via UPI / PayPal</span>
+                  <div className="flex-grow border-t border-[#d1e4ff]"></div>
+                </div>
+
+                {/* Payment Info Section */}
+                <div className="bg-[#f8f9ff] rounded-xl p-5 border border-[#d1e4ff] space-y-4">
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck className="w-5 h-5 text-[#002147] flex-shrink-0 mt-0.5" />
+                    <div className="text-xs text-[#002147] leading-relaxed">
+                      <strong>Secure Manual Payment:</strong> {showUpi && showPaypal ? 'Scan the UPI QR code (India) OR use PayPal (International).' : showUpi ? 'Scan the UPI QR code or pay to the UPI ID.' : 'Pay with PayPal.'} Enter your Transaction/Reference ID below to verify your order.
+                    </div>
+                  </div>
 
                 <div className={`grid grid-cols-1 gap-4 ${showUpi && showPaypal ? 'md:grid-cols-2' : ''}`}>
                   {/* UPI Block (India) */}
@@ -725,7 +892,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
           {step === 3 && (
             <div className="text-center py-6 space-y-4">

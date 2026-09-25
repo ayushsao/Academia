@@ -6,11 +6,9 @@ import { Notice, inputClass } from '../../../components/writer/FormKit';
 import { Spinner, StatusBadge } from '../../../components/writer/WriterBits';
 import { cn } from '../../../lib/utils';
 
-export type OnboardingSection = 'email' | 'phone' | 'profile' | 'skills' | 'documents' | 'submit';
+export type OnboardingSection = 'profile' | 'skills' | 'documents' | 'submit';
 
 const CHECK_LABELS: Record<string, { label: string; section: OnboardingSection }> = {
-    emailVerified: { label: 'Email verified', section: 'email' },
-    phoneVerified: { label: 'Phone verified', section: 'phone' },
     profileComplete: { label: 'Professional profile complete', section: 'profile' },
     photoUploaded: { label: 'Profile photo uploaded', section: 'profile' },
     skillsAdded: { label: 'At least one skill selected', section: 'skills' },
@@ -81,7 +79,6 @@ export function ReviewSubmit({ writer, onUpdate, onGoTo }: { writer: WriterMe; o
 
 const STAGES = [
     { key: 'registered', label: 'Registered' },
-    { key: 'verified', label: 'Email & phone verified' },
     { key: 'submitted', label: 'Profile submitted' },
     { key: 'review', label: 'HR review' },
     { key: 'approved', label: 'Approved' },
@@ -90,10 +87,9 @@ const STAGES = [
 ];
 
 function stageIndex(w: WriterMe) {
-    if (w.status === 'ACTIVE') return 6;
-    if (w.status === 'APPROVED') return 5;
-    if (['SUBMITTED', 'UNDER_REVIEW', 'INFO_REQUESTED'].includes(w.application.status)) return 3;
-    if (w.emailVerified && w.phoneVerified) return 2;
+    if (w.status === 'ACTIVE') return 5;
+    if (w.status === 'APPROVED') return 4;
+    if (['SUBMITTED', 'UNDER_REVIEW', 'INFO_REQUESTED'].includes(w.application.status)) return 2;
     return 1;
 }
 
@@ -102,7 +98,7 @@ export function ApplicationTracker({ writer, compact }: { writer: WriterMe; comp
     const current = stageIndex(writer);
     const halted = ['REJECTED', 'SUSPENDED', 'INACTIVE'].includes(writer.status);
     return (
-        <ol className={cn('grid gap-y-3', compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-7 sm:gap-x-2')}>
+        <ol className={cn('grid gap-y-3', compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-6 sm:gap-x-2')}>
             {STAGES.map((s, i) => {
                 const done = !halted && i < current;
                 const active = !halted && i === current;

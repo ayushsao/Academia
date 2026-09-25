@@ -157,8 +157,6 @@ router.get('/recruitment', requirePermission('recruitment.read'), async (req, re
         ]);
         const stages = [
             { key: 'registered', label: 'Registered', n: registered },
-            { key: 'emailVerified', label: 'Email verified', n: emailVerified },
-            { key: 'phoneVerified', label: 'Phone verified', n: phoneVerified },
             { key: 'submitted', label: 'Application submitted', n: submitted },
             { key: 'approved', label: 'Approved', n: approved },
             { key: 'active', label: 'Active member', n: active },

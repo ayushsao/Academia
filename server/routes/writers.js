@@ -98,15 +98,10 @@ router.post('/register', registerLimiter, validateInput(writerRegisterSchema), a
         scheduleDirectoryRefresh(writer._id);
         afterRegistration(writer, { ip: req.ip }).catch(err => console.error('[Writers] risk checks failed:', err.message));
 
-        // Kick off email verification; a delivery failure shouldn't block sign-up since the writer can resend.
-        let emailCode = { sent: true };
-        try { await issueOtp({ userId: user._id, channel: 'EMAIL', target: user.email }); }
-        catch (err) { emailCode = { sent: false }; console.error('[Writers] initial email OTP failed:', err.message); }
 
         res.status(201).json({
             token,
             user: { id: user._id, name: user.name, email: user.email, role: user.role },
-            emailCode,
         });
     } catch (err) {
         // No multi-document transactions without a replica set — roll back manually.
@@ -187,6 +182,9 @@ router.patch('/phone', authenticateUser, requireWriterAccount, validateInput(wri
         const phone = phoneField.safeParse(req.body);
         if (!phone.success) return res.status(400).json({ error: phone.error.issues[0].message });
         if (phone.data.phoneE164 !== writer.phoneE164) {
+            // One writer account per phone number.
+            if (await Writer.exists({ phoneE164: phone.data.phoneE164, _id: { $ne: writer._id } }))
+                return res.status(409).json({ error: 'This phone number is already used by another account.' });
             Object.assign(writer, phone.data, { phoneVerified: false, phoneVerifiedAt: undefined });
             await writer.save();
         }

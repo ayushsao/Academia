@@ -5,7 +5,8 @@ import {
     TrendingUp, AlertCircle, Clock, CheckCircle2, XCircle,
     Shield, Mail, DollarSign, FileText, Menu, Award,
     BarChart2, Settings, Tag, Globe, Save, Activity,
-    PenTool, History, CheckSquare, Crown, ClipboardList, Gauge, Megaphone, ShieldAlert, FileEdit, KeyRound, Library
+    PenTool, History, CheckSquare, Crown, ClipboardList, Gauge, Megaphone, ShieldAlert, FileEdit, KeyRound, Library,
+    UploadCloud
 } from 'lucide-react';
 
 import AdminWritersTab from './marketplace/admin/AdminWritersTab';
@@ -165,6 +166,37 @@ const OrderDetailDrawer = ({
     const [adminNotes, setAdminNotes] = useState(order.adminNotes || '');
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [uploadingFile, setUploadingFile] = useState(false);
+    const adminFileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleAdminFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || !e.target.files.length) return;
+        setUploadingFile(true);
+        try {
+            const formData = new FormData();
+            (Array.from(e.target.files) as File[]).forEach(f => formData.append('files', f));
+
+            const res = await fetch(`${API}/admin/orders/${order.orderId}/files`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+                body: formData
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || 'Failed to attach file');
+            }
+
+            const data = await res.json();
+            onUpdate(data.order);
+            alert('File(s) attached successfully!');
+        } catch (err: any) {
+            alert(err.message || 'Upload failed');
+        } finally {
+            setUploadingFile(false);
+            if (adminFileInputRef.current) adminFileInputRef.current.value = '';
+        }
+    };
 
     const isNew = (new Date().getTime() - new Date(order.createdAt).getTime()) < 5 * 60 * 1000;
 
@@ -300,23 +332,45 @@ const OrderDetailDrawer = ({
 
                     {/* Uploaded Files */}
                     <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Uploaded Files</p>
+                        <div className="flex items-center justify-between mb-4">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Uploaded Files</p>
+                            <button
+                                onClick={() => adminFileInputRef.current?.click()}
+                                disabled={uploadingFile}
+                                className="text-xs font-bold text-[#002147] hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            >
+                                <UploadCloud className="w-3.5 h-3.5" />
+                                {uploadingFile ? 'Uploading...' : '+ Attach File'}
+                            </button>
+                            <input
+                                ref={adminFileInputRef}
+                                type="file"
+                                multiple
+                                accept=".pdf,.doc,.docx,.xlsx,.xls,.pptx,.ppt,.txt,.csv,.rtf,.zip,.jpg,.jpeg,.png,.webp"
+                                className="hidden"
+                                onChange={handleAdminFileUpload}
+                            />
+                        </div>
                         {order.files && order.files.length > 0 ? (
                             <div className="space-y-3">
                                 {order.files.map((fileName, idx) => {
                                     const fileUrl = `${API}/admin/orders/files/${encodeURIComponent(fileName)}`;
+                                    const cleanName = fileName.replace(/^[0-9a-f]{32}-/, '');
                                     return (
                                         <div
                                             key={idx}
                                             className="flex items-center gap-4 p-4 bg-gray-50 border border-gray-100 rounded-xl hover:bg-gray-100 transition-colors group"
                                         >
                                             <div className="w-10 h-10 bg-white border border-gray-200 text-gray-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-                                                <FileText className="w-5 h-5" />
+                                                <FileText className="w-5 h-5 text-blue-600" />
                                             </div>
-                                            <span className="text-sm font-semibold text-gray-700 truncate flex-1">{fileName}</span>
+                                            <div className="flex-1 min-w-0">
+                                                <span className="text-sm font-semibold text-gray-800 truncate block" title={cleanName}>{cleanName}</span>
+                                                <span className="text-[11px] text-gray-400 truncate block font-mono">{fileName}</span>
+                                            </div>
                                             <button
                                                 onClick={() => handleForceDownload(fileUrl, fileName)}
-                                                className="text-[11px] uppercase tracking-widest font-extrabold bg-white border border-gray-200 text-gray-600 px-4 py-2.5 rounded-lg hover:border-gray-300 hover:text-[#000a1e] hover:shadow-sm transition-all flexitems-center gap-1.5"
+                                                className="text-[11px] uppercase tracking-widest font-extrabold bg-white border border-gray-200 text-gray-600 px-4 py-2.5 rounded-lg hover:border-gray-300 hover:text-[#000a1e] hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
                                             >
                                                 Download
                                             </button>
@@ -325,9 +379,17 @@ const OrderDetailDrawer = ({
                                 })}
                             </div>
                         ) : (
-                            <div className="flex items-center gap-2 text-gray-400 py-2">
-                                <FileText className="w-4 h-4" />
-                                <span className="text-sm">No files uploaded by student</span>
+                            <div className="flex items-center justify-between text-gray-400 py-3 px-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                <div className="flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-gray-400" />
+                                    <span className="text-sm">No files uploaded by student</span>
+                                </div>
+                                <button
+                                    onClick={() => adminFileInputRef.current?.click()}
+                                    className="text-xs font-bold text-blue-600 hover:underline cursor-pointer"
+                                >
+                                    Upload Now
+                                </button>
                             </div>
                         )}
                     </div>

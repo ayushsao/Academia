@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { Mail, Smartphone, UserRound, Sparkles, FolderOpen, Send, Check, Lock, LayoutDashboard, Activity } from 'lucide-react';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { UserRound, Sparkles, FolderOpen, Send, Check, Lock, LayoutDashboard, Activity } from 'lucide-react';
 import { MarketplaceNavbar as Navbar } from '../../components/writer/MarketplaceNavbar';
 import { useStore } from '../../store/useStore';
 import type { WriterMe } from '../../lib/writerTypes';
@@ -8,7 +8,6 @@ import { Notice } from '../../components/writer/FormKit';
 import { Spinner } from '../../components/writer/WriterBits';
 import { cn } from '../../lib/utils';
 import { WriterProvider, useWriter } from './onboarding/WriterContext';
-import VerifyChannel from './onboarding/VerifyChannel';
 import ProfileForm from './onboarding/ProfileForm';
 import SkillsForm from './onboarding/SkillsForm';
 import DocumentsManager from './onboarding/DocumentsManager';
@@ -16,9 +15,7 @@ import { ApplicationTracker, ReviewSubmit, StatusExplainer, type OnboardingSecti
 
 type Section = OnboardingSection | 'status';
 
-const SECTIONS: { id: OnboardingSection; label: string; sub: string; icon: typeof Mail }[] = [
-    { id: 'email', label: 'Verify email', sub: 'Confirm your address', icon: Mail },
-    { id: 'phone', label: 'Verify phone', sub: 'SMS code', icon: Smartphone },
+const SECTIONS: { id: OnboardingSection; label: string; sub: string; icon: typeof UserRound }[] = [
     { id: 'profile', label: 'Profile', sub: 'Photo, education, expertise', icon: UserRound },
     { id: 'skills', label: 'Skills', sub: 'What you deliver', icon: Sparkles },
     { id: 'documents', label: 'Documents', sub: 'CV, certificates, samples', icon: FolderOpen },
@@ -28,8 +25,6 @@ const SECTIONS: { id: OnboardingSection; label: string; sub: string; icon: typeo
 function sectionDone(w: WriterMe, id: OnboardingSection) {
     const c = w.onboarding.checks;
     switch (id) {
-        case 'email': return c.emailVerified;
-        case 'phone': return c.phoneVerified;
         case 'profile': return c.profileComplete && c.photoUploaded;
         case 'skills': return c.skillsAdded;
         case 'documents': return c.resumeUploaded;
@@ -37,13 +32,11 @@ function sectionDone(w: WriterMe, id: OnboardingSection) {
     }
 }
 
-const isReachable = (w: WriterMe, id: OnboardingSection) =>
-    id === 'email' || (id === 'phone' ? w.emailVerified : w.emailVerified && w.phoneVerified);
+// Every step is open from the start (there is no email/phone verification step).
+const isReachable = (_w: WriterMe, _id: OnboardingSection) => true;
 
 function initialSection(w: WriterMe): Section {
     switch (w.onboarding.nextStep) {
-        case 'VERIFY_EMAIL': return 'email';
-        case 'VERIFY_PHONE': return 'phone';
         case 'SUBMIT_APPLICATION': return 'submit';
         case 'COMPLETE_PROFILE': return (['profile', 'skills', 'documents'] as const).find(s => !sectionDone(w, s)) || 'submit';
         default: return 'status';
@@ -52,10 +45,8 @@ function initialSection(w: WriterMe): Section {
 
 function OnboardingInner() {
     const { writer, loading, error, setWriter } = useWriter();
-    const location = useLocation();
     const navigate = useNavigate();
     const [section, setSection] = useState<Section | null>(null);
-    const emailCodeSent = Boolean((location.state as any)?.emailCodeSent);
 
     useEffect(() => { if (writer && section === null) setSection(initialSection(writer)); }, [writer, section]);
     useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [section]);
@@ -144,7 +135,7 @@ function OnboardingInner() {
                         </div>
                     ) : (
                         <>
-                            {current && section !== 'email' && section !== 'phone' && (
+                            {current && (
                                 <header className="mb-8">
                                     <h2 className="text-xl font-bold text-[#0b1b33] sm:text-2xl">{current.label}</h2>
                                     <p className="mt-1 text-slate-600">{{
@@ -155,11 +146,6 @@ function OnboardingInner() {
                                     }[section as string]}</p>
                                 </header>
                             )}
-                            {section === 'email' && <VerifyChannel channel="email" writer={writer} initiallySent={emailCodeSent} onUpdate={w => (w.emailVerified ? goNext(w, 'email') : setWriter(w))} />}
-                            {section === 'phone' && (writer.phoneVerified
-                                ? <Notice tone="success">Your phone number {writer.phone.masked} is verified.</Notice>
-                                : <VerifyChannel channel="phone" writer={writer} onUpdate={w => (w.phoneVerified ? goNext(w, 'phone') : setWriter(w))} />)}
-                            {section === 'email' && writer.emailVerified && <Notice tone="success" className="mt-6">Your email {writer.email} is verified.</Notice>}
                             {section === 'profile' && <ProfileForm writer={writer} onUpdate={setWriter} onSaved={w => goNext(w, 'profile')} submitLabel="Save & continue" />}
                             {section === 'skills' && <SkillsForm writer={writer} onSaved={w => goNext(w, 'skills')} submitLabel="Save & continue" />}
                             {section === 'documents' && (

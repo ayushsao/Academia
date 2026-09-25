@@ -73,7 +73,7 @@ export default function WriterRegister() {
         if (Object.keys(errs).length) return;
         setLoading(true); setServerError('');
         try {
-            const data = await api<{ token: string; user: { id: string; name: string; email: string; role: string }; emailCode: { sent: boolean } }>('/writers/register', {
+            const data = await api<{ token: string; user: { id: string; name: string; email: string; role: string } }>('/writers/register', {
                 method: 'POST',
                 body: {
                     name: form.name.trim(), email: form.email.trim(), password: form.password,
@@ -81,7 +81,7 @@ export default function WriterRegister() {
                 },
             });
             login(data.user.email, data.user.name, data.token, data.user.id, data.user.role);
-            navigate('/writer/onboarding', { replace: true, state: { emailCodeSent: data.emailCode.sent } });
+            navigate('/writer/onboarding', { replace: true });
         } catch (err) {
             setServerError((err as Error).message);
         } finally { setLoading(false); }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Mail, Smartphone, CheckCircle2, XCircle, Clock, ExternalLink, MapPin, MessageSquareWarning, Eye } from 'lucide-react';
+import { X, Mail, Smartphone, Clock, ExternalLink, MapPin, MessageSquareWarning, Eye } from 'lucide-react';
 import { api, openProtectedFile } from '../../../lib/api';
 import type { WriterAdminView } from '../../../lib/writerTypes';
 import { APPLICATION_STATUS_LABEL, DOCUMENT_TYPES, countryName } from '../../../lib/writerOptions';
@@ -118,8 +118,8 @@ export default function AdminWriterDrawer({ writerId, token, onClose, onChanged 
                     <>
                         {/* Private contact + verification */}
                         <div className="grid gap-3 border-b border-slate-100 bg-slate-50/60 px-5 py-4 text-sm sm:grid-cols-3 sm:px-6">
-                            <span className="flex min-w-0 items-center gap-2"><Mail className="h-4 w-4 shrink-0 text-slate-400" /><span className="truncate">{contact?.email || writer.email || 'Hidden'}</span>{writer.emailVerified ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" aria-label="Verified" /> : <XCircle className="h-4 w-4 shrink-0 text-slate-300" aria-label="Unverified" />}</span>
-                            <span className="flex items-center gap-2"><Smartphone className="h-4 w-4 text-slate-400" />{contact?.phone || writer.phone.e164}{writer.phoneVerified ? <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-label="Verified" /> : <XCircle className="h-4 w-4 text-slate-300" aria-label="Unverified" />}</span>
+                            <span className="flex min-w-0 items-center gap-2"><Mail className="h-4 w-4 shrink-0 text-slate-400" /><span className="truncate">{contact?.email || writer.email || 'Hidden'}</span></span>
+                            <span className="flex items-center gap-2"><Smartphone className="h-4 w-4 text-slate-400" />{contact?.phone || writer.phone.e164}</span>
                             <span className="flex items-center gap-2"><MapPin className="h-4 w-4 text-slate-400" />{writer.profile.city}, {countryName(writer.profile.country)}</span>
                             {writer.canRevealContact && !contact && (
                                 <button onClick={revealContact} className="inline-flex items-center gap-1.5 justify-self-start text-xs font-semibold text-[#002147] hover:underline sm:col-span-3">

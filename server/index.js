@@ -29,6 +29,7 @@ import riskAdminRouter from './routes/riskAdmin.js';
 import catalogAdminRouter from './routes/catalogAdmin.js';
 import catalogContentAdminRouter from './routes/catalogContentAdmin.js';
 import catalogRouter from './routes/catalog.js';
+import paymentsRouter from './routes/payments.js';
 import { startNotificationWorker } from './services/notifications.js';
 import { backfillWriterDirectory } from './services/writerDirectory.js';
 import { startAssignmentScheduler } from './services/assignmentService.js';
@@ -106,6 +107,7 @@ app.use('/api/assignments', assignmentsRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/content', contentRouter);
 app.use('/api/catalog', catalogRouter);
+app.use('/api', paymentsRouter);
 
 app.get('/api/health', (req, res) =>
     res.json({ status: 'OK', timestamp: new Date().toISOString() })

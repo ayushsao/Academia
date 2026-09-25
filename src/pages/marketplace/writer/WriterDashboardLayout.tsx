@@ -10,7 +10,7 @@ import { AvailabilityDot, Spinner, StatusBadge, WriterAvatar } from '../../../co
 import { Notice } from '../../../components/writer/FormKit';
 import { cn } from '../../../lib/utils';
 
-const ONBOARDING_STEPS = ['VERIFY_EMAIL', 'VERIFY_PHONE', 'COMPLETE_PROFILE', 'SUBMIT_APPLICATION'];
+const ONBOARDING_STEPS = ['COMPLETE_PROFILE', 'SUBMIT_APPLICATION'];
 
 // Items flagged `memberOnly` need an ACTIVE writer, i.e. a live membership (enforced server-side too).
 const NAV_ITEMS = [

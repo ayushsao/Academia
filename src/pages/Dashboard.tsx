@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, LayoutDashboard, List, Coins, Layers, Plus, Bookmark, Wallet, Bell, MessageCircle, ChevronRight, User, FileText, CheckCircle, Clock, Home } from 'lucide-react';
+import { LogOut, LayoutDashboard, List, Coins, Layers, Plus, Bookmark, Wallet, Bell, MessageCircle, ChevronRight, User, FileText, CheckCircle, Clock, Home, Paperclip, Download, UploadCloud } from 'lucide-react';
 import { OrderModal } from '../components/OrderModal';
 import { AcademiaLogo } from '../components/AcademiaLogo';
 
@@ -13,8 +13,63 @@ export const Dashboard: React.FC = () => {
     const navigate = useNavigate();
     const [orderModalOpen, setOrderModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'loyalty' | 'resources'>('orders');
+    const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+    const [uploadingForOrder, setUploadingForOrder] = useState<string | null>(null);
+    const studentFileInputRefs = React.useRef<Record<string, HTMLInputElement | null>>({});
 
-    
+    const handleDownload = async (fileName: string) => {
+        try {
+            const fileUrl = `${API}/orders/files/${encodeURIComponent(fileName)}`;
+            const headers: Record<string, string> = {};
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            const resp = await fetch(fileUrl, { headers, credentials: 'include' });
+            if (!resp.ok) throw new Error("Could not download file.");
+            const blob = await resp.blob();
+            const localUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = localUrl;
+            a.download = fileName.replace(/^[0-9a-f]{32}-/, '');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(localUrl);
+        } catch {
+            alert("Failed to download file.");
+        }
+    };
+
+    const handleStudentFileUpload = async (orderId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || !e.target.files.length) return;
+        setUploadingForOrder(orderId);
+        try {
+            const formData = new FormData();
+            (Array.from(e.target.files) as File[]).forEach(f => formData.append('files', f));
+            const headers: Record<string, string> = {};
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const res = await fetch(`${API}/orders/${orderId}/files`, {
+                method: 'POST',
+                headers,
+                credentials: 'include',
+                body: formData
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || 'Failed to attach file');
+            }
+
+            const data = await res.json();
+            setOrders(orders.map(o => ((o as any).orderId === orderId || (o as any).id === orderId) ? { ...o, files: data.files } : o));
+            alert('File(s) attached successfully!');
+        } catch (err: any) {
+            alert(err.message || 'Upload failed');
+        } finally {
+            setUploadingForOrder(null);
+            e.target.value = '';
+        }
+    };
+
     useEffect(() => {
         if (!token) return;
         const loadOrders = async () => {
@@ -224,47 +279,122 @@ export const Dashboard: React.FC = () => {
                                 </div>
                             ) : (
                                 <div className="w-full overflow-x-auto">
-                                    <table className="w-full text-left border-collapse min-w-[600px]">
+                                    <table className="w-full text-left border-collapse min-w-[700px]">
                                         <thead>
                                             <tr className="bg-[#dfe4ef] text-[#4a5568] text-[11px] sm:text-sm">
                                                 <th className="font-bold py-3 px-4 sm:px-6 whitespace-nowrap">Order ID & Status</th>
                                                 <th className="font-bold py-3 px-4 sm:px-6 whitespace-nowrap">Service Type</th>
                                                 <th className="font-bold py-3 px-4 sm:px-6 whitespace-nowrap">Deadline</th>
+                                                <th className="font-bold py-3 px-4 sm:px-6 whitespace-nowrap">Files</th>
                                                 <th className="font-bold py-3 px-4 sm:px-6 whitespace-nowrap">Price Quote</th>
-                                                <th className="font-bold py-3 px-4 sm:px-6 whitespace-nowrap">Payment Status</th>
+                                                <th className="font-bold py-3 px-4 sm:px-6 whitespace-nowrap">Payment</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {orders.map(order => (
-                                                <tr key={order.orderId || order.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                                    <td className="py-4 px-4 sm:px-6">
-                                                        <div className="font-bold text-[#000a1e] text-xs sm:text-sm">{order.orderId || order.id}</div>
-                                                        <span className={`inline-block mt-1 text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase ${order.status === 'Completed' ? 'bg-emerald-100 text-emerald-700'
-                                                            : order.status === 'Pending' ? 'bg-amber-100 text-amber-700'
-                                                                : 'bg-blue-100 text-blue-700'
-                                                            }`}>
-                                                            {order.status}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-4 px-4 sm:px-6">
-                                                        <div className="font-bold text-gray-700 text-xs sm:text-sm whitespace-pre-wrap line-clamp-2">{order.service}</div>
-                                                        <div className="text-[10px] sm:text-xs text-gray-500 mt-1">{order.subject}</div>
-                                                    </td>
-                                                    <td className="py-4 px-4 sm:px-6 text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">
-                                                        {order.deadline}
-                                                    </td>
-                                                    <td className="py-4 px-4 sm:px-6 font-black text-[#e37e25] text-sm">
-                                                        {formatOrderTotal(order.totalAmount, order.currency)}
-                                                    </td>
-                                                    <td className="py-4 px-4 sm:px-6">
-                                                        {order.totalAmount > 0 ? (
-                                                            <span className="text-[10px] sm:text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded border border-red-100">UNPAID</span>
-                                                        ) : (
-                                                            <span className="text-[10px] sm:text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">FREE</span>
+                                            {orders.map(order => {
+                                                const oid = (order as any).orderId || (order as any).id;
+                                                const hasFiles = order.files && order.files.length > 0;
+                                                const isExpanded = expandedOrderId === oid;
+                                                return (
+                                                    <React.Fragment key={oid}>
+                                                        <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                                            <td className="py-4 px-4 sm:px-6">
+                                                                <div className="font-bold text-[#000a1e] text-xs sm:text-sm">{oid}</div>
+                                                                <span className={`inline-block mt-1 text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase ${order.status === 'Completed' ? 'bg-emerald-100 text-emerald-700'
+                                                                    : order.status === 'Pending' ? 'bg-amber-100 text-amber-700'
+                                                                        : 'bg-blue-100 text-blue-700'
+                                                                    }`}>
+                                                                    {order.status}
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-4 px-4 sm:px-6">
+                                                                <div className="font-bold text-gray-700 text-xs sm:text-sm whitespace-pre-wrap line-clamp-2">{order.service}</div>
+                                                                <div className="text-[10px] sm:text-xs text-gray-500 mt-1">{order.subject}</div>
+                                                            </td>
+                                                            <td className="py-4 px-4 sm:px-6 text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">
+                                                                {order.deadline}
+                                                            </td>
+                                                            <td className="py-4 px-4 sm:px-6 text-xs whitespace-nowrap">
+                                                                <div className="flex items-center gap-2">
+                                                                    <button
+                                                                        onClick={() => setExpandedOrderId(isExpanded ? null : oid)}
+                                                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold cursor-pointer transition-colors ${hasFiles ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'}`}
+                                                                    >
+                                                                        <Paperclip className="w-3 h-3" />
+                                                                        <span>{hasFiles ? `${order.files!.length} file(s)` : 'No files'}</span>
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => studentFileInputRefs.current[oid]?.click()}
+                                                                        disabled={uploadingForOrder === oid}
+                                                                        className="text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-1 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                                                                        title="Attach rubric or files"
+                                                                    >
+                                                                        {uploadingForOrder === oid ? '...' : '+ Attach'}
+                                                                    </button>
+                                                                    <input
+                                                                        ref={el => { studentFileInputRefs.current[oid] = el; }}
+                                                                        type="file"
+                                                                        multiple
+                                                                        accept=".pdf,.doc,.docx,.xlsx,.xls,.pptx,.ppt,.txt,.csv,.rtf,.zip,.jpg,.jpeg,.png,.webp"
+                                                                        className="hidden"
+                                                                        onChange={(e) => handleStudentFileUpload(oid, e)}
+                                                                    />
+                                                                </div>
+                                                            </td>
+                                                            <td className="py-4 px-4 sm:px-6 font-black text-[#e37e25] text-sm">
+                                                                {formatOrderTotal(order.totalAmount, order.currency)}
+                                                            </td>
+                                                            <td className="py-4 px-4 sm:px-6">
+                                                                {order.totalAmount > 0 ? (
+                                                                    <span className="text-[10px] sm:text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded border border-red-100">UNPAID</span>
+                                                                ) : (
+                                                                    <span className="text-[10px] sm:text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">FREE</span>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                        {isExpanded && (
+                                                            <tr className="bg-blue-50/40 border-b border-blue-100">
+                                                                <td colSpan={6} className="py-3 px-6">
+                                                                    <div className="text-xs font-bold text-[#000a1e] mb-2 uppercase tracking-wider flex items-center justify-between">
+                                                                        <span>Uploaded Files for Order {oid}</span>
+                                                                        <button
+                                                                            onClick={() => studentFileInputRefs.current[oid]?.click()}
+                                                                            disabled={uploadingForOrder === oid}
+                                                                            className="text-xs font-bold text-blue-700 bg-white hover:bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg cursor-pointer"
+                                                                        >
+                                                                            + Upload Another File
+                                                                        </button>
+                                                                    </div>
+                                                                    {hasFiles ? (
+                                                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                                                            {order.files!.map((fn, fIdx) => {
+                                                                                const clean = fn.replace(/^[0-9a-f]{32}-/, '');
+                                                                                return (
+                                                                                    <div key={fIdx} className="flex items-center justify-between bg-white p-2.5 rounded-lg border border-gray-200 shadow-2xs">
+                                                                                        <div className="flex items-center gap-2 min-w-0 mr-2">
+                                                                                            <FileText className="w-4 h-4 text-blue-600 shrink-0" />
+                                                                                            <span className="text-xs font-medium text-gray-800 truncate" title={clean}>{clean}</span>
+                                                                                        </div>
+                                                                                        <button
+                                                                                            onClick={() => handleDownload(fn)}
+                                                                                            className="text-xs font-bold text-[#002147] hover:underline flex items-center gap-1 shrink-0 cursor-pointer"
+                                                                                        >
+                                                                                            <Download className="w-3.5 h-3.5" />
+                                                                                            <span>Download</span>
+                                                                                        </button>
+                                                                                    </div>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <p className="text-xs text-gray-500 py-1">No files attached to this order yet. Use "+ Upload Another File" above to upload rubrics, prompts or datasets.</p>
+                                                                    )}
+                                                                </td>
+                                                            </tr>
                                                         )}
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                                    </React.Fragment>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>

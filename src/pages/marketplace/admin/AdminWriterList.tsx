@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Search, RefreshCw, PenTool, ChevronLeft, ChevronRight, CheckCircle2, XCircle, SlidersHorizontal, Star } from 'lucide-react';
+import { Search, RefreshCw, PenTool, ChevronLeft, ChevronRight, SlidersHorizontal, Star } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { APPLICATION_STATUS_LABEL, ACADEMIC_LEVELS, countryName, type WriterStatus } from '../../../lib/writerOptions';
 import { CountrySelect, inputClass } from '../../../components/writer/FormKit';
@@ -142,8 +142,6 @@ export default function AdminWriterList({ token, access, mode }: { token: string
                                                             <p className="flex items-center gap-2 truncate font-bold text-[#000a1e]">{r.name}<RiskBadge risk={r.risk} /></p>
                                                             <p className="flex items-center gap-2 truncate text-xs text-gray-400">
                                                                 {r.email && <span>{r.email}</span>}
-                                                                <span className="inline-flex items-center gap-0.5">{r.emailVerified ? <CheckCircle2 className="h-3 w-3 text-emerald-600" /> : <XCircle className="h-3 w-3 text-gray-300" />}email</span>
-                                                                <span className="inline-flex items-center gap-0.5">{r.phoneVerified ? <CheckCircle2 className="h-3 w-3 text-emerald-600" /> : <XCircle className="h-3 w-3 text-gray-300" />}phone</span>
                                                             </p>
                                                         </div>
                                                     </div>

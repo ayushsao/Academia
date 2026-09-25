@@ -41,6 +41,7 @@ interface HeroProps {
     topicTitle?: string;
     instructions?: string;
     files?: string[];
+    fileObjects?: File[];
   }) => void;
   onScrollToTimeline: () => void;
 }
@@ -59,6 +60,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
   const [courseCode, setCourseCode] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState<boolean>(true);
   const [currency, setCurrency] = useState<'£' | '$' | '€' | 'A$'>('£');
   const [showDetailsSection, setShowDetailsSection] = useState<boolean>(false);
@@ -201,7 +203,8 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
       academicLevel,
       topicTitle: courseCode ? `[${courseCode}]` : undefined,
       instructions: description || (email ? `Contact: ${email} | Phone: ${countryCode} ${phone}` : undefined),
-      files: attachedFileName ? [attachedFileName] : undefined
+      files: attachedFileName ? [attachedFileName] : undefined,
+      fileObjects: attachedFile ? [attachedFile] : undefined,
     });
   };
 
@@ -1094,11 +1097,13 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                         type="file"
                         ref={fileInputRef}
                         className="hidden"
-                        accept=".pdf,.doc,.docx,.txt"
+                        accept=".pdf,.doc,.docx,.xlsx,.xls,.pptx,.ppt,.txt,.csv,.rtf,.zip,.jpg,.jpeg,.png,.webp"
                         onChange={(e) => {
                           if (e.target.files && e.target.files[0]) {
                             setAttachedFileName(e.target.files[0].name);
+                            setAttachedFile(e.target.files[0]);
                           }
+                          e.target.value = '';
                         }}
                       />
                       {attachedFileName ? (
@@ -1107,7 +1112,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                           <span className="max-w-[170px] truncate font-medium">{attachedFileName}</span>
                           <button
                             type="button"
-                            onClick={() => setAttachedFileName(null)}
+                            onClick={() => { setAttachedFileName(null); setAttachedFile(null); }}
                             className="hover:text-red-500 ml-1 cursor-pointer"
                           >
                             <X className="w-3 h-3" />
@@ -1123,7 +1128,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                           <span>Attach file</span>
                         </button>
                       )}
-                      <span className="text-xs text-gray-400">PDF, DOC, TXT (Max 50MB)</span>
+                      <span className="text-xs text-gray-400">PDF, DOC, XLSX, TXT, ZIP (Max 50MB)</span>
                     </div>
                   </div>
                 ) : attachedFileName ? (
@@ -1131,7 +1136,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     <span className="flex items-center gap-1.5 truncate font-medium">
                       <Paperclip className="w-3.5 h-3.5" /> {attachedFileName}
                     </span>
-                    <button type="button" onClick={() => setAttachedFileName(null)} className="text-gray-500 hover:text-red-500">
+                    <button type="button" onClick={() => { setAttachedFileName(null); setAttachedFile(null); }} className="text-gray-500 hover:text-red-500">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>

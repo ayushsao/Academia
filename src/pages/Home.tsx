@@ -62,6 +62,7 @@ export default function App() {
     topicTitle?: string;
     instructions?: string;
     files?: string[];
+    fileObjects?: File[];
     quote?: OrderQuote;
   }>({});
 
@@ -82,6 +83,7 @@ export default function App() {
     topicTitle?: string;
     instructions?: string;
     files?: string[];
+    fileObjects?: File[];
     quote?: OrderQuote;
   }) => {
     if (prefill && Object.keys(prefill).length > 0) {

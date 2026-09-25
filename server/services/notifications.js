@@ -67,7 +67,7 @@ async function contactFor(userId) {
 
 // Whether a channel can be used at all for this user (provider + verified contact).
 const channelAvailable = (channel, { user, writer }) =>
-    channelUsable(channel) && (channel === 'EMAIL' ? Boolean(user?.email) : Boolean(writer?.phoneVerified && writer.phoneE164));
+    channelUsable(channel) && (channel === 'EMAIL' ? Boolean(user?.email) : Boolean(writer?.phoneE164));
 
 export async function getPreferences(userId) {
     const [pref, contact] = await Promise.all([NotificationPreference.findOne({ userId }).lean(), contactFor(userId)]);

@@ -4,7 +4,7 @@ import { authenticateUser } from '../middleware.js';
 import { rateLimit } from 'express-rate-limit';
 import { validateInput, orderSchema, orderQuoteSchema } from '../validation.js';
 import { quoteOrder, getRateCard, publicRateCard, quoteMatches, OrderPricingError } from '../services/orderPricing.js';
-import { ownedFileNames, streamOrderFile, customerCanAccess } from '../services/orderFiles.js';
+import { ownedFileNames, streamOrderFile, customerCanAccess, receiveOrderFiles, storeOrderUploads } from '../services/orderFiles.js';
 import { quote, isLiveSelection, PricingError } from '../services/pricing.js';
 import { fromMinor } from '../services/money.js';
 
@@ -130,6 +130,35 @@ router.get('/files/:name', authenticateUser, async (req, res) => {
         if (!await customerCanAccess(req.user.id, req.params.name)) return res.status(404).json({ error: 'File not found.' });
         await streamOrderFile(res, req.params.name);
     } catch { if (!res.headersSent) res.status(500).json({ error: 'Could not load file.' }); }
+});
+
+// POST /api/orders/:id/files — customer attaching additional files to their order
+router.post('/:id/files', authenticateUser, receiveOrderFiles, async (req, res) => {
+    try {
+        const order = await Order.findOne({ orderId: req.params.id, userId: req.user.id });
+        if (!order) return res.status(404).json({ error: 'Order not found.' });
+
+        if (order.status === 'Completed' || order.status === 'Cancelled') {
+            return res.status(400).json({ error: 'Cannot attach files to a closed order.' });
+        }
+
+        const currentFilesCount = (order.files || []).length;
+        const newFiles = req.files || [];
+        if (!newFiles.length) {
+            return res.status(400).json({ error: 'No files provided.' });
+        }
+        if (currentFilesCount + newFiles.length > 5) {
+            return res.status(400).json({ error: 'Maximum 5 files allowed per order.' });
+        }
+
+        const storedNames = await storeOrderUploads(newFiles, req.user.id);
+        order.files = [...(order.files || []), ...storedNames];
+        await order.save();
+
+        res.json({ order, files: order.files });
+    } catch (err) {
+        res.status(err.status || 500).json({ error: err.status ? err.message : 'Failed to attach files.' });
+    }
 });
 
 router.get('/:id', authenticateUser, async (req, res) => {

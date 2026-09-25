@@ -49,7 +49,7 @@ export interface ApplicationEvent {
     at: string;
 }
 
-export type OnboardingStep = 'VERIFY_EMAIL' | 'VERIFY_PHONE' | 'COMPLETE_PROFILE' | 'SUBMIT_APPLICATION' | 'AWAIT_REVIEW' | 'CHOOSE_MEMBERSHIP' | 'DASHBOARD' | 'BLOCKED';
+export type OnboardingStep = 'COMPLETE_PROFILE' | 'SUBMIT_APPLICATION' | 'AWAIT_REVIEW' | 'CHOOSE_MEMBERSHIP' | 'DASHBOARD' | 'BLOCKED';
 
 export interface WriterMe {
     id: string;
@@ -80,7 +80,7 @@ export interface WriterMe {
         override: { status: string; reason: string; setAt: string; setBy?: string } | null;
     };
     onboarding: {
-        checks: Record<'emailVerified' | 'phoneVerified' | 'profileComplete' | 'photoUploaded' | 'skillsAdded' | 'resumeUploaded', boolean>;
+        checks: Record<'profileComplete' | 'photoUploaded' | 'skillsAdded' | 'resumeUploaded', boolean>;
         missing: string[];
         nextStep: OnboardingStep;
         canSubmit: boolean;

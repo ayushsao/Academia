@@ -41,6 +41,7 @@
     "motion": "^12.43.0",
     "multer": "^2.4.0",
     "pdfjs-dist": "^6.3.289",
+    "razorpay": "^2.9.8",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "react-router-dom": "^7.18.2",
