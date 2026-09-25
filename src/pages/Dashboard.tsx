@@ -110,8 +110,6 @@ export const Dashboard: React.FC = () => {
         navigate('/');
     };
 
-    // Calculate generic student ID based on name or random fallback
-    const studentId = user?.id?.toString().substring(0, 7) || Math.floor(1000000 + Math.random() * 9000000);
 
     const activeOrders = orders.filter(o => o.status !== 'Completed' && o.status !== 'Cancelled');
     const pastOrders = orders.filter(o => o.status === 'Completed' || o.status === 'Cancelled');
@@ -217,7 +215,7 @@ export const Dashboard: React.FC = () => {
                         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white text-[#e37e25] flex items-center justify-center font-bold relative z-10 border-2 border-white overflow-hidden shadow-sm">
                             <User className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
-                        <span className="hidden sm:inline-block text-[10px] text-white font-bold tracking-wide mt-0.5">ID {studentId}</span>
+                        <span className="hidden sm:inline-block text-[10px] text-white font-bold tracking-wide mt-0.5">{user?.name?.split(' ')[0] || 'Account'}</span>
                         <span className="hidden sm:inline-block absolute -bottom-2 bg-white text-[#222] text-[8px] font-black px-1.5 rounded-sm shadow-sm">NEW</span>
 
                         {/* Logout Dropdown */}
