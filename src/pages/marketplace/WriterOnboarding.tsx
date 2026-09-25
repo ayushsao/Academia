@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { UserRound, ListChecks, FolderOpen, Send, Check, Lock, LayoutDashboard, Activity } from 'lucide-react';
+import { UserRound, ListChecks, FolderOpen, Send, Check, Lock, LayoutDashboard, Activity, LogOut } from 'lucide-react';
 import { MarketplaceNavbar as Navbar } from '../../components/writer/MarketplaceNavbar';
 import { useStore } from '../../store/useStore';
 import type { WriterMe } from '../../lib/writerTypes';
@@ -47,6 +47,9 @@ function OnboardingInner() {
     const { writer, loading, error, setWriter } = useWriter();
     const navigate = useNavigate();
     const [section, setSection] = useState<Section | null>(null);
+    // Signs out of the writer portal only (a customer session in this browser stays).
+    const logoutWriter = useStore(s => s.logoutWriter);
+    const signOut = () => { logoutWriter(); navigate('/writer/login'); };
 
     useEffect(() => { if (writer && section === null) setSection(initialSection(writer)); }, [writer, section]);
     useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [section]);
@@ -77,11 +80,16 @@ function OnboardingInner() {
                     <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-[#0b1b33] sm:text-4xl">Welcome, {writer.name.split(' ')[0]}</h1>
                     <p className="mt-1 text-slate-600">{submitted ? 'Your application has been submitted.' : `${progress} of ${SECTIONS.length} steps complete. Your progress saves as you go.`}</p>
                 </div>
-                {['APPROVED', 'ACTIVE'].includes(writer.status) && (
-                    <button onClick={() => navigate('/writer/dashboard')} className="inline-flex items-center gap-2 self-start rounded-xl bg-[#002147] px-5 py-3 text-sm font-semibold text-white sm:self-auto">
-                        <LayoutDashboard className="h-4 w-4" /> Go to dashboard
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                    {['APPROVED', 'ACTIVE'].includes(writer.status) && (
+                        <button onClick={() => navigate('/writer/dashboard')} className="inline-flex items-center gap-2 rounded-xl bg-[#002147] px-5 py-3 text-sm font-semibold text-white">
+                            <LayoutDashboard className="h-4 w-4" /> Go to dashboard
+                        </button>
+                    )}
+                    <button onClick={signOut} className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50">
+                        <LogOut className="h-4 w-4" /> Sign out
                     </button>
-                )}
+                </div>
             </div>
 
             <div className="grid gap-6 lg:grid-cols-[17rem_1fr] lg:gap-10">
@@ -170,8 +178,8 @@ function OnboardingInner() {
 }
 
 export default function WriterOnboarding() {
-    const user = useStore(s => s.user);
-    if (!user) return <Navigate to="/writer/login" replace state={{ from: '/writer/onboarding' }} />;
+    const writer = useStore(s => s.writer);
+    if (!writer) return <Navigate to="/writer/login" replace state={{ from: '/writer/onboarding' }} />;
     return (
         <div className="min-h-screen bg-[#f6f8fc] font-sans">
             <Navbar activeSection="" />

@@ -5,9 +5,9 @@ import { rateLimit } from 'express-rate-limit';
 import crypto from 'crypto';
 import { User, Writer } from '../db.js';
 import { AbuseError, assertNotLocked, recordLoginFailure, clearLoginFailures } from '../services/abuse.js';
-import { authenticateUser, issueUserSession, clearSessionCookie } from '../middleware.js';
+import { authenticateUser, issueUserSession, clearUserSession, CLIENT_COOKIE } from '../middleware.js';
 import { validateInput, signupSchema, loginSchema } from '../validation.js';
-import { remember, cacheDel } from '../services/cache.js';
+import { remember } from '../services/cache.js';
 
 const require = createRequire(import.meta.url);
 const bcrypt = require('bcryptjs');
@@ -15,6 +15,13 @@ const bcrypt = require('bcryptjs');
 const DUMMY_HASH = bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), 12);
 
 const router = Router();
+
+// Writers and customers sign in through separate portals (separate sessions).
+const WRONG_PORTAL = {
+    client: 'This is a writer account. Please sign in from the Writer Login page.',
+    writer: "You don't have a writer account. Customers sign in from the main website.",
+};
+const portalOf = (user) => (user.role === 'WRITER' ? 'writer' : 'client');
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 min
@@ -86,6 +93,7 @@ router.post('/google', authLimiter, async (req, res) => {
                 lastLogin: new Date()
             });
         } else {
+            if (portalOf(user) !== 'client') return res.status(403).json({ error: WRONG_PORTAL.client, portal: 'writer' });
             user.lastLogin = new Date();
             await user.save();
         }
@@ -125,6 +133,7 @@ router.post('/signup', authLimiter, validateInput(signupSchema), async (req, res
 router.post('/login', authLimiter, validateInput(loginSchema), async (req, res) => {
     try {
         const { email, password } = req.body;
+        const portal = req.body.portal === 'writer' ? 'writer' : 'client';
 
         // Per-account lockout (across IPs) on top of the per-IP limiter.
         const throttleKey = `user:${email.toLowerCase()}`;
@@ -140,6 +149,8 @@ router.post('/login', authLimiter, validateInput(loginSchema), async (req, res) 
             return res.status(401).json({ error: 'Invalid email or password.' });
         }
         await clearLoginFailures(throttleKey);
+        // Checked only after the password matched, so it reveals nothing about unknown emails.
+        if (portalOf(user) !== portal) return res.status(403).json({ error: WRONG_PORTAL[portal], portal: portalOf(user) });
 
         user.lastLogin = new Date();
         await user.save();
@@ -151,12 +162,10 @@ router.post('/login', authLimiter, validateInput(loginSchema), async (req, res) 
     }
 });
 
-// POST /api/auth/logout
+// POST /api/auth/logout — signs out the customer account only (the writer
+// portal has its own session: POST /api/writers/logout).
 router.post('/logout', (req, res) => {
-    // Clear both the partitioned cookie and any older unpartitioned one.
-    res.clearCookie('auth_token', clearSessionCookie);
-    res.clearCookie('auth_token', { httpOnly: true, secure: true, sameSite: 'none', path: '/' });
-    if (req.user?.id) cacheDel(`user:profile:${req.user.id}`).catch(() => {});
+    clearUserSession(res, CLIENT_COOKIE);
     res.json({ message: 'Logged out' });
 });
 

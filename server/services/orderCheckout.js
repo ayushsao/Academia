@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { Order, OrderCheckout } from '../db.js';
 import { createRazorpayOrder, confirmRazorpayPayment, PaymentProviderError } from './paymentProviders.js';
+import { autoReleaseIfEnabled } from './orderRelease.js';
 
 // Online (Razorpay) payment for customer orders. The amount is always the
 // server's own price for the order; the browser only ever receives a provider
@@ -56,6 +57,7 @@ export async function completeCheckout({ providerOrderId, paymentId, userId, pay
             ...claimed.fields,
             userId: claimed.userId,
             transactionId: payment.id,
+            paymentStatus: 'paid',
             payment: {
                 provider: 'RAZORPAY', status: 'PAID',
                 providerOrderId, providerPaymentId: payment.id,
@@ -63,6 +65,7 @@ export async function completeCheckout({ providerOrderId, paymentId, userId, pay
             },
         });
         await OrderCheckout.updateOne({ _id: claimed._id }, { $set: { status: 'PAID', orderRef: order._id, providerPaymentId: payment.id } });
+        await autoReleaseIfEnabled(order);   // straight to writers when the admin turned auto-approve on
         return order;
     } catch (err) {
         // Let the customer (or the webhook) try again.

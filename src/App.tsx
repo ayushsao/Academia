@@ -2,7 +2,6 @@ import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
 import { useStore } from './store/useStore';
-import { accountHome, isWriterAccount } from './lib/session';
 
 // Every page except Home is loaded on demand, so a first visit only downloads
 // what the landing page needs (admin, dashboards and tools come later, if ever).
@@ -60,15 +59,11 @@ function DeferredChatWidget() {
     return ready ? <Suspense fallback={null}><ChatWidget /></Suspense> : null;
 }
 
-// Signed-in pages. Writers and customers have separate accounts, so each is sent
-// to their own area if they open the other one.
-const ProtectedRoute = ({ children, area }: { children: React.ReactNode; area?: 'customer' | 'writer' }) => {
-    const user = useStore((state) => state.user);
-    if (!user) {
-        return <Navigate to="/" replace />;
-    }
-    if (area === 'customer' && isWriterAccount(user)) return <Navigate to={accountHome(user)} replace />;
-    if (area === 'writer' && user.role && !isWriterAccount(user) && !/^admin$/i.test(user.role)) return <Navigate to={accountHome(user)} replace />;
+// Signed-in pages. The customer account and the writer portal are separate
+// sessions: customer pages need the customer sign-in, writer pages the writer's.
+const ProtectedRoute = ({ children, area = 'customer' }: { children: React.ReactNode; area?: 'customer' | 'writer' }) => {
+    const signedIn = useStore((state) => Boolean(area === 'writer' ? state.writer : state.user));
+    if (!signedIn) return <Navigate to={area === 'writer' ? '/writer/login' : '/'} replace />;
     return <>{children}</>;
 };
 

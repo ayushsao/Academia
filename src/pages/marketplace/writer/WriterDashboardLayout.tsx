@@ -85,13 +85,13 @@ const Badge = ({ n }: { n: number }) => (n > 0 ? <span className="ml-auto min-w-
 
 function LayoutInner() {
     const { writer, loading, error, setWriter } = useWriter();
-    const logout = useStore(s => s.logout);
+    const logout = useStore(s => s.logoutWriter);
     const navigate = useNavigate();
     const unread = useUnreadCount(Boolean(writer));
 
     const handleLogout = async () => {
-        try { await api('/auth/logout', { method: 'POST' }); } catch { /* signing out locally regardless */ }
-        logout();
+        try { await api('/writers/logout', { method: 'POST' }); } catch { /* signing out locally regardless */ }
+        logout();   // the writer portal only — a customer session in this browser stays signed in
         navigate('/writer/login');
     };
 
@@ -177,8 +177,8 @@ function LayoutInner() {
 }
 
 export default function WriterDashboardLayout() {
-    const user = useStore(s => s.user);
-    if (!user) return <Navigate to="/writer/login" replace />;
+    const writer = useStore(s => s.writer);
+    if (!writer) return <Navigate to="/writer/login" replace />;
     return (
         <div className="flex min-h-screen flex-col bg-slate-50 font-sans">
             <Navbar />

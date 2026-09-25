@@ -22,12 +22,30 @@ const VERIFY = { algorithms: ['HS256'] };
 export const sessionCookie = (maxAge) => ({ httpOnly: true, secure: true, sameSite: 'none', partitioned: true, path: '/', maxAge });
 export const clearSessionCookie = { httpOnly: true, secure: true, sameSite: 'none', partitioned: true, path: '/' };
 
-// Signs a user JWT and sets the auth cookie. The token is also returned for
-// browsers that block even partitioned cookies (kept in memory there, never stored).
+// Writers and customers have completely separate sessions, each in its own
+// cookie, so one browser can be signed in to both and neither sign-in (or
+// sign-out) touches the other. Which cookie a request uses depends on the API
+// area it calls: the writer portal's APIs read writer_token, everything else auth_token.
+export const CLIENT_COOKIE = 'auth_token';
+export const WRITER_COOKIE = 'writer_token';
+const WRITER_AREA = /^\/api\/(writers|membership|assignments|notifications|order-workflow\/writer)(\/|\?|$)/;
+export const isWriterArea = (req) => WRITER_AREA.test(req.originalUrl || req.url || '');
+export const sessionCookieName = (role) => (role === 'WRITER' ? WRITER_COOKIE : CLIENT_COOKIE);
+const sessionCookieFor = (req) => req.cookies && req.cookies[isWriterArea(req) ? WRITER_COOKIE : CLIENT_COOKIE];
+
+// Signs a user JWT and sets the session cookie for the account's portal. The
+// token is also returned for browsers that block even partitioned cookies
+// (kept in memory there, never stored).
 export function issueUserSession(res, user) {
     const token = jwt.sign({ id: user._id, email: user.email, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-    res.cookie('auth_token', token, sessionCookie(SESSION_MAX_AGE));
+    res.cookie(sessionCookieName(user.role), token, sessionCookie(SESSION_MAX_AGE));
     return token;
+}
+
+/** Signs out one portal: clears its cookie (partitioned and any older unpartitioned copy). */
+export function clearUserSession(res, cookieName) {
+    res.clearCookie(cookieName, clearSessionCookie);
+    res.clearCookie(cookieName, { httpOnly: true, secure: true, sameSite: 'none', path: '/' });
 }
 
 // CSRF defence for cookie sessions: a state-changing request authenticated by
@@ -36,7 +54,7 @@ export function issueUserSession(res, user) {
 export function csrfGuard(isAllowedOrigin) {
     return (req, res, next) => {
         if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
-        const hasCookie = Boolean(req.cookies && (req.cookies.auth_token || req.cookies.admin_token));
+        const hasCookie = Boolean(req.cookies && (req.cookies[CLIENT_COOKIE] || req.cookies[WRITER_COOKIE] || req.cookies.admin_token));
         if (!hasCookie || req.headers.authorization) return next();
         let origin = req.get('origin');
         if (!origin) { try { origin = new URL(req.get('referer') || '').origin; } catch { origin = ''; } }
@@ -50,15 +68,21 @@ function bearerToken(req) {
 }
 
 export function authenticateUser(req, res, next) {
-    const token = (req.cookies && req.cookies.auth_token) || bearerToken(req);
+    const token = sessionCookieFor(req) || bearerToken(req);
     if (!token)
         return res.status(401).json({ error: 'Unauthorized: No token provided' });
+    let payload;
     try {
-        req.user = jwt.verify(token, JWT_SECRET, VERIFY);
-        next();
+        payload = jwt.verify(token, JWT_SECRET, VERIFY);
     } catch {
         return res.status(401).json({ error: 'Unauthorized: Invalid or expired token' });
     }
+    // A writer's session never opens the customer account (and vice versa the
+    // writer portal checks the WRITER role itself).
+    if (!isWriterArea(req) && payload.role === 'WRITER')
+        return res.status(401).json({ error: 'Unauthorized: This is a writer account. Sign in to the Writer portal instead.' });
+    req.user = payload;
+    next();
 }
 
 // The admin's current role is read from the database (cached briefly) rather than
@@ -123,7 +147,7 @@ export async function identifyPrincipal(req, _res, next) {
     const candidates = [
         [req.cookies && req.cookies.admin_token, ADMIN_SECRET, 'admin'],
         [bearerToken(req), ADMIN_SECRET, 'admin'],
-        [req.cookies && req.cookies.auth_token, JWT_SECRET, 'user'],
+        [sessionCookieFor(req), JWT_SECRET, 'user'],
         [bearerToken(req), JWT_SECRET, 'user'],
     ];
     for (const [token, secret, kind] of candidates) {

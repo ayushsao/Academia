@@ -10,7 +10,8 @@ export const signupSchema = z.object({
 
 export const loginSchema = z.object({
     email: z.string().email("Invalid email format"),
-    password: z.string().min(1, "Password is required")
+    password: z.string().min(1, "Password is required"),
+    portal: z.enum(['client', 'writer']).optional()
 });
 
 export const adminLoginSchema = z.object({

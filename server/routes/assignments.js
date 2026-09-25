@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import { rateLimit } from 'express-rate-limit';
 import {
     Writer, WriterProfile, WriterAvailability, WriterSubscription, Notification, Assignment, AssignmentOffer,
-    AssignmentSubmission, WriterEarning, AssignmentRating, ACTIVE_ASSIGNMENT_STATUSES,
+    AssignmentSubmission, WriterEarning, AssignmentRating, ACTIVE_ASSIGNMENT_STATUSES, Order,
 } from '../db.js';
 import { authenticateUser } from '../middleware.js';
 import { validateInput, declineOfferSchema, workloadSchema } from '../validation.js';
@@ -13,6 +13,7 @@ import { receiveFiles, finalizeFiles, discardTempFiles, streamAssignmentFile } f
 import { UploadError } from '../services/writerFiles.js';
 import { effectiveAvailability, loadWriterBundle, computeOnboarding } from '../services/writerService.js';
 import { MEMBERSHIP_DISCLAIMER } from '../services/membershipSettings.js';
+import { canTakeOrders, OPEN_ORDER } from '../services/orderRelease.js';
 
 const router = Router();
 const actionLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60, message: { error: 'Too many requests. Please slow down.' } });
@@ -93,7 +94,7 @@ router.get('/writer/dashboard', authenticateUser, requireWriter, async (req, res
         const w = req.writer;
         const settings = await getAssignmentSettings();
         const now = new Date();
-        const [bundle, openOffers, active, completed, earnings, notifications, unread, subscription, availability] = await Promise.all([
+        const [bundle, openOffers, active, completed, earnings, notifications, unread, subscription, availability, clientOrders] = await Promise.all([
             loadWriterBundle({ _id: w._id }),
             AssignmentOffer.countDocuments({ writerId: w._id, status: 'OFFERED', expiresAt: { $gt: now } }),
             Assignment.find({ assignedWriterId: w._id, status: { $in: ACTIVE_ASSIGNMENT_STATUSES } }).sort({ writerDeadline: 1 }),
@@ -103,6 +104,7 @@ router.get('/writer/dashboard', authenticateUser, requireWriter, async (req, res
             Notification.countDocuments({ userId: w.userId, read: false }),
             WriterSubscription.findOne({ writerId: w._id, isOpen: true }).select('planName status currentPeriodEnd autoRenew billingPeriod').lean(),
             WriterAvailability.findOne({ writerId: w._id }),
+            canTakeOrders(w) ? Order.countDocuments(OPEN_ORDER) : 0,   // released client orders open to every plan holder
         ]);
 
         // Profile completion: onboarding requirements plus optional extras that help matching.
@@ -121,7 +123,7 @@ router.get('/writer/dashboard', authenticateUser, requireWriter, async (req, res
             status: w.status,
             profileCompletion: { percent: Math.round((done / Object.keys(all).length) * 100), items: all },
             membership: subscription ? { plan: subscription.planName, status: subscription.status, renewsAt: subscription.currentPeriodEnd, autoRenew: subscription.autoRenew, billingPeriod: subscription.billingPeriod } : { plan: null, status: w.membership?.status || 'NONE' },
-            opportunities: { available: openOffers, active: active.length, completed },
+            opportunities: { available: openOffers + clientOrders, offers: openOffers, clientOrders, active: active.length, completed },
             workload: { active: active.length, limit: workloadLimit(w, settings), availability: effectiveAvailability(availability) },
             upcoming: active.slice(0, 5).map(a => ({ ref: a.assignmentRef, title: a.title, status: a.status, dueAt: a.status === 'REVISION_REQUESTED' ? a.revisionDueAt : a.writerDeadline })),
             metrics: w.metrics,

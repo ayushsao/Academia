@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { rateLimit } from 'express-rate-limit';
 import { User, Writer, WriterProfile, WriterSkill, WriterDocument, WriterApplication, WriterAvailability } from '../db.js';
-import { authenticateUser, identifyPrincipal, issueUserSession } from '../middleware.js';
+import { authenticateUser, identifyPrincipal, issueUserSession, clearUserSession, WRITER_COOKIE } from '../middleware.js';
 import { remember, cacheDel, cacheDelPattern } from '../services/cache.js';
 import { can } from '../permissions.js';
 import {
@@ -119,6 +119,12 @@ router.post('/register', registerLimiter, validateInput(writerRegisterSchema), a
 
 router.get('/me', authenticateUser, requireWriterAccount, (req, res) => {
     res.json({ writer: toOwnerView(req.bundle) });
+});
+
+// Signs out the writer portal only; a customer session in the same browser stays signed in.
+router.post('/logout', (req, res) => {
+    clearUserSession(res, WRITER_COOKIE);
+    res.json({ message: 'Logged out' });
 });
 
 // ── Email & phone verification ────────────────────────────────────────────────

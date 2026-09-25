@@ -20,7 +20,7 @@ type Catalogue = { plans: PublicPlan[]; currencies: string[]; suggestedCurrency:
 // catalogue (Admin → Memberships → Plans); headings, taglines, notes and FAQ from
 // Admin → Site Content. Prices are for display: checkout re-prices on the server.
 export default function WriterPricing() {
-    const user = useStore(s => s.user);
+    const isWriter = useStore(s => Boolean(s.writer));
     const { data: content } = useMarketplaceContent();
     const [catalogue, setCatalogue] = useState<Catalogue | null>(null);
     const [error, setError] = useState('');
@@ -41,7 +41,6 @@ export default function WriterPricing() {
         }));
     }, [catalogue, currency]);
 
-    const isWriter = user?.role === 'WRITER';
     const cta = isWriter ? { href: '/writer/membership', label: 'Choose in your dashboard' } : { href: '/writer/register', label: 'Apply to join' };
     const pricing = content?.content.pricing;
 

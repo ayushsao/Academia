@@ -21,10 +21,10 @@ const DOCUMENT_ICONS = [FileText, Award, PenLine, FolderOpen];
 const pick = <T,>(list: T[], i: number) => list[i % list.length];
 
 export default function BecomeWriter() {
-    const user = useStore(s => s.user);
+    const isWriter = useStore(s => Boolean(s.writer));
     const { data, error } = useMarketplaceContent();
-    const primaryHref = user?.role === 'WRITER' ? '/writer/onboarding' : '/writer/register';
-    const primaryLabel = user?.role === 'WRITER' ? 'Continue your application' : 'Start your application';
+    const primaryHref = isWriter ? '/writer/onboarding' : '/writer/register';
+    const primaryLabel = isWriter ? 'Continue your application' : 'Start your application';
 
     const contentData = data || DEFAULT_MARKETPLACE_CONTENT;
     const { recruitment: r, faq, contact } = contentData.content;

@@ -14,7 +14,7 @@ export default function WriterLogin() {
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const login = useStore(state => state.login);
+    const loginWriter = useStore(state => state.loginWriter);
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -24,20 +24,18 @@ export default function WriterLogin() {
             const res = await fetch(`${API}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify({ ...formData, portal: 'writer' })
             });
             const data = await res.json();
 
             if (!res.ok) throw new Error(data.error || 'Login failed');
 
-            if (data.user.role !== 'WRITER' && data.user.role !== 'ADMIN' && data.user.role !== 'admin') {
-                throw new Error("You don't have a writer account.");
-            }
+            // The server signs in writer accounts only (a separate session from the customer account).
+            if (data.user.role !== 'WRITER') throw new Error("You don't have a writer account.");
 
-            login(data.user.email, data.user.name, data.token, data.user._id || data.user.id, data.user.role);
-            if (data.user.role !== 'WRITER') { navigate('/writer/dashboard'); return; }
+            loginWriter({ email: data.user.email, name: data.user.name, id: data.user._id || data.user.id }, data.token);
             // Send writers who haven't finished applying back into the onboarding flow.
-            const me = await api<{ writer: { onboarding: { nextStep: string } } }>('/writers/me', { token: data.token });
+            const me = await api<{ writer: { onboarding: { nextStep: string } } }>('/writers/me');
             navigate(ONBOARDING_STEPS.includes(me.writer.onboarding.nextStep) ? '/writer/onboarding' : '/writer/dashboard');
         } catch (err: any) {
             setError(err.message);

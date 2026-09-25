@@ -10,6 +10,8 @@ import { requirePermission, noStore } from '../permissions.js';
 import { EXT_MIMES, sniffOrderFileKind } from '../services/orderFiles.js';
 import { recordAudit } from '../services/audit.js';
 import { notify } from '../services/notifications.js';
+import { streamOrderFile } from '../services/orderFiles.js';
+import { releaseOrder, getOrderSettings, saveOrderSettings, canTakeOrders, OPEN_ORDER, WRITER_HIDDEN_FIELDS } from '../services/orderRelease.js';
 
 const require = createRequire(import.meta.url);
 const multer = require('multer');
@@ -66,11 +68,10 @@ function requireCustomer(req, res, next) {
 // GET /api/order-workflow/writer/available — admin-approved orders available for writers with active membership
 router.get('/writer/available', authenticateUser, requireWriter, async (req, res) => {
     try {
-        // 1. Check if writer has an ACTIVE membership plan (plan purchase ke baad)
-        const writer = await Writer.findOne({ userId: req.user.id });
-        const hasActivePlan = writer && writer.membership?.status === 'ACTIVE';
+        // 1. Any approved writer with a live membership plan sees every released order, whatever the subject.
+        const writer = await Writer.findOne({ userId: req.user.id }).select('status membership').lean();
 
-        if (!hasActivePlan) {
+        if (!canTakeOrders(writer)) {
             return res.json({
                 orders: [],
                 requiresMembership: true,
@@ -80,12 +81,8 @@ router.get('/writer/available', authenticateUser, requireWriter, async (req, res
         }
 
         // 2. Only show orders that ADMIN HAS APPROVED (jab admin approve karega tabhi show hoga)
-        const orders = await Order.find({
-            adminApproved: true,
-            writerId: null,
-            status: { $in: ['available', 'pending', 'Pending'] },
-        })
-            .select('-deliveryFiles -feedback -payment -pricing -catalog -adminNotes')
+        const orders = await Order.find(OPEN_ORDER)
+            .select(`${WRITER_HIDDEN_FIELDS} -deliveryFiles`)
             .sort({ createdAt: -1 })
             .lean();
 
@@ -103,9 +100,10 @@ router.get('/writer/available', authenticateUser, requireWriter, async (req, res
 // GET /api/order-workflow/writer/my-orders — orders assigned to this writer
 router.get('/writer/my-orders', authenticateUser, requireWriter, async (req, res) => {
     try {
+        // The client's name only — never their email or other contact details.
         const orders = await Order.find({ writerId: req.user.id })
-            .select('-payment -pricing -catalog')
-            .populate('userId', 'name email')
+            .select('-transactionId -payment -pricing -catalog')
+            .populate('userId', 'name')
             .sort({ createdAt: -1 })
             .lean();
 
@@ -119,14 +117,13 @@ router.get('/writer/my-orders', authenticateUser, requireWriter, async (req, res
 // GET /api/order-workflow/writer/orders/:orderId — single order detail for writer
 router.get('/writer/orders/:orderId', authenticateUser, requireWriter, async (req, res) => {
     try {
+        const writer = await Writer.findOne({ userId: req.user.id }).select('status membership').lean();
         const order = await Order.findOne({
             orderId: req.params.orderId,
-            $or: [
-                { writerId: req.user.id },
-                { adminApproved: true, writerId: null, status: { $in: ['available', 'pending', 'Pending'] } },
-            ],
+            $or: [{ writerId: req.user.id }, ...(canTakeOrders(writer) ? [OPEN_ORDER] : [])],
         })
-            .populate('userId', 'name email')
+            .select('-transactionId -payment -pricing -catalog')
+            .populate('userId', 'name')
             .lean();
 
         if (!order) return res.status(404).json({ error: 'Order not found.' });
@@ -140,27 +137,21 @@ router.get('/writer/orders/:orderId', authenticateUser, requireWriter, async (re
 router.post('/writer/accept/:orderId', authenticateUser, requireWriter, async (req, res) => {
     try {
         // 1. Check writer membership (plan purchase ke baad)
-        const writer = await Writer.findOne({ userId: req.user.id });
-        if (!writer || writer.membership?.status !== 'ACTIVE') {
+        const writer = await Writer.findOne({ userId: req.user.id }).select('status membership').lean();
+        if (!canTakeOrders(writer)) {
             return res.status(403).json({ error: 'An active membership plan is required to accept client orders.' });
         }
 
-        // 2. Find order (must be admin-approved and not yet assigned)
-        const order = await Order.findOne({
-            orderId: req.params.orderId,
-            adminApproved: true,
-            writerId: null,
-            status: { $in: ['available', 'pending', 'Pending'] },
-        });
+        // 2. Claim the order atomically: when two writers accept at once, only the first gets it.
+        const order = await Order.findOneAndUpdate(
+            { ...OPEN_ORDER, orderId: req.params.orderId },
+            { $set: { writerId: req.user.id, status: 'in_progress', assignedTo: req.user.name || 'Writer' } },
+            { new: true },
+        ).select(WRITER_HIDDEN_FIELDS);
 
         if (!order) {
-            return res.status(404).json({ error: 'Order not found, not yet approved by admin, or already assigned.' });
+            return res.status(409).json({ error: 'This order was just taken by another writer, or is no longer available.' });
         }
-
-        order.writerId = req.user.id;
-        order.status = 'in_progress';
-        order.assignedTo = req.user.name || req.user.email || 'Writer';
-        await order.save();
 
         res.json({
             message: 'Order accepted successfully.',
@@ -170,6 +161,21 @@ router.post('/writer/accept/:orderId', authenticateUser, requireWriter, async (r
         console.error('[OrderWorkflow] accept error:', err.message);
         res.status(500).json({ error: 'Could not accept order.' });
     }
+});
+
+// GET /api/order-workflow/writer/files/:orderId/:name — the client's reference files,
+// for an order the writer can see (their own, or an open one they're eligible for).
+router.get('/writer/files/:orderId/:name', authenticateUser, requireWriter, async (req, res) => {
+    try {
+        const name = path.basename(String(req.params.name));
+        const writer = await Writer.findOne({ userId: req.user.id }).select('status membership').lean();
+        const visible = await Order.exists({
+            orderId: req.params.orderId, files: name,
+            $or: [{ writerId: req.user.id }, ...(canTakeOrders(writer) ? [OPEN_ORDER] : [])],
+        });
+        if (!visible) return res.status(404).json({ error: 'File not found.' });
+        await streamOrderFile(res, name);
+    } catch { if (!res.headersSent) res.status(500).json({ error: 'Could not load file.' }); }
 });
 
 // POST /api/order-workflow/writer/upload/:orderId — writer uploads completed work
@@ -269,32 +275,15 @@ router.post('/writer/upload/:orderId', authenticateUser, requireWriter, delivery
 // POST /api/order-workflow/admin/release/:orderId — admin approves order and releases to writers
 router.post('/admin/release/:orderId', authenticateAdmin, requirePermission('orders.write'), async (req, res) => {
     try {
-        const order = await Order.findOne({ orderId: req.params.orderId });
-        if (!order) return res.status(404).json({ error: 'Order not found.' });
-
-        order.adminApproved = true;
-        order.adminApprovedAt = new Date();
-        order.status = 'available';
-        await order.save();
+        // Releases it and notifies every writer with a live plan (any subject).
+        const order = await releaseOrder(req.params.orderId);
+        if (!order) {
+            const existing = await Order.findOne({ orderId: req.params.orderId }).select('adminApproved writerId status').lean();
+            if (!existing) return res.status(404).json({ error: 'Order not found.' });
+            return res.status(409).json({ error: existing.adminApproved ? 'This order is already approved and released to writers.' : 'Only new orders that no writer has taken can be released.' });
+        }
 
         await recordAudit(req, 'ORDER_RELEASED_TO_WRITERS', { targetType: 'ORDER', targetId: order.orderId });
-
-        // Notify writers with active membership plan
-        const activeWriters = await Writer.find({
-            status: { $in: ['APPROVED', 'ACTIVE'] },
-            'membership.status': 'ACTIVE',
-        }).select('userId').limit(20).lean();
-
-        for (const w of activeWriters) {
-            notify({
-                userId: w.userId,
-                category: 'OPPORTUNITY',
-                type: 'ORDER_AVAILABLE',
-                title: `New Order Available: ${order.orderId}`,
-                message: `New order in "${order.subject}": "${order.topicTitle}". Login to accept!`,
-                link: '/writer/orders',
-            }).catch(() => {});
-        }
 
         res.json({
             message: 'Order approved and released to writers with active memberships.',
@@ -303,6 +292,22 @@ router.post('/admin/release/:orderId', authenticateAdmin, requirePermission('ord
     } catch (err) {
         res.status(500).json({ error: 'Could not release order.' });
     }
+});
+
+// GET/PUT /api/order-workflow/admin/settings — auto-approve new (paid) orders.
+router.get('/admin/settings', noStore, authenticateAdmin, requirePermission('orders.read'), async (req, res) => {
+    try { res.json({ settings: await getOrderSettings() }); }
+    catch { res.status(500).json({ error: 'Could not load order settings.' }); }
+});
+
+router.put('/admin/settings', authenticateAdmin, requirePermission('orders.write'), async (req, res) => {
+    try {
+        const autoRelease = req.body?.autoRelease;
+        if (typeof autoRelease !== 'boolean') return res.status(400).json({ error: 'autoRelease must be true or false.' });
+        const settings = await saveOrderSettings({ autoRelease });
+        await recordAudit(req, 'ORDER_SETTINGS_UPDATED', { targetType: 'SETTINGS', reason: `autoRelease=${autoRelease}` });
+        res.json({ settings });
+    } catch { res.status(500).json({ error: 'Could not save order settings.' }); }
 });
 
 // GET /api/order-workflow/admin/submitted — orders awaiting admin review

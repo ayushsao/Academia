@@ -97,7 +97,7 @@ type Step =
     | { kind: 'codes'; codes: string[]; token: string };
 
 // ─── Sign-in screen ───────────────────────────────────────────────────────────
-export function AdminLogin({ onLogin }: { onLogin: (token: string) => void }) {
+export function AdminLogin({ onLogin, notice: initialNotice = '' }: { onLogin: (token: string) => void; notice?: string }) {
     const [step, setStep] = useState<Step>({ kind: 'password' });
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -106,7 +106,7 @@ export function AdminLogin({ onLogin }: { onLogin: (token: string) => void }) {
     const [useRecovery, setUseRecovery] = useState(false);
     const [saved, setSaved] = useState(false);
     const [error, setError] = useState('');
-    const [notice, setNotice] = useState('');
+    const [notice, setNotice] = useState(initialNotice);
     const [loading, setLoading] = useState(false);
 
     const finish = async (token: string) => onLogin(await resolveAdminSession(token));

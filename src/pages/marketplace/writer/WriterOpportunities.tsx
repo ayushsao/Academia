@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, GraduationCap, FileText, Check, X, Inbox } from 'lucide-react';
-import { api } from '../../../lib/api';
+import { BookOpen, GraduationCap, FileText, Check, X, Inbox, Calendar, Crown, Paperclip } from 'lucide-react';
+import { api, openProtectedFile } from '../../../lib/api';
 import { formatMoney } from '../../../lib/money';
 import type { Offer } from '../../../lib/assignmentTypes';
 import { Countdown, FileList } from '../../../components/writer/AssignmentBits';
@@ -99,19 +99,133 @@ function OfferCard({ offer, reasons, onDone }: { offer: Offer; reasons: Record<s
     );
 }
 
+// A customer order the admin released to the marketplace. Open to every writer
+// with a live membership plan, whatever their subject; the first to accept gets it.
+type ClientOrder = {
+    orderId: string; service: string; subject: string; academicLevel?: string; topicTitle: string;
+    description?: string; instructions?: string; pages: number; wordCount?: number; deadline: string;
+    totalAmount?: number; currency?: string; files?: string[];
+    turnitinReport?: boolean; topExpert?: boolean; abstractPage?: boolean;
+};
+type ClientOrders = { orders: ClientOrder[]; requiresMembership?: boolean };
+
+const cleanFileName = (name: string) => name.replace(/^[0-9a-f]{32}-/, '');
+
+function ClientOrderCard({ order, onTaken }: { order: ClientOrder; onTaken: (msg: string) => void }) {
+    const navigate = useNavigate();
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState('');
+    const [open, setOpen] = useState(false);
+    const brief = order.instructions || order.description || '';
+    const extras = [order.turnitinReport && 'Turnitin report', order.topExpert && 'Top expert', order.abstractPage && 'Abstract page'].filter(Boolean) as string[];
+
+    const accept = async () => {
+        if (!window.confirm(`Accept order ${order.orderId}? You'll be responsible for delivering it by the deadline.`)) return;
+        setBusy(true); setError('');
+        try {
+            await api(`/order-workflow/writer/accept/${encodeURIComponent(order.orderId)}`, { method: 'POST' });
+            navigate('/writer/orders', { state: { tab: 'my-orders' } });
+        } catch (e) {
+            // Someone else took it first: drop it from the list.
+            if ((e as { status?: number }).status === 409) onTaken((e as Error).message);
+            else setError((e as Error).message);
+            setBusy(false);
+        }
+    };
+
+    return (
+        <article className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{order.orderId}{order.service ? ` · ${order.service}` : ''}</p>
+                    <h3 className="mt-1 text-lg font-bold text-[#0b1b33]">{order.topicTitle}</h3>
+                    <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
+                        <span className="inline-flex items-center gap-1.5"><BookOpen className="h-4 w-4 text-slate-400" />{order.subject}</span>
+                        {order.academicLevel && <span className="inline-flex items-center gap-1.5"><GraduationCap className="h-4 w-4 text-slate-400" />{order.academicLevel}</span>}
+                        <span className="inline-flex items-center gap-1.5"><FileText className="h-4 w-4 text-slate-400" />{order.pages} page{order.pages === 1 ? '' : 's'}{order.wordCount ? ` · ${order.wordCount.toLocaleString()} words` : ''}</span>
+                        <span className="inline-flex items-center gap-1.5"><Calendar className="h-4 w-4 text-slate-400" />Due {order.deadline}</span>
+                    </p>
+                </div>
+                {Boolean(order.totalAmount) && (
+                    <div className="shrink-0 text-left sm:text-right">
+                        <p className="text-2xl font-extrabold text-[#0b1b33]">{order.currency || ''} {order.totalAmount}</p>
+                        <p className="text-xs text-slate-500">order value</p>
+                    </div>
+                )}
+            </div>
+
+            {(brief || extras.length > 0 || (order.files?.length ?? 0) > 0) && (
+                <button onClick={() => setOpen(v => !v)} aria-expanded={open} className="mt-4 text-sm font-semibold text-[#002147] hover:underline">{open ? 'Hide details' : 'View brief & files'}</button>
+            )}
+            {open && (
+                <div className="mt-4 space-y-4 text-sm text-slate-700">
+                    {brief && <div><h4 className="font-semibold text-[#0b1b33]">Instructions</h4><p className="mt-1 whitespace-pre-line">{brief}</p></div>}
+                    {extras.length > 0 && <p><span className="font-semibold text-[#0b1b33]">Extras:</span> {extras.join(', ')}</p>}
+                    {(order.files?.length ?? 0) > 0 && (
+                        <div>
+                            <h4 className="mb-2 font-semibold text-[#0b1b33]">Reference files</h4>
+                            <ul className="space-y-1.5">
+                                {order.files!.map(fn => (
+                                    <li key={fn}>
+                                        <button onClick={() => openProtectedFile(`/order-workflow/writer/files/${encodeURIComponent(order.orderId)}/${encodeURIComponent(fn)}`).catch(e => setError(e.message))}
+                                            className="inline-flex items-center gap-2 text-[#002147] hover:underline"><Paperclip className="h-4 w-4" />{cleanFileName(fn)}</button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {error && <Notice tone="error" className="mt-4">{error}</Notice>}
+
+            <div className="mt-5">
+                <button onClick={accept} disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#002147] px-6 py-3 font-semibold text-white hover:bg-[#0b2f5c] disabled:opacity-50">
+                    {busy ? <Spinner className="h-4 w-4" /> : <Check className="h-4 w-4" />} Accept order
+                </button>
+            </div>
+        </article>
+    );
+}
+
 export default function WriterOpportunities() {
     const [data, setData] = useState<{ offers: Offer[]; declineReasons: Record<string, string>; disclaimer: string } | null>(null);
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
     const load = useCallback(() => api<typeof data>('/assignments/writer/opportunities').then(setData).catch(e => setError(e.message)), []);
     useEffect(() => { load(); }, [load]);
+    const [clientOrders, setClientOrders] = useState<ClientOrders | null>(null);
+    const [ordersError, setOrdersError] = useState('');
+    const loadOrders = useCallback(() => api<ClientOrders>('/order-workflow/writer/available').then(setClientOrders).catch(e => setOrdersError(e.message)), []);
+    useEffect(() => { loadOrders(); }, [loadOrders]);
 
     return (
         <div className="space-y-6">
             <div>
                 <h1 className="text-2xl font-extrabold text-[#002147] sm:text-3xl">Opportunities</h1>
-                <p className="mt-1 text-slate-600">Assignments offered to you based on your subjects, skills, levels and availability. Offers expire if you don’t respond in time.</p>
+                <p className="mt-1 text-slate-600">Client orders open to every writer on a membership plan, and assignments offered to you based on your subjects, skills, levels and availability.</p>
             </div>
+
+            <section aria-labelledby="client-orders" className="space-y-4">
+                <div className="flex items-baseline justify-between gap-3">
+                    <h2 id="client-orders" className="text-lg font-bold text-[#0b1b33]">Client orders{clientOrders && !clientOrders.requiresMembership ? ` (${clientOrders.orders.length})` : ''}</h2>
+                    <Link to="/writer/orders" className="text-sm font-semibold text-[#002147] hover:underline">My client orders →</Link>
+                </div>
+                {ordersError && <Notice tone="error">{ordersError}</Notice>}
+                {!clientOrders && !ordersError && <div className="flex justify-center py-8"><Spinner className="h-6 w-6 text-[#002147]" /></div>}
+                {clientOrders?.requiresMembership && (
+                    <div className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-sm text-amber-900"><Crown className="mr-1.5 inline h-4 w-4" />Choose a membership plan to see and accept client orders from every subject.</p>
+                        <Link to="/writer/membership" className="shrink-0 rounded-xl bg-[#002147] px-4 py-2.5 text-center text-sm font-semibold text-white">View plans</Link>
+                    </div>
+                )}
+                {clientOrders && !clientOrders.requiresMembership && clientOrders.orders.length === 0 && (
+                    <p className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-8 text-center text-sm text-slate-500">No open client orders right now. We’ll notify you as soon as one is approved.</p>
+                )}
+                {clientOrders?.orders.map(o => <React.Fragment key={o.orderId}><ClientOrderCard order={o} onTaken={m => { setMessage(m); loadOrders(); }} /></React.Fragment>)}
+            </section>
+
+            <h2 className="text-lg font-bold text-[#0b1b33]">Assignment offers</h2>
             {data && <MembershipDisclaimer text={data.disclaimer} />}
             {message && <Notice tone="success">{message}</Notice>}
             {error && <Notice tone="error">{error}</Notice>}

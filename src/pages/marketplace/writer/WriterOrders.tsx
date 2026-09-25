@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { api, API } from '../../../lib/api';
 import { useStore } from '../../../store/useStore';
 import { Inbox, Clock, CheckCircle2, AlertTriangle, Upload, Eye, FileText, Calendar, DollarSign, BookOpen, ArrowRight, RefreshCw, Crown } from 'lucide-react';
@@ -74,8 +74,10 @@ function formatFileSize(bytes: number) {
 }
 
 export default function WriterOrdersPage() {
-    const { token } = useStore();
-    const [tab, setTab] = useState<'available' | 'my-orders'>('available');
+    const token = useStore(s => s.writerToken);
+    // Opens on "My Orders" right after a writer accepts an order from Opportunities.
+    const initialTab = (useLocation().state as { tab?: 'my-orders' } | null)?.tab;
+    const [tab, setTab] = useState<'available' | 'my-orders'>(initialTab || 'available');
     const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
     const [myOrders, setMyOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
@@ -146,11 +148,11 @@ export default function WriterOrdersPage() {
         }
     };
 
-    const handleDownloadRef = async (fileName: string) => {
+    const handleDownloadRef = async (orderId: string, fileName: string) => {
         try {
             const headers: Record<string, string> = {};
             if (token) headers.Authorization = `Bearer ${token}`;
-            const res = await fetch(`${API}/orders/files/${encodeURIComponent(fileName)}`, { headers, credentials: 'include' });
+            const res = await fetch(`${API}/order-workflow/writer/files/${encodeURIComponent(orderId)}/${encodeURIComponent(fileName)}`, { headers, credentials: 'include' });
             if (!res.ok) throw new Error('Download failed.');
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
@@ -327,7 +329,7 @@ export default function WriterOrdersPage() {
                                                     {order.files.map((fn, i) => {
                                                         const clean = fn.replace(/^[0-9a-f]{32}-/, '');
                                                         return (
-                                                            <button key={i} onClick={() => handleDownloadRef(fn)}
+                                                            <button key={i} onClick={() => handleDownloadRef(order.orderId, fn)}
                                                                 className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg p-3 hover:bg-blue-50 hover:border-blue-200 transition text-left">
                                                                 <FileText className="w-4 h-4 text-blue-600 shrink-0" />
                                                                 <span className="text-xs font-medium text-slate-700 truncate">{clean}</span>

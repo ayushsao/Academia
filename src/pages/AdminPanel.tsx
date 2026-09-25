@@ -429,6 +429,43 @@ const OrderDetailDrawer = ({
 };
 
 // ─── Orders Tab ───────────────────────────────────────────────────────────────
+// Auto-approve: new orders paid online go straight to writers with a membership
+// plan. Manual (UPI/PayPal/bank) payments still wait here for an admin to check.
+const AutoApproveToggle = ({ token }: { token: string }) => {
+    const [on, setOn] = useState<boolean | null>(null);
+    const [saving, setSaving] = useState(false);
+    useEffect(() => {
+        apiFetch('/order-workflow/admin/settings', {}, token).then(d => setOn(Boolean(d.settings?.autoRelease))).catch(() => setOn(null));
+    }, [token]);
+    const toggle = async () => {
+        if (on === null) return;
+        const next = !on;
+        if (next && !confirm('Turn on auto-approve? New orders paid online will be released to writers immediately, without waiting for you.')) return;
+        setSaving(true);
+        try {
+            const d = await apiFetch('/order-workflow/admin/settings', { method: 'PUT', body: JSON.stringify({ autoRelease: next }) }, token);
+            setOn(Boolean(d.settings?.autoRelease));
+        } catch (e: any) { alert(e.message || 'Could not save.'); }
+        finally { setSaving(false); }
+    };
+    if (on === null) return null;
+    return (
+        <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <p className="text-sm font-bold text-[#000a1e]">Auto-approve new orders</p>
+                <p className="mt-0.5 text-xs text-gray-500">
+                    {on ? 'On: orders paid online go straight to every writer with a membership plan. Manual payments still need your approval.'
+                        : 'Off: you approve each order before writers can see it.'}
+                </p>
+            </div>
+            <button type="button" role="switch" aria-checked={on} aria-label="Auto-approve new orders" onClick={toggle} disabled={saving}
+                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50 ${on ? 'bg-emerald-500' : 'bg-gray-200'}`}>
+                <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+        </div>
+    );
+};
+
 const OrdersTab = ({ token }: { token: string }) => {
     const [orders, setOrders] = useState<Order[]>([]);
     const [total, setTotal] = useState(0);
@@ -483,6 +520,7 @@ const OrdersTab = ({ token }: { token: string }) => {
                     {newCount} New Order{newCount > 1 ? 's' : ''} Received! Click 'Refresh' to see the latest.
                 </div>
             )}
+            <AutoApproveToggle token={token} />
             <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -1051,10 +1089,12 @@ export const AdminPanel: React.FC = () => {
     useEffect(() => { restoreAdminSession().then(t => { setToken(t); setRestoring(false); }); }, []);
     const handleLogout = clearSession;
 
-    // Auto-logout when any API call returns 401 Unauthorized
+    // Auto-logout when any API call returns 401 Unauthorized (the session expired or was revoked)
+    const [sessionExpired, setSessionExpired] = useState(false);
     useEffect(() => {
-        window.addEventListener('admin-unauthorized', clearSession);
-        return () => window.removeEventListener('admin-unauthorized', clearSession);
+        const expired = () => { clearSession(); setSessionExpired(true); };
+        window.addEventListener('admin-unauthorized', expired);
+        return () => window.removeEventListener('admin-unauthorized', expired);
     }, []);
 
     // The role is read from the server, with resilient fallback to token claims so legacy/in-flight backends still work.
@@ -1076,7 +1116,7 @@ export const AdminPanel: React.FC = () => {
     const current = navItems.find(i => i.id === tab) || navItems[0];
 
     if (restoring) return <div className="min-h-screen bg-[#000a1e] flex items-center justify-center" role="status" aria-label="Loading"><div className="w-8 h-8 border-[3px] border-white/20 border-t-[#fea520] rounded-full animate-spin" /></div>;
-    if (!token) return <AdminLogin onLogin={setToken} />;
+    if (!token) return <AdminLogin notice={sessionExpired ? 'Your session expired. Please sign in again.' : ''} onLogin={t => { setSessionExpired(false); setToken(t); }} />;
 
     if (!access) {
         return (

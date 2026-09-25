@@ -36,7 +36,7 @@ const sectionTitle = 'text-[17px] font-semibold tracking-[-0.01em] text-[#1d1d1f
 
 export default function WriterRegister() {
     const navigate = useNavigate();
-    const login = useStore(s => s.login);
+    const loginWriter = useStore(s => s.loginWriter);
     const defaultCountry = guessCountry();
     const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', country: defaultCountry as string, city: '' });
     const [phone, setPhone] = useState({ country: defaultCountry as string, number: '' });
@@ -80,7 +80,7 @@ export default function WriterRegister() {
                     phoneCountry: phone.country, phoneNumber: phone.number, country: form.country, city: form.city.trim(), acceptTerms: true,
                 },
             });
-            login(data.user.email, data.user.name, data.token, data.user.id, data.user.role);
+            loginWriter({ email: data.user.email, name: data.user.name, id: data.user.id }, data.token);
             navigate('/writer/onboarding', { replace: true });
         } catch (err) {
             setServerError((err as Error).message);

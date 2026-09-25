@@ -19,7 +19,7 @@ export function WriterProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const navigate = useNavigate();
-    const logout = useStore(s => s.logout);
+    const logout = useStore(s => s.logoutWriter);
 
     const refresh = useCallback(async () => {
         try {

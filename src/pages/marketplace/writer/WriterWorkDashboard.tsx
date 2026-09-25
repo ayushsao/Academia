@@ -13,7 +13,7 @@ import { cn } from '../../../lib/utils';
 type Dashboard = {
     profileCompletion: { percent: number; items: Record<string, boolean> };
     membership: { plan: string | null; status: string; renewsAt?: string; autoRenew?: boolean };
-    opportunities: { available: number; active: number; completed: number };
+    opportunities: { available: number; offers?: number; clientOrders?: number; active: number; completed: number };
     workload: { active: number; limit: number; availability: string };
     upcoming: { ref: string; title: string; status: any; dueAt: string }[];
     metrics: { rating: number; ratingCount: number; completedAssignments: number; qualityScore: number; responseRate: number; completionRate: number; onTimeRate: number };
@@ -69,7 +69,7 @@ export default function WriterWorkDashboard() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                <Tile icon={Inbox} label="Available" value={d.opportunities.available} sub="Offers awaiting your reply" to="/writer/opportunities" />
+                <Tile icon={Inbox} label="Available" value={d.opportunities.available} sub={d.opportunities.clientOrders ? `${d.opportunities.clientOrders} client order${d.opportunities.clientOrders === 1 ? "" : "s"} + offers` : "Client orders & offers for you"} to="/writer/opportunities" />
                 <Tile icon={Briefcase} label="Assigned" value={d.opportunities.active} sub="In progress or in review" to="/writer/assignments" />
                 <Tile icon={CheckCircle2} label="Completed" value={d.opportunities.completed} to="/writer/history" />
                 <Tile icon={Star} label="Rating" value={m.ratingCount ? m.rating.toFixed(2) : 'New'} sub={m.ratingCount ? `${m.ratingCount} rated assignment${m.ratingCount === 1 ? '' : 's'}` : 'No ratings yet'} />

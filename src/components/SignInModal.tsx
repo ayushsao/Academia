@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Mail, Lock, X, ArrowRight, ShieldCheck, AlertCircle, User } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
-import { accountHome } from '../lib/session';
 import { AcademiaLogo } from './AcademiaLogo';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -75,7 +74,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
 
       login(data.user.email, data.user.name, data.token, data.user.id, data.user.role);
       onClose();
-      navigate(accountHome(data.user));   // writers → writer area, customers → their dashboard
+      navigate('/dashboard');   // writer accounts are refused here: they sign in at /writer/login
     } catch (err: any) {
       const msg = err.message ? err.message.toLowerCase() : '';
       if (err.name === 'AbortError' || msg.includes('fetch') || msg.includes('load failed') || msg.includes('network')) {
@@ -102,7 +101,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
     setApiError('');
     try {
       const endpoint = activeTab === 'login' ? '/auth/login' : '/auth/signup';
-      const body = activeTab === 'signup' ? { name: name || 'Student', email, password } : { email, password };
+      const body = activeTab === 'signup' ? { name: name || 'Student', email, password } : { email, password, portal: 'client' };
       const res = await fetch(`${API}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -120,7 +119,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
 
       setIsAuthenticating(false);
       onClose();
-      navigate(accountHome(data.user));   // writers → writer area, customers → their dashboard
+      navigate('/dashboard');   // writer accounts are refused here: they sign in at /writer/login
     } catch (err: any) {
       setIsAuthenticating(false);
       const msg = err.message ? err.message.toLowerCase() : '';
