@@ -37,7 +37,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
 
   const navLinks = [
     { label: 'Services', hasDropdown: true },
-    { label: 'Subjects', hasDropdown: false, to: '/subjects' },
     { label: 'Resources', hasDropdown: false, to: '/resources' },
     { label: 'Hire Writers', hasDropdown: true },
     { label: 'Reviews', hasDropdown: false, to: '/reviews' },
