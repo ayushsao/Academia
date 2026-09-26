@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { LogOut, LayoutDashboard, List, Coins, Layers, Plus, Bookmark, Wallet, Bell, MessageCircle, ChevronRight, User, FileText, CheckCircle, Clock, Home, Paperclip, Download, Star, Send, ArrowDown, Eye, Package } from 'lucide-react';
 import { OrderModal } from '../components/OrderModal';
 import { AcademiaLogo } from '../components/AcademiaLogo';
@@ -456,7 +456,14 @@ export const Dashboard: React.FC = () => {
                                                                 {formatOrderTotal(order.totalAmount, order.currency)}
                                                             </td>
                                                             <td className="py-4 px-4 sm:px-6">
-                                                                {order.totalAmount > 0 ? (
+                                                                {(order as any).payment?.status === 'PAID' ? (
+                                                                    <div className="flex flex-col items-start gap-1">
+                                                                        <span className="text-[10px] sm:text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">PAID</span>
+                                                                        <Link to={`/dashboard/receipt/${encodeURIComponent(oid)}`} className="text-[11px] sm:text-xs font-semibold text-[#002147] underline underline-offset-2 hover:text-[#e37e25]">Receipt</Link>
+                                                                    </div>
+                                                                ) : (order as any).payment?.status === 'PENDING_VERIFICATION' ? (
+                                                                    <span className="text-[10px] sm:text-xs font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-100" title="We’re checking your payment reference">VERIFYING</span>
+                                                                ) : order.totalAmount > 0 ? (
                                                                     <span className="text-[10px] sm:text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded border border-red-100">UNPAID</span>
                                                                 ) : (
                                                                     <span className="text-[10px] sm:text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">FREE</span>

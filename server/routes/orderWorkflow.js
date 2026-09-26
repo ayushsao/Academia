@@ -14,6 +14,7 @@ import { streamOrderFile } from '../services/orderFiles.js';
 import { validateInput, biddingSchema, bidSchema, bidRatesSchema } from '../validation.js';
 import { bidRatesView, saveBidRates, budgetFor, getBidRates } from '../services/bidLimits.js';
 import { getRateCard } from '../services/orderPricing.js';
+import { issueReceipt } from '../services/receipts.js';
 import { BiddingError, setBidding, listForWriter, placeBid, withdrawBid, bidsForOrder, acceptBid } from '../services/orderBidding.js';
 import { releaseOrder, getOrderSettings, saveOrderSettings, canTakeOrders, clientOrderView, isCompleted, OPEN_ORDER, WRITER_HIDDEN_FIELDS } from '../services/orderRelease.js';
 
@@ -363,6 +364,28 @@ router.post('/writer/bidding/:orderId/bid', authenticateUser, requireWriter, val
 router.delete('/writer/bidding/:orderId/bid', authenticateUser, requireWriter, async (req, res) => {
     try { res.json({ bid: await withdrawBid(req.user.id, req.params.orderId) }); }
     catch (err) { biddingFail(res, err, 'Could not withdraw the bid.'); }
+});
+
+// POST /api/order-workflow/admin/payment/:orderId/received — the admin checked a
+// manual payment (UPI / PayPal / bank reference) and confirms it; the customer's
+// receipt is issued.
+router.post('/admin/payment/:orderId/received', authenticateAdmin, requirePermission('orders.write'), async (req, res) => {
+    try {
+        const order = await Order.findOne({ orderId: req.params.orderId });
+        if (!order) return res.status(404).json({ error: 'Order not found.' });
+        if (order.payment?.status === 'PAID') return res.status(409).json({ error: 'This payment is already confirmed.' });
+        const currency = order.pricing?.currency || order.currency || 'GBP';
+        const amountMinor = order.catalog?.totalMinor ?? Math.round(Number(order.totalAmount || 0) * 100);
+        order.payment = { provider: 'MANUAL', status: 'PAID', amountMinor, currency, paidAt: new Date() };
+        order.paymentStatus = 'paid';
+        await order.save();
+        const withReceipt = await issueReceipt(order._id);
+        await recordAudit(req, 'ORDER_PAYMENT_CONFIRMED', { targetType: 'ORDER', targetId: order.orderId, reason: `manual ${currency} ${amountMinor / 100} · receipt ${withReceipt?.receipt?.number}` });
+        res.json({ payment: withReceipt.payment, paymentStatus: withReceipt.paymentStatus, receipt: withReceipt.receipt });
+    } catch (err) {
+        console.error('[OrderWorkflow] confirm payment error:', err.message);
+        res.status(500).json({ error: 'Could not confirm the payment.' });
+    }
 });
 
 // GET/PUT /api/order-workflow/admin/settings — auto-approve new (paid) orders.

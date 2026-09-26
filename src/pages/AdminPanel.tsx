@@ -59,6 +59,7 @@ interface Order {
     service: string; subject: string; academicLevel: string; pages: number; wordCount?: number;
     pricing?: { words?: number; pages?: number; wordsPerPage?: number; subtotal?: number; addOns?: { key: string; label: string; price: number }[]; addOnsTotal?: number; discountPercent?: number; discount?: number; total?: number; currency?: string };
     writerPayout?: { amount: number; currency: string };
+    receipt?: { number: string; issuedAt: string };
     deadline: string; topicTitle: string; instructions?: string;
     files?: string[];
     turnitinReport?: boolean;
@@ -262,6 +263,17 @@ const OrderDetailDrawer = ({
     const [uploadingFile, setUploadingFile] = useState(false);
     const adminFileInputRef = React.useRef<HTMLInputElement>(null);
 
+    const [confirmingPayment, setConfirmingPayment] = useState(false);
+    const confirmPayment = async () => {
+        if (!confirm(`Confirm that the payment for ${order.orderId} has been received? The customer will get a receipt.`)) return;
+        setConfirmingPayment(true);
+        try {
+            const data = await apiFetch(`/order-workflow/admin/payment/${order.orderId}/received`, { method: 'POST' }, token);
+            onUpdate({ ...order, payment: data.payment, receipt: data.receipt } as any);
+        } catch (e: any) { alert(e.message || 'Could not confirm the payment.'); }
+        finally { setConfirmingPayment(false); }
+    };
+
     const handleReleaseToWriters = async () => {
         if (!confirm(`Approve order ${order.orderId}? Writers with an active plan can then bid on it.`)) return;
         setReleasing(true);
@@ -398,7 +410,8 @@ const OrderDetailDrawer = ({
                                 ['Word Count', order.wordCount ? `${order.wordCount.toLocaleString()} words` : 'Not recorded'],
                                 ['Deadline', order.deadline],
                                 ['Total Amount', formatOrderTotal(order.totalAmount, order.currency)],
-                                ['Payment', order.payment?.provider === 'RAZORPAY' && order.payment.status === 'PAID' ? 'Paid online · Razorpay (verified by server)' : 'Manual — verify the reference before starting work'],
+                                ['Payment', order.payment?.status === 'PAID' ? (order.payment.provider === 'RAZORPAY' ? 'Paid online · Razorpay (verified by server)' : 'Paid · manual payment confirmed') : 'Manual — verify the reference before starting work'],
+                                ...(order.receipt?.number ? [['Receipt', order.receipt.number]] : []),
                                 ['Transaction ID', order.transactionId || 'Not Provided'],
                                 ...(order.writerPayout ? [['Writer Payout', `${order.writerPayout.currency} ${order.writerPayout.amount}`]] : []),
                             ] as [string, string][]).map(([k, v]) => (
@@ -409,6 +422,16 @@ const OrderDetailDrawer = ({
                             ))}
                         </div>
                     </div>
+
+                    {order.payment?.status !== 'PAID' && (
+                        <div className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+                            <p className="text-xs text-gray-500">Checked the payment reference{order.transactionId ? ` (${order.transactionId})` : ''}? Confirming it issues the customer's receipt.</p>
+                            <button type="button" disabled={confirmingPayment} onClick={confirmPayment}
+                                className="shrink-0 rounded-xl bg-[#000a1e] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#002147] disabled:opacity-50">
+                                {confirmingPayment ? 'Confirming…' : 'Mark payment received'}
+                            </button>
+                        </div>
+                    )}
 
                     {/* The quotation saved with the order (never recalculated here). */}
                     {order.pricing?.total != null && (

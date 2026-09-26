@@ -82,6 +82,11 @@ const orderSchema = new mongoose.Schema({
   adminNotes: { type: String, default: '' },
   // What the admin asked the writer to change (shown to the writer; adminNotes stay internal).
   revisionNote: { type: String, default: '' },
+  // Payment receipt: issued once the payment is confirmed (see services/receipts.js).
+  receipt: {
+    type: new mongoose.Schema({ number: String, issuedAt: Date }, { _id: false }),
+    default: undefined,
+  },
   // Writer bidding: the writer budget an admin/HR sets. Writers see only this
   // range, never the customer's price (totalAmount / pricing).
   bidding: {
@@ -140,6 +145,7 @@ const orderSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 orderSchema.index({ writerId: 1, status: 1 });
+orderSchema.index({ 'receipt.number': 1 }, { unique: true, partialFilterExpression: { 'receipt.number': { $type: 'string' } } });
 
 const contactSchema = new mongoose.Schema({
   name: { type: String, required: true },

@@ -13,6 +13,7 @@ const AdminPanel = named(() => import('./pages/AdminPanel'), 'AdminPanel');
 const DynamicPage = named(() => import('./pages/DynamicPage'), 'DynamicPage');
 const CatalogPage = named(() => import('./pages/CatalogPage'), 'CatalogPage');
 const BlogIndexPage = named(() => import('./pages/BlogPages'), 'BlogIndexPage');
+const ReceiptPage = named(() => import('./pages/ReceiptPage'), 'ReceiptPage');
 const BlogPostPage = named(() => import('./pages/BlogPages'), 'BlogPostPage');
 const SubjectsPage = named(() => import('./pages/SubjectsPage'), 'SubjectsPage');
 const ResourcesPage = named(() => import('./pages/ResourcesPage'), 'ResourcesPage');
@@ -107,6 +108,10 @@ export default function App() {
                     <Route path="/subjects/:subject/:service/:project" element={<CatalogPage />} />
                     <Route path="/resources" element={<ResourcesPage />} />
                     <Route path="/reviews" element={<ReviewsPage />} />
+                    <Route
+                        path="/dashboard/receipt/:orderId"
+                        element={<ProtectedRoute area="customer"><ReceiptPage /></ProtectedRoute>}
+                    />
                     <Route
                         path="/dashboard"
                         element={

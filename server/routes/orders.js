@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { clientOrderView } from '../services/orderRelease.js';
+import { issueReceipt, receiptView, isPaid } from '../services/receipts.js';
 import { Order, CatalogSubject, CatalogService, CatalogProject } from '../db.js';
 import { authenticateUser } from '../middleware.js';
 import { rateLimit } from 'express-rate-limit';
@@ -212,6 +213,21 @@ router.post('/:id/files', authenticateUser, receiveOrderFiles, async (req, res) 
         res.json({ order, files: order.files });
     } catch (err) {
         res.status(err.status || 500).json({ error: err.status ? err.message : 'Failed to attach files.' });
+    }
+});
+
+// GET /api/orders/:id/receipt — the customer's payment receipt (paid orders only).
+router.get('/:id/receipt', authenticateUser, async (req, res) => {
+    try {
+        res.setHeader('Cache-Control', 'private, no-store');
+        const order = await Order.findOne({ orderId: req.params.id, userId: req.user.id }).lean();
+        if (!order) return res.status(404).json({ error: 'Order not found.' });
+        if (!isPaid(order)) return res.status(409).json({ error: 'Your receipt will be available once your payment is confirmed.' });
+        const withReceipt = order.receipt?.number ? order : await issueReceipt(order._id);   // older paid orders get one now
+        res.json({ receipt: await receiptView(withReceipt) });
+    } catch (err) {
+        console.error('[Receipt]', err?.message);
+        res.status(500).json({ error: 'Could not load the receipt.' });
     }
 });
 
