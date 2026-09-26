@@ -421,6 +421,12 @@ export const Dashboard: React.FC = () => {
                                                             <td className="py-4 px-4 sm:px-6">
                                                                 <div className="font-bold text-gray-700 text-xs sm:text-sm whitespace-pre-wrap line-clamp-2">{order.service}</div>
                                                                 <div className="text-[10px] sm:text-xs text-gray-500 mt-1">{order.subject}</div>
+                                                                {(order as any).pricing?.model === 'WORDS' && (() => {
+                                                                    // The quote saved with the order (never recalculated).
+                                                                    const p = (order as any).pricing;
+                                                                    const delivery = ({ STANDARD: 'Standard', EXPRESS: 'Express', URGENT: 'Urgent', EMERGENCY: 'Emergency' } as Record<string, string>)[p.deliveryType] || '';
+                                                                    return <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5">{Number(p.words).toLocaleString()} words · {p.pages} page{p.pages === 1 ? '' : 's'}{delivery ? ` · ${delivery}` : ''}</div>;
+                                                                })()}
                                                             </td>
                                                             <td className="py-4 px-4 sm:px-6 text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">
                                                                 {order.deadline}

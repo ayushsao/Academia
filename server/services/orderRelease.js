@@ -54,6 +54,12 @@ export function clientOrderView(order) {
     delete o.revisionNote;
     delete o.writerId;
     if (o.feedback) delete o.feedback.writerId;
+    // Word-priced orders: the customer sees words, pages, spacing, delivery type,
+    // deadline and the final price — never the multiplier, the INR amount or the exchange rate.
+    if (o.pricing?.model === 'WORDS') {
+        const { words, spacing, wordsPerPage, pages, deadlineAt, deliveryType, total, currency, quotedAt, model } = o.pricing;
+        o.pricing = { model, words, spacing, wordsPerPage, pages, deadlineAt, deliveryType, total, subtotal: total, currency, quotedAt };
+    }
     // The customer receives the work after an admin has approved it.
     o.deliveryFiles = isCompleted(o.status) ? (o.deliveryFiles || []).map(({ filePath, uploadedBy, ...file }) => file) : [];
     return o;

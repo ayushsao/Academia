@@ -5,8 +5,9 @@ import { authenticateAdmin } from '../middleware.js';
 import { requirePermission, noStore, can } from '../permissions.js';
 import {
     validateInput, catalogSubjectSchema, catalogServiceSchema, catalogProjectSchema, catalogStatusSchema, catalogPublishSchema,
-    pricingRuleSchema, wordConfigSchema, quoteSchema,
+    pricingRuleSchema, wordConfigSchema, quoteSchema, wordPricingSchema,
 } from '../validation.js';
+import { getWordPricing, saveWordPricing, getInrRates, WordPricingError, MULTIPLIER_MIN, MULTIPLIER_MAX, MIN_NOTICE_HOURS, BASE_RATE_PER_WORD_INR } from '../services/wordPricing.js';
 import { recordAudit } from '../services/audit.js';
 import { isIsoCurrency, toMinor, fromMinor } from '../services/money.js';
 import { FORMULAS, PricingError, unitPriceFor, quote, getWordConfig, saveWordConfig, normaliseRuleScope } from '../services/pricing.js';
@@ -284,6 +285,31 @@ router.put('/word-config', PRICING, validateInput(wordConfigSchema), async (req,
         await recordAudit(req, 'CATALOG_WORD_CONFIG_UPDATED', { targetType: 'CATALOG_CONFIG', reason: `${config.defaultWordsPerPage} words/page · ${config.rounding}` });
         res.json({ config });
     } catch (err) { handle(res, err, 'Could not save word settings.'); }
+});
+
+// ── Order pricing (word-based): delivery-type multipliers ─────────────────────
+const wordPricingView = async () => {
+    const [settings, fx] = await Promise.all([getWordPricing(), getInrRates()]);
+    return {
+        ...settings,
+        limits: { multiplierMin: MULTIPLIER_MIN, multiplierMax: MULTIPLIER_MAX, minNoticeHours: MIN_NOTICE_HOURS },
+        baseRatePerWord: BASE_RATE_PER_WORD_INR,
+        exchangeRates: { rates: fx.rates, at: fx.at, source: fx.source },
+    };
+};
+router.get('/word-pricing', PRICING, async (_req, res) => {
+    try { res.json({ pricing: await wordPricingView() }); } catch (err) { handle(res, err, 'Could not load order pricing.'); }
+});
+router.put('/word-pricing', PRICING, validateInput(wordPricingSchema), async (req, res) => {
+    try {
+        const saved = await saveWordPricing(req.body);
+        const t = saved.tiers;
+        await recordAudit(req, 'ORDER_WORD_PRICING_UPDATED', { targetType: 'CATALOG_CONFIG', reason: `Standard ${t.STANDARD.multiplier}× · Express ${t.EXPRESS.multiplier}× · Urgent ${t.URGENT.multiplier}× · Emergency ${t.EMERGENCY.multiplier}×` });
+        res.json({ pricing: await wordPricingView() });
+    } catch (err) {
+        if (err instanceof WordPricingError) return res.status(err.status).json({ error: err.message });
+        handle(res, err, 'Could not save order pricing.');
+    }
 });
 
 // ── Media ──────────────────────────────────────────────────────────────────────

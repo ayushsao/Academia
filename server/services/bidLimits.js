@@ -1,6 +1,7 @@
 import { SiteSettings } from '../db.js';
 import { remember, cacheDel } from './cache.js';
 import { getRateCard } from './orderPricing.js';
+import { getInrRates } from './wordPricing.js';
 
 // Writer bid limits by the work: an admin sets what a writer may bid per 1,000
 // words (a default, and optionally per type of work/service), in the price
@@ -40,8 +41,15 @@ export async function budgetFor(order, rates, card) {
     card = card || await getRateCard();
     const words = Number(order.wordCount) || (Number(order.pages) || 1) * (card.wordsPerPage || 250);
     const currency = order.currency || card.baseCurrency;
-    // The exchange rate saved with the order's quote, else today's rate for its currency.
-    const fx = Number(order.pricing?.exchangeRate) || card.currencies?.[currency]?.rate || 1;
+    let fx;
+    if (order.pricing?.model === 'WORDS') {
+        // Word-priced orders save an INR → currency rate; bid rates are in the base currency.
+        const { rates: inr } = await getInrRates();
+        fx = (Number(order.pricing.exchangeRate) || inr[currency] || 1) / (inr[card.baseCurrency] || 1);
+    } else {
+        // The exchange rate saved with the order's quote, else today's rate for its currency.
+        fx = Number(order.pricing?.exchangeRate) || card.currencies?.[currency]?.rate || 1;
+    }
     const scale = (perThousand) => Math.max(1, Math.round((words / 1000) * perThousand * fx));
     const minBid = scale(rate.min), maxBid = Math.max(scale(rate.max), scale(rate.min));
     return { minBid, maxBid, currency, words };

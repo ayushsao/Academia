@@ -5,7 +5,7 @@ import { Order, CatalogSubject, CatalogService, CatalogProject } from '../db.js'
 import { authenticateUser } from '../middleware.js';
 import { rateLimit } from 'express-rate-limit';
 import { validateInput, orderSchema, orderQuoteSchema, orderCheckoutSchema, razorpayVerifySchema } from '../validation.js';
-import { quoteOrder, getRateCard, publicRateCard, quoteMatches, OrderPricingError } from '../services/orderPricing.js';
+import { quoteByWords, publicQuote, publicWordPricing, WordPricingError, SPACING } from '../services/wordPricing.js';
 import { ownedFileNames, streamOrderFile, customerCanAccess, receiveOrderFiles, storeOrderUploads } from '../services/orderFiles.js';
 import { quote, isLiveSelection, PricingError } from '../services/pricing.js';
 import { fromMinor, toMinor } from '../services/money.js';
@@ -27,23 +27,34 @@ router.get('/', authenticateUser, async (req, res) => {
 // ── Quotation (never creates an order) ─────────────────────────────────────────
 const quoteLimiter = rateLimit({ windowMs: 60 * 1000, max: 120, message: { error: 'Too many price requests. Please slow down.' } });
 
-// GET /api/orders/pricing — per-page rates, currencies, levels and add-ons for display.
+// GET /api/orders/pricing — spacing options, currencies and delivery types (no rates).
 router.get('/pricing', async (_req, res) => {
     try {
         res.setHeader('Cache-Control', 'no-cache');
-        res.json({ pricing: publicRateCard(await getRateCard()) });
+        res.json({ pricing: await publicWordPricing() });
     } catch { res.status(500).json({ error: 'Could not load pricing.' }); }
 });
 
-// POST /api/orders/quote — the complete quotation for a standard order.
+// POST /api/orders/quote — the price of a standard order (words × delivery type,
+// in the customer's currency). Only the final price is returned.
 router.post('/quote', quoteLimiter, validateInput(orderQuoteSchema), async (req, res) => {
     try {
-        res.json({ quote: await quoteOrder(req.body) });
+        res.json({ quote: publicQuote(await quoteByWords(req.body), req.body) });
     } catch (err) {
-        if (err instanceof OrderPricingError) return res.status(err.status).json({ error: err.message });
+        if (err instanceof WordPricingError) return res.status(err.status).json({ error: err.message });
+        console.error('[Quote]', err?.message);
         res.status(500).json({ error: 'Could not calculate a price.' });
     }
 });
+
+// Older clients sent only "YYYY-MM-DD (10:00 PM)"; read an exact time from it.
+function deadlineFromText(text) {
+    const m = /^(\d{4}-\d{2}-\d{2})(?:.*?(\d{1,2}):(\d{2})\s*(AM|PM))?/i.exec(String(text || ''));
+    if (!m) return null;
+    let h = 23, min = 59;
+    if (m[2]) { h = Number(m[2]) % 12 + (/PM/i.test(m[4]) ? 12 : 0); min = Number(m[3]); }
+    return new Date(`${m[1]}T${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}:00Z`);
+}
 
 // Orders from a catalogue page: names, billable pages and price all come from
 // the database (the admin's pricing rules), never from the request.
@@ -87,12 +98,19 @@ async function prepareOrder(body, userId) {
 
     // Catalogue orders are priced by the admin's rules only (no legacy rates or add-ons).
     const catalogPrice = body.catalog ? await priceCatalogOrder(body.catalog, pages) : null;
-    // Standard orders: the same quotation function the website used for the price shown.
-    const q = catalogPrice ? null : await quoteOrder({ service, pages: pages || 1, academicLevel, currency: body.quote?.currency, topExpert, abstractPage });
-    if (q && body.quote && !quoteMatches(q, body.quote))
-        throw Object.assign(new OrderPricingError('The price has changed since your quote. Please review the new price.', 409), { quote: q });
+    // Standard orders: priced by words and deadline with the same function the website quoted with.
+    let q = null;
+    if (!catalogPrice) {
+        const spacing = body.spacing || 'ONE_HALF';
+        const words = body.words || Number(wordCount) || (pages || 1) * SPACING[spacing].wordsPerPage;
+        const deadlineAt = body.deadlineAt || deadlineFromText(deadline);
+        if (!deadlineAt) throw new WordPricingError('Choose a deadline.');
+        q = await quoteByWords({ words, spacing, deadlineAt, currency: body.currency || body.quote?.currency || 'GBP' });
+        if (body.quote && (body.quote.currency !== q.currency || body.quote.total !== q.total || (body.quote.words && body.quote.words !== q.words)))
+            throw Object.assign(new WordPricingError('The price has changed since your quote. Please review the new price.', 409), { quote: publicQuote(q, body) });
+    }
     const calcPages = q ? q.pages : pages || 1;
-    const calcWords = Number(wordCount) || (q ? q.words : calcPages * 250);
+    const calcWords = q ? q.words : Number(wordCount) || calcPages * 250;
     const orderDesc = description || instructions || '';
     const orderInst = instructions || description || '';
     const serverComputedAmount = q ? q.total : 0;
@@ -113,13 +131,15 @@ async function prepareOrder(body, userId) {
             topExpert: Boolean(topExpert),
             abstractPage: Boolean(abstractPage),
             totalAmount: serverComputedAmount,
+            // The pricing snapshot: saved once, shown as-is later, never recalculated.
             ...(q && {
                 currency: q.currency,
                 pricing: {
-                    words: q.words, pages: q.pages, wordsPerPage: q.wordsPerPage,
-                    baseCurrency: q.baseCurrency, basePrice: q.basePrice, exchangeRate: q.exchangeRate, levelMultiplier: q.levelMultiplier,
-                    subtotal: q.subtotal, addOns: q.addOns, addOnsTotal: q.addOnsTotal,
-                    discountPercent: q.discountPercent, discount: q.discount, total: q.total, currency: q.currency,
+                    model: q.model, words: q.words, spacing: q.spacing, wordsPerPage: q.wordsPerPage, pages: q.pages,
+                    deadlineAt: q.deadlineAt, deliveryType: q.deliveryType, multiplier: q.multiplier,
+                    baseRatePerWord: q.baseRatePerWord, inrTotal: q.inrTotal, baseCurrency: 'INR',
+                    exchangeRate: q.exchangeRate, fxSource: q.fxSource, fxAt: q.fxAt,
+                    subtotal: q.total, total: q.total, currency: q.currency, quotedAt: q.quotedAt,
                 },
             }),
             ...(catalogPrice && { ...catalogPrice, topExpert: false, abstractPage: false }),
@@ -130,7 +150,7 @@ async function prepareOrder(body, userId) {
 }
 
 const orderError = (res, err, fallback) => {
-    if (err instanceof PricingError || err instanceof OrderPricingError || err instanceof PaymentProviderError)
+    if (err instanceof PricingError || err instanceof WordPricingError || err instanceof PaymentProviderError)
         return res.status(err.status).json({ error: err.message, ...(err.quote && { quote: err.quote }) });
     console.error('[Orders]', err?.message);
     res.status(500).json({ error: fallback });
@@ -147,7 +167,7 @@ router.post('/', authenticateUser, validateInput(orderSchema), async (req, res) 
             transactionId: reference,
             payment: { provider: 'MANUAL', status: 'PENDING_VERIFICATION' },
         });
-        res.status(201).json({ order });
+        res.status(201).json({ order: clientOrderView(order) });
     } catch (err) { orderError(res, err, 'Failed to create order.'); }
 });
 
@@ -174,7 +194,7 @@ router.post('/checkout/confirm', checkoutLimiter, authenticateUser, validateInpu
         if (!verifyRazorpaySignature({ orderId, paymentId, signature }))
             return res.status(400).json({ error: 'Payment could not be verified.' });
         const order = await completeCheckout({ providerOrderId: orderId, paymentId, userId: req.user.id });
-        res.status(201).json({ order });
+        res.status(201).json({ order: clientOrderView(order) });
     } catch (err) { orderError(res, err, 'Could not confirm the payment. If you were charged, contact support with your payment ID.'); }
 });
 
@@ -210,7 +230,7 @@ router.post('/:id/files', authenticateUser, receiveOrderFiles, async (req, res) 
         order.files = [...(order.files || []), ...storedNames];
         await order.save();
 
-        res.json({ order, files: order.files });
+        res.json({ order: clientOrderView(order), files: order.files });
     } catch (err) {
         res.status(err.status || 500).json({ error: err.status ? err.message : 'Failed to attach files.' });
     }

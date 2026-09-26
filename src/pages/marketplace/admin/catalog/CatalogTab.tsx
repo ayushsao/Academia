@@ -8,11 +8,12 @@ import { hasPermission, type AdminAccess } from '../access';
 import { BASE, useCatalogOptions } from './shared';
 import { SubjectsSection, ServicesSection, ProjectsSection, PricingSection } from './CatalogSections';
 import WordConfigPanel from './WordConfigPanel';
+import OrderPricingPanel from './OrderPricingPanel';
 import ContentManager from './ContentManager';
 import { MediaLibrary } from './MediaLibrary';
 import type { EntityType } from '../../../../lib/catalogContent';
 
-type Section = 'dashboard' | 'subjects' | 'services' | 'projects' | 'media' | 'pricing' | 'words';
+type Section = 'dashboard' | 'subjects' | 'services' | 'projects' | 'media' | 'pricing' | 'words' | 'orderPricing';
 const SECTIONS: { id: Section; label: string; perms: string[] }[] = [
     { id: 'dashboard', label: 'Dashboard', perms: ['catalog.manage', 'pricing.manage'] },
     { id: 'subjects', label: 'Subjects', perms: ['catalog.manage'] },
@@ -21,6 +22,7 @@ const SECTIONS: { id: Section; label: string; perms: string[] }[] = [
     { id: 'media', label: 'Media library', perms: ['catalog.manage'] },
     { id: 'pricing', label: 'Pricing', perms: ['pricing.manage'] },
     { id: 'words', label: 'Word/Page config', perms: ['pricing.manage'] },
+    { id: 'orderPricing', label: 'Order pricing', perms: ['pricing.manage'] },
 ];
 
 type Tally = { total: number; active: number; published: number };
@@ -118,6 +120,7 @@ export default function CatalogTab({ token, access }: { token: string; access: A
             {section === 'media' && <MediaLibrary token={token} />}
             {section === 'pricing' && <PricingSection token={token} options={options} />}
             {section === 'words' && <WordConfigPanel token={token} />}
+            {section === 'orderPricing' && <OrderPricingPanel token={token} />}
             {content && <ContentManager token={token} target={content} options={options} onClose={changed => { setContent(null); if (changed) { setListKey(k => k + 1); reload(); } }} />}
         </div>
     );

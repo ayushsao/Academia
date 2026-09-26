@@ -38,7 +38,12 @@ export async function receiptView(order) {
     const paid = order.payment?.amountMinor != null ? order.payment.amountMinor / 100 : money(order.totalAmount);
     const words = order.wordCount || order.pricing?.words;
     const lines = [];
-    if (order.pricing?.total != null) {
+    if (order.pricing?.model === 'WORDS') {
+        const p = order.pricing;
+        const delivery = { STANDARD: 'Standard', EXPRESS: 'Express', URGENT: 'Urgent', EMERGENCY: 'Emergency' }[p.deliveryType] || '';
+        const spacing = { DOUBLE: 'double spacing', ONE_HALF: '1.5 spacing', SINGLE: 'single spacing' }[p.spacing] || '';
+        lines.push({ label: `${order.service} — ${Number(p.words).toLocaleString('en-GB')} words, ${p.pages} page${p.pages === 1 ? '' : 's'}${spacing ? ` (${spacing})` : ''}${delivery ? ` · ${delivery} delivery` : ''}`, amount: money(p.total) });
+    } else if (order.pricing?.total != null) {
         lines.push({ label: `${order.service} — ${order.pricing.pages ?? order.pages} page${(order.pricing.pages ?? order.pages) === 1 ? '' : 's'}${words ? `, ${Number(words).toLocaleString('en-GB')} words` : ''} (${order.academicLevel})`, amount: money(order.pricing.subtotal) });
         for (const a of order.pricing.addOns || []) lines.push({ label: a.label, amount: money(a.price) });
         if (order.pricing.discount) lines.push({ label: `Discount${order.pricing.discountPercent ? ` (${order.pricing.discountPercent}%)` : ''}`, amount: -money(order.pricing.discount) });

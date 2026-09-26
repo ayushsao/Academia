@@ -5,7 +5,7 @@ import {
   ArrowRight, PlayCircle, Calculator, Minus, Plus, Calendar, ChevronDown, CheckCircle2, FileSearch, PenTool, CheckSquare, Crown, Paperclip, ShieldCheck, Clock, X, GraduationCap, Award, Zap, Star, BookOpen, Users, Check
 } from 'lucide-react';
 import { ServiceType, SubjectType } from '../types';
-import { useOrderQuote, fetchOrderQuote, CURRENCY_BY_SYMBOL, type OrderQuote } from '../lib/orderQuote';
+import { useOrderQuote, fetchOrderQuote, CURRENCY_BY_SYMBOL, SPACING_OPTIONS, DEFAULT_SPACING, pagesFor, deadlineAtFrom, type OrderQuote, type Spacing, localDateString } from '../lib/orderQuote';
 
 interface HeroProps {
   onOpenOrder: (prefill?: {
@@ -13,6 +13,8 @@ interface HeroProps {
     service?: ServiceType;
     subject?: SubjectType;
     pages?: number;
+    words?: number;
+    spacing?: Spacing;
     deadline?: string;
     academicLevel?: 'Undergraduate' | 'Master\'s' | 'PhD / Doctoral' | 'Professional';
     topicTitle?: string;
@@ -29,7 +31,9 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
   const [academicLevel, setAcademicLevel] = useState<'Undergraduate' | 'Master\'s' | 'PhD / Doctoral'>('Undergraduate');
   const [service, setService] = useState<ServiceType | ''>('Academic Writing');
   const [subject, setSubject] = useState<SubjectType | ''>('');
-  const [pages, setPages] = useState<number>(0);
+  const [words, setWords] = useState<number>(0);
+  const [spacing, setSpacing] = useState<Spacing>(DEFAULT_SPACING);
+  const pages = pagesFor(words, spacing);   // display only: the price depends on words and the deadline
   const [deadlineTime, setDeadlineTime] = useState<string>('10:00 PM');
   const [email, setEmail] = useState<string>('');
   const [countryCode, setCountryCode] = useState<string>('IN(+91)');
@@ -39,14 +43,14 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
   const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState<boolean>(true);
-  const [currency, setCurrency] = useState<'£' | '$' | '€' | 'A$'>('£');
+  const [currency, setCurrency] = useState<'£' | '$' | '€' | 'A$' | 'C$' | '₹'>('£');
   const [showDetailsSection, setShowDetailsSection] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getNextWeek = () => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
-    return d.toISOString().split('T')[0];
+    return localDateString(d);
   };
 
   const [deadline, setDeadline] = useState<string>(getNextWeek());
@@ -60,7 +64,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
   }, []);
 
 
-  const WORDS_PER_PAGE = 250;
+  const WORD_STEP = 250;
 
   const getTrackTooltip = (track: 'Writing' | 'Technical' | 'Online Class') => {
     switch (track) {
@@ -110,11 +114,11 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
 
   // Price comes from the server quote (the same one the order form and the order use).
   const orderService: ServiceType = (service as ServiceType) || (selectedTrack === 'Technical' ? 'Programming Assignment Help' : selectedTrack === 'Online Class' ? 'Take My Online Class' : 'Academic Writing');
-  const quoteInput = { service: orderService, pages, academicLevel, currency: CURRENCY_BY_SYMBOL[currency] };
-  const { quote, lastQuote, ensure, error: quoteError } = useOrderQuote(quoteInput, { enabled: pages > 0 });
+  const quoteInput = { words, spacing, deadlineAt: deadlineAtFrom(deadline, deadlineTime), currency: CURRENCY_BY_SYMBOL[currency] };
+  const { quote, lastQuote, ensure, error: quoteError } = useOrderQuote(quoteInput, { enabled: words > 0 });
   const shownQuote = quote || lastQuote;
 
-  const calculatedPrice = pages === 0 ? 0 : shownQuote?.total ?? 0;
+  const calculatedPrice = words === 0 ? 0 : shownQuote?.total ?? 0;
   const originalCatalogPrice = Math.round(calculatedPrice * 2.04);
 
   useEffect(() => {
@@ -139,19 +143,19 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
   }, [calculatedPrice]);
 
   const handleIncrement = () => {
-    setPages((prev) => prev + 1);
+    setWords((prev) => Math.min(200000, (Math.floor(prev / WORD_STEP) + 1) * WORD_STEP));
   };
 
   const handleDecrement = () => {
-    setPages((prev) => (prev > 0 ? prev - 1 : 0));
+    setWords((prev) => (prev > WORD_STEP ? (Math.ceil(prev / WORD_STEP) - 1) * WORD_STEP : 0));
   };
 
-  const handlePageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleWordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseInt(e.target.value, 10);
     if (isNaN(val) || val < 0) {
-      setPages(0);
+      setWords(0);
     } else {
-      setPages(Math.min(val, 500));
+      setWords(Math.min(val, 200000));
     }
   };
 
@@ -160,13 +164,15 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
     // Hand the order form the exact quote shown here (fetched now if the inputs just changed).
     let finalQuote: OrderQuote | undefined;
     try {
-      finalQuote = pages === 0 ? await fetchOrderQuote({ ...quoteInput, pages: 1 }) : await ensure();
+      finalQuote = words === 0 ? await fetchOrderQuote({ ...quoteInput, words: WORD_STEP }) : await ensure();
     } catch { finalQuote = undefined; /* the order form will quote again */ }
     onOpenOrder({
       quote: finalQuote,
       service: orderService,
       subject: (subject as SubjectType) || 'Business & Mgt',
-      pages: pages === 0 ? 1 : pages,
+      pages: Math.max(1, pages),
+      words: words || WORD_STEP,
+      spacing,
       deadline: `${deadline} (${deadlineTime})`,
       academicLevel,
       topicTitle: courseCode ? `[${courseCode}]` : undefined,
@@ -813,7 +819,6 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                   <label className="text-xs font-black text-[#000a1e] uppercase tracking-wider">
                     ACADEMIC LEVEL
                   </label>
-                  <span className="text-xs text-gray-400 font-semibold">Tier Multiplier</span>
                 </div>
                 <div className="grid grid-cols-3 gap-1.5 bg-gray-50 p-1 rounded-xl border border-gray-100">
                   {[
@@ -930,36 +935,45 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 </div>
               </div>
 
-              {/* 6. Pages Stepper Row */}
+              {/* 6. Words Stepper Row */}
               <div>
                 <div className="flex justify-between items-center mb-1.5">
-                  <label className="text-xs font-black text-[#000a1e] uppercase tracking-wide">
-                    LENGTH (PAGES)
+                  <label htmlFor="calc-words" className="text-xs font-black text-[#000a1e] uppercase tracking-wide">
+                    LENGTH (WORDS)
                   </label>
-                  <span className="text-sm text-[#708ab5] font-semibold">1 Page ≈ 250 Words</span>
+                  <select
+                    aria-label="Spacing"
+                    value={spacing}
+                    onChange={(e) => setSpacing(e.target.value as Spacing)}
+                    className="text-sm text-[#708ab5] font-semibold bg-transparent outline-none cursor-pointer text-right"
+                  >
+                    {SPACING_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label} · {o.wordsPerPage} words/page</option>)}
+                  </select>
                 </div>
                 <div className="flex items-center gap-3 bg-gray-50 p-1.5 rounded-[16px]">
                   <div className="flex items-center bg-white rounded-full overflow-hidden h-[42px] shadow-[0_2px_8px_rgb(0,0,0,0.03)] flex-shrink-0 w-[116px]">
                     <button
                       type="button"
                       onClick={handleDecrement}
-                      aria-label="Decrease pages"
+                      aria-label="Decrease words"
                       className="text-[#44474e] hover:bg-gray-50 font-medium w-10 h-full flex items-center justify-center transition-colors border-r border-gray-100 cursor-pointer"
                     >
                       <Minus className="w-4 h-4 stroke-[2]" />
                     </button>
                     <input
+                      id="calc-words"
                       type="number"
                       min="0"
-                      max="500"
-                      value={pages}
-                      onChange={handlePageChange}
+                      max="200000"
+                      step={WORD_STEP}
+                      value={words}
+                      onChange={handleWordChange}
                       className="w-full h-full text-center border-none bg-transparent text-[17px] font-black text-[#000a1e] focus:ring-0 p-0 m-0 outline-none"
                     />
                     <button
                       type="button"
                       onClick={handleIncrement}
-                      aria-label="Increase pages"
+                      aria-label="Increase words"
                       className="bg-[#000a1e] text-white hover:bg-[#002147] font-medium w-12 h-full flex items-center justify-center transition-colors shadow-sm cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
@@ -971,7 +985,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                       Total Pages: <strong className="text-[#000a1e] ml-1 font-black">{pages}</strong>
                     </span>
                     <span className="font-semibold text-gray-500 mt-0.5">
-                      Approx Words: <strong className="text-[#000a1e] ml-1 font-black">{pages * WORDS_PER_PAGE}</strong>
+                      Delivery: <strong className="text-[#000a1e] ml-1 font-black" data-testid="calc-delivery">{words > 0 && shownQuote ? shownQuote.deliveryLabel : '—'}</strong>
                     </span>
                   </div>
                 </div>
@@ -1123,7 +1137,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-black text-[#000a1e] uppercase tracking-wide">ESTIMATED COST</span>
                   <div className="flex items-center gap-1 bg-gray-100/70 p-0.5 rounded-full text-[13px] font-bold text-gray-600">
-                    {(['£', '$', '€', 'A$'] as const).map((curr) => (
+                    {(['£', '$', '€', 'A$', 'C$', '₹'] as const).map((curr) => (
                       <button
                         key={curr}
                         type="button"
@@ -1146,7 +1160,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                         </span>
                       </div>
                     )}
-                    {quoteError && pages > 0 && !quote ? (
+                    {quoteError && words > 0 && !quote ? (
                       <span role="alert" className="text-xs font-semibold text-red-600">{quoteError}</span>
                     ) : (
                     <span className="text-sm font-medium text-[#708ab5] flex items-center gap-1.5">

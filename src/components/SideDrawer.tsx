@@ -12,7 +12,7 @@ import {
   Check
 } from 'lucide-react';
 import { ServiceType, SubjectType } from '../types';
-import { useOrderQuote, fetchRateCard, type OrderQuote, type RateCard } from '../lib/orderQuote';
+import { useOrderQuote, deadlineAtFrom, wordsPerPageFor, DEFAULT_SPACING, type OrderQuote, localDateString } from '../lib/orderQuote';
 
 interface SideDrawerProps {
   isOpen: boolean;
@@ -34,7 +34,7 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
   const getNextWeek = () => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
-    return d.toISOString().split('T')[0];
+    return localDateString(d);
   };
 
   const [activeTab, setActiveTab] = useState<'services' | 'subjects' | 'deadlines' | 'overview'>('overview');
@@ -80,14 +80,10 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
     'Psychology & Sociology',
   ];
 
-  // Rates and totals come from the server; the same quote is handed to the order form.
-  const [rateCard, setRateCard] = useState<RateCard | null>(null);
-  React.useEffect(() => {
-    if (isOpen && !rateCard) fetchRateCard().then(setRateCard).catch(() => { /* labels stay blank */ });
-  }, [isOpen, rateCard]);
-  const rateLabel = (name: string) => (rateCard ? `${rateCard.currencies[rateCard.baseCurrency]?.symbol ?? ''}${rateCard.rates[name] ?? rateCard.defaultRate}` : '…');
+  // Totals come from the server (priced by words and deadline); the same quote is handed to the order form.
+  const words = pages * wordsPerPageFor(DEFAULT_SPACING);
   const { quote, lastQuote, ensure } = useOrderQuote(
-    { service: selectedService, pages, academicLevel: 'Undergraduate', currency: rateCard?.baseCurrency || 'GBP' },
+    { words, spacing: DEFAULT_SPACING, deadlineAt: deadlineAtFrom(deadline, '10:00 PM'), currency: 'GBP' },
     { enabled: isOpen && pages > 0 },
   );
   const totalPrice = pages > 0 ? (quote || lastQuote)?.total ?? 0 : 0;
@@ -99,7 +95,7 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
       service: selectedService,
       subject: selectedSubject,
       pages,
-      deadline,
+      deadline: `${deadline} (10:00 PM)`,
       quote: finalQuote,
     });
     onClose();
@@ -182,7 +178,6 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
                       <div className="text-[10px] text-[#708ab5]">{srv.desc}</div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-[#865300]">{rateLabel(srv.name)}/p</span>
                       {selectedService === srv.name && <Check className="w-3.5 h-3.5 text-[#002147]" />}
                     </div>
                   </div>
@@ -272,7 +267,7 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
                       onClick={() => {
                         const d = new Date();
                         d.setDate(d.getDate() + (i === 0 ? 1 : i === 1 ? 3 : i === 2 ? 7 : 14));
-                        setDeadline(d.toISOString().split('T')[0]);
+                        setDeadline(localDateString(d));
                       }}
                       className="px-2.5 py-1.5 bg-[#eef4ff] hover:bg-[#d1e4ff] rounded-md text-[11px] font-semibold text-[#002147]"
                     >
@@ -288,7 +283,7 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
           <div className="bg-white/80 rounded-2xl p-4 border border-[#d1e4ff] mb-6 shadow-sm">
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs font-bold text-[#44474e] uppercase">Length (Pages)</span>
-              <span className="text-xs font-semibold text-[#865300]">{pages * 250} Words</span>
+              <span className="text-xs font-semibold text-[#865300]">{words} Words</span>
             </div>
             <div className="flex items-center justify-between bg-[#eef4ff] p-2 rounded-xl">
               <button

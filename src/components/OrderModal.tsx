@@ -19,8 +19,19 @@ import { useNavigate } from 'react-router-dom';
 import { API, api } from '../lib/api';
 import { formatMoney, fromMinor } from '../lib/money';
 import type { CatalogOrderContext, PublicPricing, PublicQuote } from '../lib/catalogContent';
-import { useOrderQuote, type OrderQuote } from '../lib/orderQuote';
 import { openRazorpayCheckout } from '../lib/razorpay';
+import { useOrderQuote, SPACING_OPTIONS, DEFAULT_SPACING, pagesFor, deadlineAtFrom, type OrderQuote, type Spacing, localDateString } from '../lib/orderQuote';
+
+// Standard orders are priced in the customer's currency (the server converts).
+const ORDER_CURRENCIES = ['GBP', 'USD', 'EUR', 'AUD', 'CAD', 'INR'];
+// "2026-10-05 (10:00 PM)" from the home calculator → date and time fields.
+const splitDeadline = (text?: string) => {
+  const m = /^(\d{4}-\d{2}-\d{2})(?:\s*\((.+)\))?/.exec(text || '');
+  return m ? { date: m[1], time: m[2] || '10:00 PM' } : null;
+};
+// Words for the form: from the accepted quote, else the words or pages passed in.
+const initialWords = (c?: { quote?: OrderQuote; words?: number; pages?: number }) =>
+  c?.quote?.input?.words || c?.words || (c?.pages ? c.pages * 250 : 0);
 
 interface OrderModalProps {
   isOpen: boolean;
@@ -31,6 +42,8 @@ interface OrderModalProps {
     service?: ServiceType;
     subject?: SubjectType;
     pages?: number;
+    words?: number;
+    spacing?: Spacing;
     deadline?: string;
     academicLevel?: 'Undergraduate' | 'Master\'s' | 'PhD / Doctoral' | 'Professional';
     topicTitle?: string;
@@ -51,14 +64,18 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const getNextWeek = () => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
-    return d.toISOString().split('T')[0];
+    return localDateString(d);
   };
 
   const [step, setStep] = useState<number>(1);
   const [service, setService] = useState<ServiceType | ''>(initialConfig?.service || '');
   const [subject, setSubject] = useState<SubjectType | ''>(initialConfig?.subject || '');
-  const [pages, setPages] = useState<number>(initialConfig?.pages || 0);
-  const [deadline, setDeadline] = useState<string>(initialConfig?.deadline || getNextWeek());
+  // Price = words and the deadline (server-side); spacing only sets the page count.
+  const [words, setWords] = useState<number>(initialWords(initialConfig));
+  const [spacing, setSpacing] = useState<Spacing>(initialConfig?.quote?.input?.spacing || initialConfig?.spacing || DEFAULT_SPACING);
+  const pages = pagesFor(words, spacing);
+  const [deadline, setDeadline] = useState<string>(splitDeadline(initialConfig?.deadline)?.date || getNextWeek());
+  const [deadlineTime, setDeadlineTime] = useState<string>(splitDeadline(initialConfig?.deadline)?.time || '10:00 PM');
   const [academicLevel, setAcademicLevel] = useState<'Undergraduate' | 'Master\'s' | 'PhD / Doctoral' | 'Professional'>(initialConfig?.academicLevel || 'Undergraduate');
   const [topicTitle, setTopicTitle] = useState<string>(initialConfig?.topicTitle || '');
   const [instructions, setInstructions] = useState<string>(initialConfig?.instructions || '');
@@ -71,8 +88,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
   // Add-ons (Start unselected to match base quote accurately)
   const [turnitinReport, setTurnitinReport] = useState<boolean>(true); // Free anyway
-  const [topExpert, setTopExpert] = useState<boolean>(!!initialConfig?.quote?.input.topExpert);
-  const [abstractPage, setAbstractPage] = useState<boolean>(!!initialConfig?.quote?.input.abstractPage);
+  const [topExpert, setTopExpert] = useState<boolean>(false);
+  const [abstractPage, setAbstractPage] = useState<boolean>(false);
   // Currency of the accepted quote (the home calculator lets customers pick one).
   const [quoteCurrency, setQuoteCurrency] = useState<string>(initialConfig?.quote?.currency || 'GBP');
 
@@ -93,12 +110,14 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     if (isOpen) {
       setService(initialConfig?.service || '');
       setSubject(initialConfig?.subject || '');
-      setPages(initialConfig?.pages || 0); // 0 pages by default if empty
-      setDeadline(initialConfig?.deadline || getNextWeek());
-      setAcademicLevel(initialConfig?.academicLevel || (initialConfig?.quote?.academicLevel as typeof academicLevel) || 'Undergraduate');
+      setWords(initialWords(initialConfig)); // 0 words by default if empty
+      setSpacing(initialConfig?.quote?.input?.spacing || initialConfig?.spacing || DEFAULT_SPACING);
+      setDeadline(splitDeadline(initialConfig?.deadline)?.date || getNextWeek());
+      setDeadlineTime(splitDeadline(initialConfig?.deadline)?.time || '10:00 PM');
+      setAcademicLevel(initialConfig?.academicLevel || 'Undergraduate');
       setQuoteCurrency(initialConfig?.quote?.currency || 'GBP');
-      setTopExpert(!!initialConfig?.quote?.input.topExpert);
-      setAbstractPage(!!initialConfig?.quote?.input.abstractPage);
+      setTopExpert(false);
+      setAbstractPage(false);
       setErrors({});
       setTopicTitle(initialConfig?.topicTitle || '');
       setInstructions(initialConfig?.instructions || '');
@@ -166,9 +185,10 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   // Standard orders: one server quote, reused from the previous step and only
   // re-quoted when the customer changes an input on this form.
   const catActive = !!catalog && catState !== 'off';
+  const deadlineAt = deadlineAtFrom(deadline, deadlineTime);
   const std = useOrderQuote(
-    { service, pages, academicLevel, currency: quoteCurrency, topExpert, abstractPage },
-    { enabled: isOpen && !catActive && pages >= 1, initial: initialConfig?.quote ?? null },
+    { words, spacing, deadlineAt, currency: quoteCurrency },
+    { enabled: isOpen && !catActive && words >= 1, initial: initialConfig?.quote ?? null },
   );
 
   // Keep the floating chat button off the order form's buttons.
@@ -184,16 +204,18 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
   // The quote shown on this form: the current one, or the last one while a changed input is re-quoted.
   const stdQuote = std.quote;
-  const shownStd = std.quote || (pages >= 1 ? std.lastQuote : null);
+  const shownStd = std.quote || (words >= 1 ? std.lastQuote : null);
   const sym = shownStd?.symbol || '£';
   const grandTotal = shownStd?.total ?? 0;
-  const addOnLabel = (key: string) => { const a = shownStd?.addOnOptions.find(o => o.key === key); return a ? `${sym} ${a.price}` : '…'; };
+  // Pricing is by words only: these extras are included at no charge.
+  const addOnLabel = (_key: string) => 'Included';
   // What the customer sees and pays (catalogue: the server quote in its own currency).
   const catTotal = catQuote ? fromMinor(catQuote.totalMinor, catQuote.currency) : 0;
   const totalLabel = catMode ? (catQuote ? formatMoney(catQuote.totalMinor, catQuote.currency) : '—') : `${sym} ${grandTotal}`;
-  const showUpi = !catMode || catQuote?.currency === 'INR';
-  const showPaypal = !catMode || (!!catQuote && catQuote.currency !== 'INR');
-  const upiAmount = catMode ? catTotal : shownStd?.upi.amount ?? 0;
+  // UPI takes rupees: offered for rupee prices; other currencies pay by card or PayPal.
+  const showUpi = catMode ? catQuote?.currency === 'INR' : quoteCurrency === 'INR';
+  const showPaypal = catMode ? (!!catQuote && catQuote.currency !== 'INR') : quoteCurrency !== 'INR';
+  const upiAmount = catMode ? catTotal : grandTotal;
   const paypalAmount = catMode ? `${catTotal}${catQuote?.currency || ''}` : `${grandTotal}${shownStd?.currency || 'GBP'}`;
   // Ready to order only when the price shown is the quote for exactly these inputs.
   const quoteReady = catMode ? !!catQuote : !!stdQuote;
@@ -246,7 +268,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     if (!catMode) {
       if (!service) newErrors.pricing = 'Please choose the type of paper.';
       else if (!subject) newErrors.pricing = 'Please choose a subject.';
-      else if (pages < 1) newErrors.pricing = 'Enter at least 1 page.';
+      else if (words < 1) newErrors.pricing = 'Enter the total number of words.';
     }
     if (!topicTitle.trim()) {
       newErrors.topicTitle = 'Topic title is required';
@@ -265,7 +287,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   };
 
   const handleNextStep = () => {
-    if (!quoteReady && (catMode || (service && subject && pages >= 1))) return;
+    if (!quoteReady && (catMode || (service && subject && words >= 1))) return;
     if (step === 1 && validateStep1()) {
       setStep(2);
     }
@@ -292,7 +314,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     service: orderService,
     subject: orderSubject,
     pages: catMode && catQuote ? catQuote.pages : stdQuote!.pages,
-    deadline,
+    deadline: catMode ? deadline : `${deadline} (${deadlineTime})`,
+    ...(!catMode && stdQuote && { words: stdQuote.words, spacing: stdQuote.spacing, deadlineAt: stdQuote.input.deadlineAt, currency: stdQuote.currency }),
     topicTitle,
     instructions,
     academicLevel,
@@ -301,7 +324,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     topExpert: catMode ? false : topExpert,
     abstractPage: catMode ? false : abstractPage,
     // The accepted quote: the server re-prices and refuses (409) if it no longer matches.
-    ...(!catMode && stdQuote && { quote: { currency: stdQuote.currency, total: stdQuote.total, pages: stdQuote.pages } }),
+    ...(!catMode && stdQuote && { quote: { currency: stdQuote.currency, total: stdQuote.total, words: stdQuote.words } }),
     ...(catMode && catIds && catQuote && { catalog: { ...catIds, words: catWords, spacing: catSpacing, currency: catCurrency, quotedTotalMinor: catQuote.totalMinor } }),
   });
 
@@ -336,7 +359,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       return false;
     }
     // The order is placed at exactly the quoted price; never without a complete quote.
-    if (!quoteReady || (!catMode && (!stdQuote || stdQuote.pages !== pages))) {
+    if (!quoteReady || (!catMode && (!stdQuote || stdQuote.words !== words))) {
       alert('Please wait for the price to finish updating, then try again.');
       return false;
     }
@@ -544,7 +567,26 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               </div>
               )}
               {errors.pricing && <p role="alert" className="text-red-500 text-[10px] uppercase font-bold tracking-wider -mt-3">{errors.pricing}</p>}
-              {!catMode && std.error && pages >= 1 && <p role="alert" className="text-red-500 text-[10px] uppercase font-bold tracking-wider -mt-3">{std.error}</p>}
+              {!catMode && std.error && words >= 1 && <p role="alert" className="text-red-500 text-[10px] uppercase font-bold tracking-wider -mt-3">{std.error}</p>}
+
+              {!catMode && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="order-std-spacing" className="block text-xs font-bold text-[#44474e] uppercase mb-1.5">Spacing</label>
+                    <select id="order-std-spacing" value={spacing} onChange={(e) => setSpacing(e.target.value as Spacing)}
+                      className="w-full bg-[#eef4ff] border border-[#d1e4ff] rounded-xl p-3 text-sm font-semibold text-[#000a1e]">
+                      {SPACING_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label} ({o.wordsPerPage} words/page)</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="order-std-currency" className="block text-xs font-bold text-[#44474e] uppercase mb-1.5">Currency</label>
+                    <select id="order-std-currency" value={quoteCurrency} onChange={(e) => setQuoteCurrency(e.target.value)}
+                      className="w-full bg-[#eef4ff] border border-[#d1e4ff] rounded-xl p-3 text-sm font-semibold text-[#000a1e]">
+                      {ORDER_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
 
               {catMode && catState === 'ready' && catPricing && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -571,7 +613,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#44474e] uppercase mb-1.5">{catMode ? 'Length (Words)' : 'Length (Pages / Words)'}</label>
+                  <label className="block text-xs font-bold text-[#44474e] uppercase mb-1.5">Length (Words)</label>
                   {catMode ? (
                     <div className="flex items-center gap-3">
                       <input
@@ -592,24 +634,40 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                     <input
                       type="number"
                       min="1"
-                      max="300"
-                      value={pages}
-                      onChange={(e) => setPages(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-24 bg-[#eef4ff] border border-[#d1e4ff] rounded-xl p-3 text-sm font-bold text-[#000a1e]"
+                      max="200000"
+                      aria-label="Word count"
+                      value={words || ''}
+                      onChange={(e) => setWords(Math.max(0, Math.min(200000, parseInt(e.target.value) || 0)))}
+                      className="w-28 bg-[#eef4ff] border border-[#d1e4ff] rounded-xl p-3 text-sm font-bold text-[#000a1e]"
                     />
-                    <span className="text-xs text-[#708ab5] font-semibold">{shownStd ? `≈ ${pages * shownStd.wordsPerPage} Words` : ''}</span>
+                    <span className="text-xs text-[#708ab5] font-semibold" data-testid="order-std-summary">
+                      {words >= 1 ? `= ${pages} ${pages === 1 ? 'page' : 'pages'}${shownStd ? ` · ${shownStd.deliveryLabel}` : ''}` : ''}
+                    </span>
                   </div>
                   )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#44474e] uppercase mb-1.5">Deadline</label>
+                  <div className={catMode ? '' : 'grid grid-cols-2 gap-2'}>
                   <input
                     type="date"
+                    aria-label="Deadline date"
                     value={deadline}
                     min={new Date().toISOString().split('T')[0]}
                     onChange={(e) => setDeadline(e.target.value)}
                     className="w-full bg-[#eef4ff] border border-[#d1e4ff] rounded-xl p-3 text-sm font-semibold text-[#000a1e]"
                   />
+                  {!catMode && (
+                    <select aria-label="Deadline time" value={deadlineTime} onChange={(e) => setDeadlineTime(e.target.value)}
+                      className="w-full bg-[#eef4ff] border border-[#d1e4ff] rounded-xl p-3 text-sm font-semibold text-[#000a1e]">
+                      <option value="10:00 PM">10:00 PM</option>
+                      <option value="11:59 PM (Midnight)">11:59 PM (Midnight)</option>
+                      <option value="09:00 AM (Morning)">09:00 AM (Morning)</option>
+                      <option value="05:00 PM (Evening)">05:00 PM (Evening)</option>
+                      <option value="Urgent / ASAP">Urgent / ASAP</option>
+                    </select>
+                  )}
+                  </div>
                 </div>
               </div>
 
@@ -838,7 +896,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                       />
                     </div>
                     <p className="text-xl font-extrabold text-[#000a1e] mb-1">₹ {upiAmount.toLocaleString('en-IN')}</p>
-                    {!catMode && shownStd && <p className="text-[10px] text-[#6e6e73] font-medium mb-3">{sym} {grandTotal} Converted (1{sym} = ₹{shownStd.upi.rate})</p>}
+                    <p className="text-[10px] text-[#6e6e73] font-medium mb-3">Total payable in INR</p>
 
                     <div className="w-full">
                       <span className="text-[10px] font-semibold text-gray-500 block mb-1">Or Send to Direct UPI ID:</span>
@@ -910,7 +968,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-[#708ab5]">Target Delivery:</span>
-                  <strong className="text-[#000a1e]">{deadline}</strong>
+                  <strong className="text-[#000a1e]">{catMode ? deadline : `${deadline} (${deadlineTime})${stdQuote ? ` · ${stdQuote.deliveryLabel}` : ''}`}</strong>
                 </div>
                 <div className="flex justify-between text-xs pt-2 border-t border-[#d1e4ff]">
                   <span className="text-[#000a1e] font-bold">Total Escrow Amount:</span>
@@ -950,7 +1008,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               {step === 1 ? (
                 <button
                   onClick={handleNextStep}
-                  disabled={!quoteReady && (catMode || (!!service && !!subject && pages >= 1))}
+                  disabled={!quoteReady && (catMode || (!!service && !!subject && words >= 1))}
                   className="bg-[#000a1e] text-white hover:bg-[#002147] px-6 py-3 rounded-xl text-sm font-bold shadow-sm flex items-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span>Continue</span>

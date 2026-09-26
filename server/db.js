@@ -120,9 +120,13 @@ const orderSchema = new mongoose.Schema({
     }, { _id: false }),
     default: undefined,
   },
-  // Standard orders: the accepted quotation (same numbers the customer saw).
+  // Standard orders: the accepted quotation, saved once and never recalculated.
+  // Word-based orders (model WORDS): INR = words × baseRatePerWord × multiplier,
+  // total = INR × exchangeRate (INR → currency). Multiplier, INR and the rate are internal.
   pricing: {
     type: new mongoose.Schema({
+      model: String, spacing: String, deadlineAt: Date, deliveryType: String, multiplier: Number,
+      baseRatePerWord: Number, inrTotal: Number, fxSource: String, fxAt: Date, quotedAt: Date,
       words: Number, pages: Number, wordsPerPage: Number,
       baseCurrency: String, basePrice: Number, exchangeRate: Number, levelMultiplier: Number,
       subtotal: Number, addOns: [{ _id: false, key: String, label: String, price: Number }], addOnsTotal: Number,

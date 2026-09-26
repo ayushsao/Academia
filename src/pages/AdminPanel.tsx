@@ -57,7 +57,10 @@ interface Stats {
 interface Order {
     _id: string; orderId: string; userId: string; user_name?: string; user_email?: string;
     service: string; subject: string; academicLevel: string; pages: number; wordCount?: number;
-    pricing?: { words?: number; pages?: number; wordsPerPage?: number; subtotal?: number; addOns?: { key: string; label: string; price: number }[]; addOnsTotal?: number; discountPercent?: number; discount?: number; total?: number; currency?: string };
+    pricing?: {
+        model?: string; spacing?: string; deadlineAt?: string; deliveryType?: string; multiplier?: number;
+        baseRatePerWord?: number; inrTotal?: number; exchangeRate?: number; fxSource?: string; fxAt?: string; quotedAt?: string;
+        words?: number; pages?: number; wordsPerPage?: number; subtotal?: number; addOns?: { key: string; label: string; price: number }[]; addOnsTotal?: number; discountPercent?: number; discount?: number; total?: number; currency?: string };
     writerPayout?: { amount: number; currency: string };
     receipt?: { number: string; issuedAt: string };
     deadline: string; topicTitle: string; instructions?: string;
@@ -433,8 +436,21 @@ const OrderDetailDrawer = ({
                         </div>
                     )}
 
-                    {/* The quotation saved with the order (never recalculated here). */}
-                    {order.pricing?.total != null && (
+                    {/* The quotation saved with the order (never recalculated here). Admin-only: multiplier, INR and FX. */}
+                    {order.pricing?.model === 'WORDS' && (
+                        <div className="bg-white rounded-2xl border border-gray-100 p-4" data-testid="saved-word-quote">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Saved Quote</p>
+                            <dl className="space-y-1.5 text-sm">
+                                <div className="flex justify-between"><dt className="text-gray-500">Words · pages</dt><dd className="font-semibold text-[#000a1e]">{(order.pricing.words ?? 0).toLocaleString()} words · {order.pricing.pages} page{order.pricing.pages === 1 ? '' : 's'} ({{ DOUBLE: 'double', ONE_HALF: '1.5', SINGLE: 'single' }[order.pricing.spacing || ''] || order.pricing.spacing} spacing, {order.pricing.wordsPerPage}/page)</dd></div>
+                                <div className="flex justify-between"><dt className="text-gray-500">Delivery</dt><dd className="font-semibold text-[#000a1e]">{({ STANDARD: 'Standard', EXPRESS: 'Express', URGENT: 'Urgent', EMERGENCY: 'Emergency' } as Record<string, string>)[order.pricing.deliveryType || ''] || order.pricing.deliveryType} · {order.pricing.multiplier}×</dd></div>
+                                {order.pricing.deadlineAt && <div className="flex justify-between"><dt className="text-gray-500">Deadline</dt><dd className="font-semibold text-[#000a1e]">{new Date(order.pricing.deadlineAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</dd></div>}
+                                <div className="flex justify-between"><dt className="text-gray-500">INR price</dt><dd className="font-semibold text-[#000a1e]">₹{(order.pricing.inrTotal ?? 0).toLocaleString('en-IN')} <span className="font-normal text-gray-400">({(order.pricing.words ?? 0).toLocaleString()} × ₹{order.pricing.baseRatePerWord ?? 1} × {order.pricing.multiplier})</span></dd></div>
+                                {order.pricing.currency !== 'INR' && <div className="flex justify-between"><dt className="text-gray-500">Exchange rate</dt><dd className="font-semibold text-[#000a1e]">₹1 = {order.pricing.exchangeRate} {order.pricing.currency}{order.pricing.fxSource && order.pricing.fxSource !== 'live' ? ' (' + order.pricing.fxSource + ')' : ''}</dd></div>}
+                                <div className="flex justify-between border-t border-gray-100 pt-1.5"><dt className="font-semibold text-[#000a1e]">Customer price</dt><dd className="font-bold text-[#000a1e]">{formatOrderTotal(order.pricing.total ?? 0, order.pricing.currency)}</dd></div>
+                            </dl>
+                        </div>
+                    )}
+                    {order.pricing?.total != null && order.pricing.model !== 'WORDS' && (
                         <div className="bg-white rounded-2xl border border-gray-100 p-4">
                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Saved Quote</p>
                             <dl className="space-y-1.5 text-sm">

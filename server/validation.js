@@ -52,11 +52,17 @@ export const orderSchema = z.object({
     abstractPage: z.boolean().optional(),
     totalAmount: z.number().min(0).optional(), // ignored: the server always prices the order
     transactionId: z.string().trim().max(120).optional(),   // manual payment reference (UPI / PayPal / UTR)
+    // Word-based pricing inputs (standard orders): total words, spacing (pages only), exact deadline.
+    words: z.number().int().min(1).max(200000).optional(),
+    spacing: z.enum(['DOUBLE', 'ONE_HALF', 'SINGLE']).optional(),
+    deadlineAt: z.string().trim().max(40).optional(),
+    currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/).optional(),
     // The quotation the customer accepted; the order is refused (409) if it no longer matches.
     quote: z.object({
         currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/),
         total: z.number().min(0).max(100_000_000),
-        pages: z.number().int().min(1).max(100000),
+        words: z.number().int().min(1).max(200000).optional(),
+        pages: z.number().int().min(1).max(100000).optional(),
     }).strict().optional(),
     // Orders placed from a catalogue page are priced from the admin's pricing rules.
     catalog: z.object({
@@ -76,11 +82,17 @@ export const orderCheckoutSchema = orderSchema.omit({ transactionId: true });
 
 export const orderQuoteSchema = z.object({
     service: z.string().trim().max(120).optional().default(''),
-    pages: z.coerce.number().int().min(1, 'Enter at least 1 page').max(100000),
+    words: z.coerce.number().int().min(1, 'Enter the total number of words').max(200000, 'Orders are limited to 200,000 words'),
+    spacing: z.enum(['DOUBLE', 'ONE_HALF', 'SINGLE']).optional(),
+    deadlineAt: z.string().trim().min(1, 'Choose a deadline').max(40),
     academicLevel: z.string().trim().max(40).optional(),
     currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/).optional(),
-    topExpert: z.boolean().optional(),
-    abstractPage: z.boolean().optional(),
+}).strict();
+
+// Admin: delivery-type multipliers (2×–5×) and the deadline hours at which each applies.
+const tier = z.object({ multiplier: z.coerce.number().min(2).max(5), minHours: z.coerce.number().min(0).max(24 * 90) }).strict();
+export const wordPricingSchema = z.object({
+    tiers: z.object({ STANDARD: tier, EXPRESS: tier, URGENT: tier, EMERGENCY: tier }).strict(),
 }).strict();
 
 export const contactSchema = z.object({

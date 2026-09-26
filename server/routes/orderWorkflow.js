@@ -303,7 +303,7 @@ const biddingFail = (res, err, fallback) => {
 router.get('/admin/bidding', noStore, authenticateAdmin, requirePermission('bidding.manage', 'orders.write'), async (req, res) => {
     try {
         const orders = await Order.find({ writerId: null, status: { $in: ['available', 'pending', 'Pending'] } })
-            .select('orderId service subject academicLevel topicTitle pages wordCount deadline totalAmount currency pricing.exchangeRate bidding adminApproved createdAt')
+            .select('orderId service subject academicLevel topicTitle pages wordCount deadline totalAmount currency pricing.model pricing.exchangeRate bidding adminApproved createdAt')
             .sort({ createdAt: -1 }).limit(200).lean();
         const [rates, card] = await Promise.all([getBidRates(), getRateCard()]);
         for (const o of orders) { const b = await budgetFor(o, rates, card); o.suggestedBudget = b ? { min: b.minBid, max: b.maxBid, currency: b.currency, words: b.words } : null; delete o.pricing; }
