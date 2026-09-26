@@ -966,7 +966,7 @@ const ContactsTab = ({ token }: { token: string }) => {
                                     <div className="font-semibold text-sm text-[#000a1e]">{c.subject}</div>
                                     <div className="text-xs text-gray-400">{c.created_at?.slice(0, 10)}</div>
                                 </div>
-                                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${expanded === c.id ? 'rotate-180' : ''}`} />
+                                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${expanded === c._id ? 'rotate-180' : ''}`} />
                             </div>
                         </div>
                         {expanded === c._id && (

@@ -31,13 +31,25 @@ export const ContactSection: React.FC = () => {
                 message: formData.get('message')
             };
 
-            await fetch(`${API}/contact`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dbData)
-            });
+            // Saved to the admin panel (Admin → Messages). This is what must succeed.
+            // The server can take a moment to wake up, so a network failure is retried.
+            let saved: Response | null = null;
+            for (let attempt = 0; attempt < 3 && !saved; attempt++) {
+                if (attempt) await new Promise(r => setTimeout(r, 3000));
+                const ctrl = new AbortController();
+                const timer = setTimeout(() => ctrl.abort(), 60000);
+                try {
+                    saved = await fetch(`${API}/contact`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dbData), signal: ctrl.signal });
+                } catch { /* network error or timeout: try again */ }
+                finally { clearTimeout(timer); }
+            }
+            if (!saved) throw new Error("We couldn't reach our server. Please check your connection and try again in a moment.");
+            if (!saved.ok) {
+                const data = await saved.json().catch(() => ({}));
+                throw new Error(data.error || 'Your message could not be sent. Please try again.');
+            }
 
-            // Then send via EmailJS securely via API
+            // Email copy via EmailJS — best effort: the message is already saved.
             // Read each variable by name: referencing the whole env object makes Vite inline every VITE_* value.
             const env = { VITE_EMAILJS_SERVICE_ID: (import.meta as any).env.VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID: (import.meta as any).env.VITE_EMAILJS_TEMPLATE_ID, VITE_EMAILJS_PUBLIC_KEY: (import.meta as any).env.VITE_EMAILJS_PUBLIC_KEY };
             await emailjs.send(
@@ -51,7 +63,7 @@ export const ContactSection: React.FC = () => {
                     phone: formData.get('from_phone') || 'No Phone'
                 },
                 env.VITE_EMAILJS_PUBLIC_KEY || 'u1Lnz6UEF9jlDevVZ'
-            );
+            ).catch(err => console.warn('[Contact] email copy not sent:', err?.text || err?.message));
 
             setStatus('success');
             formRef.current.reset();
