@@ -84,6 +84,8 @@ export default function WriterOrdersPage() {
     const [error, setError] = useState('');
     const [requiresMembership, setRequiresMembership] = useState(false);
     const [membershipPlan, setMembershipPlan] = useState('');
+    // Orders an admin opened for bids (budget only — never the customer's price).
+    const [biddingProjects, setBiddingProjects] = useState<{ orderId: string; topicTitle: string; subject: string; pages: number; wordCount?: number; deadline: string; budget: { min: number; max: number; currency: string } | null; myBid: { amount: number; currency: string; status: string } | null }[]>([]);
     const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
     const [accepting, setAccepting] = useState<string | null>(null);
     const [uploading, setUploading] = useState<string | null>(null);
@@ -103,6 +105,7 @@ export default function WriterOrdersPage() {
             setRequiresMembership(Boolean(avail.requiresMembership));
             setMembershipPlan(avail.membershipPlan || '');
             setMyOrders(mine.orders || []);
+            api<{ projects: typeof biddingProjects }>('/order-workflow/writer/bidding').then(d => setBiddingProjects(d.projects || [])).catch(() => setBiddingProjects([]));
         } catch (e: any) {
             setError(e.message || 'Failed to load orders.');
         } finally {
@@ -181,7 +184,7 @@ export default function WriterOrdersPage() {
             {/* Tab Bar */}
             <div className="flex gap-2 bg-slate-100 rounded-xl p-1">
                 {([
-                    { key: 'available', label: 'Available Orders', count: availableOrders.length },
+                    { key: 'available', label: 'Available Orders', count: availableOrders.length + biddingProjects.length },
                     { key: 'my-orders', label: 'My Orders', count: myOrders.length },
                 ] as const).map(t => (
                     <button key={t.key} onClick={() => setTab(t.key)}
@@ -199,6 +202,26 @@ export default function WriterOrdersPage() {
             </div>
 
             {error && <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700 font-medium">{error}</div>}
+
+            {tab === 'available' && !loading && biddingProjects.length > 0 && (
+                <section aria-labelledby="open-for-bids" className="space-y-3">
+                    <h2 id="open-for-bids" className="text-sm font-bold text-[#0b1b33]">Open for bids ({biddingProjects.length})</h2>
+                    {biddingProjects.map(p => (
+                        <div key={p.orderId} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center">
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold text-slate-400">{p.orderId}</p>
+                                <h3 className="mt-0.5 truncate font-bold text-[#0b1b33]">{p.topicTitle}</h3>
+                                <p className="mt-1 text-xs text-slate-500">{p.subject} · {p.pages} pg{p.pages > 1 ? 's' : ''}{p.wordCount ? ` · ${p.wordCount} words` : ''} · due {p.deadline}</p>
+                                {p.myBid && <p className="mt-1 text-xs font-semibold text-slate-600">Your bid: {p.myBid.currency} {p.myBid.amount} · {p.myBid.status === 'PENDING' ? 'waiting for the admin' : p.myBid.status.toLowerCase()}</p>}
+                            </div>
+                            {p.budget && <p className="shrink-0 text-sm font-bold text-[#0b1b33]">{p.budget.currency} {p.budget.min}–{p.budget.max}<span className="block text-xs font-normal text-slate-500">writer budget</span></p>}
+                            <Link to={`/writer/bidding?order=${encodeURIComponent(p.orderId)}`} className="shrink-0 rounded-xl bg-[#002147] px-5 py-2.5 text-center text-sm font-bold text-white hover:bg-[#001233]">
+                                {p.myBid?.status === 'PENDING' ? 'Update bid' : 'Place bid'}
+                            </Link>
+                        </div>
+                    ))}
+                </section>
+            )}
 
             {loading ? (
                 <div className="flex justify-center py-20">
@@ -231,7 +254,7 @@ export default function WriterOrdersPage() {
                         </button>
                     </div>
                 </div>
-            ) : orders.length === 0 ? (
+            ) : orders.length === 0 && tab === 'available' && biddingProjects.length > 0 ? null : orders.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
                     <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-4">
                         <Inbox className="w-8 h-8" />
