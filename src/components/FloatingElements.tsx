@@ -28,7 +28,6 @@ export const FloatingElements: React.FC = () => {
                 rel="noreferrer"
                 className="fixed bottom-6 right-6 z-50 bg-[#25D366] text-white p-3.5 rounded-full shadow-lg hover:scale-110 transition-transform hidden md:flex items-center justify-center group"
             >
-                <div className="absolute inset-0 bg-[#25D366] rounded-full animate-ping opacity-75"></div>
                 <MessageCircle className="w-7 h-7 relative z-10" />
             </a>
 

@@ -182,7 +182,7 @@ export const ServicesTabs: React.FC = () => {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10 w-full lg:w-[85%]">
                                     {services[activeTab].features.map((feature, idx) => (
                                         <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-white border border-gray-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)]">
-                                            <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" strokeWidth={2.5} />
+                                            <CheckCircle2 className="w-5 h-5 text-[#1d1d1f] shrink-0" strokeWidth={2} />
                                             <span className="text-[14px] font-semibold text-[#333] tracking-tight">{feature}</span>
                                         </div>
                                     ))}

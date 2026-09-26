@@ -21,7 +21,7 @@ export const TopUtilityBar: React.FC = () => {
                         OFFERS! <span className="rotate-12 bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center text-[8px]">%</span>
                     </span>
                     <span className="whitespace-nowrap shrink-0">Get Expert-crafted assignments &</span>
-                    <span className="bg-emerald-500 font-bold px-2 py-0.5 rounded-sm shadow-sm text-white shrink-0">Save 51%</span>
+                    <span className="bg-white font-semibold px-2 py-0.5 rounded-sm text-[#c2410c] shrink-0">Save 51%</span>
                 </div>
             </div>
         </div>

@@ -317,8 +317,8 @@ export const ReviewsPage: React.FC = () => {
                                             <div className="flex items-center gap-2">
                                                 <h3 className="font-extrabold text-[#000a1e] text-base leading-snug">{rev.author}</h3>
                                                 {rev.verified && (
-                                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-full">
-                                                        <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Verified Order
+                                                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6e6e73] bg-[#f5f5f7] border border-[#e5e5ea] px-2 py-0.5 rounded-full">
+                                                        <CheckCircle2 className="w-3 h-3 text-[#6e6e73]" /> Verified Order
                                                     </span>
                                                 )}
                                             </div>
@@ -361,7 +361,7 @@ export const ReviewsPage: React.FC = () => {
                                             </span>
                                         )}
                                         {rev.grade && (
-                                            <span className="font-bold text-emerald-800 bg-emerald-100/70 px-2.5 py-1 rounded-md flex items-center gap-1">
+                                            <span className="font-semibold text-[#1d1d1f] bg-[#f5f5f7] px-2.5 py-1 rounded-md flex items-center gap-1">
                                                 <Award className="w-3 h-3" /> Grade: {rev.grade}
                                             </span>
                                         )}

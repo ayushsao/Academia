@@ -315,7 +315,7 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
             <div className="flex justify-between items-baseline mb-4 bg-white/70 p-3.5 rounded-xl border border-white">
               <div>
                 <span className="text-xs text-[#708ab5] font-semibold block uppercase">Estimated Quote</span>
-                <span className="text-[11px] text-emerald-700 font-medium">Includes Unlimited Revisions</span>
+                <span className="text-[11px] text-[#6e6e73] font-medium">Includes Unlimited Revisions</span>
               </div>
               <span className="text-3xl font-extrabold text-[#000a1e]">
                 £ {totalPrice}

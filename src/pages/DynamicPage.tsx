@@ -889,7 +889,7 @@ export const DynamicPage: React.FC = () => {
                             <div className="mt-10 pt-8 border-t border-gray-100 grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
                                 {content.benefits.map((benefit, index) => (
                                     <div key={index} className="flex items-start gap-3">
-                                        <CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0" />
+                                        <CheckCircle2 className="w-6 h-6 text-[#1d1d1f] shrink-0" />
                                         <div>
                                             <h3 className="font-bold text-[#000a1e]">{benefit}</h3>
                                             <p className="text-sm text-gray-500 mt-1">Guaranteed feature for your success.</p>
@@ -929,9 +929,9 @@ export const DynamicPage: React.FC = () => {
                                 </div>
 
                                 {/* Step 3 */}
-                                <div className="flex-1 flex flex-col items-center text-center p-10 bg-white rounded-3xl shadow-[0_15px_40px_rgba(0,10,30,0.06)] border-t-4 border-emerald-500 transform transition-transform hover:-translate-y-2 hover:shadow-2xl">
-                                    <div className="w-20 h-20 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl flex items-center justify-center mb-8 shadow-inner border border-emerald-100/50">
-                                        <Award className="w-10 h-10 text-emerald-600" />
+                                <div className="flex-1 flex flex-col items-center text-center p-10 bg-white rounded-3xl shadow-[0_15px_40px_rgba(0,10,30,0.06)] border-t-4 border-[#002147] transform transition-transform hover:-translate-y-2 hover:shadow-2xl">
+                                    <div className="w-20 h-20 bg-[#f5f5f7] rounded-2xl flex items-center justify-center mb-8 border border-[#e5e5ea]">
+                                        <Award className="w-10 h-10 text-[#1d1d1f]" />
                                     </div>
                                     <h3 className="text-2xl font-bold text-[#000a1e] mb-4 leading-tight">{step3Title}</h3>
                                     <p className="text-base text-gray-500 leading-relaxed">

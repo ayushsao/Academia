@@ -110,7 +110,7 @@ export const ResourcesPage = () => {
                                     }`}
                             >
                                 <div className="flex items-center gap-3 mb-4">
-                                    <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-xs font-extrabold tracking-wide border border-emerald-100">
+                                    <span className="bg-[#f5f5f7] text-[#1d1d1f] px-3 py-1 rounded-full text-xs font-semibold border border-[#e5e5ea]">
                                         {s.grade}
                                     </span>
                                     <span className="text-gray-400 text-sm font-medium flex items-center gap-1">

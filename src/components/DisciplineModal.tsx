@@ -51,7 +51,7 @@ export const DisciplineModal: React.FC<DisciplineModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {discipline.topics.map((topic, i) => (
                 <div key={i} className="flex items-center gap-2.5 p-3 rounded-xl bg-[#f8f9ff] border border-[#d1e4ff] text-xs font-semibold text-[#000a1e]">
-                  <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <CheckCircle className="w-4 h-4 text-[#1d1d1f] flex-shrink-0" />
                   <span>{topic}</span>
                 </div>
               ))}

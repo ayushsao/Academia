@@ -97,7 +97,7 @@ export default function WriterPricing() {
                                                     ) : <p className="text-sm text-slate-500">Not offered {period === 'ANNUAL' ? 'annually' : 'monthly'} in {currency}.</p>}
                                                 </div>
                                                 <ul className="mt-6 flex-1 space-y-2.5 text-sm text-slate-700">
-                                                    {plan.features.map(f => <li key={f} className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />{f}</li>)}
+                                                    {plan.features.map(f => <li key={f} className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#1d1d1f]" />{f}</li>)}
                                                 </ul>
                                                 <Link to={cta.href} className={cn('mt-7 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold transition', plan.highlight ? 'bg-[#002147] text-white hover:bg-[#0b2f5c]' : 'border border-[#002147] text-[#002147] hover:bg-[#002147]/5')}>
                                                     {cta.label} <ArrowRight className="h-4 w-4" />

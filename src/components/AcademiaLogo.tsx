@@ -42,3 +42,19 @@ export const AcademiaLogo: React.FC<AcademiaLogoProps> = ({
     </svg>
   );
 };
+
+// The full wordmark: the icon's "A" is the first letter, followed by
+// "SSIGNMENT" (navy) + "MINDS" (orange) and a small ™ — so it reads ASSIGNMENTMINDS.
+export const BrandLogo: React.FC<{ className?: string; iconClassName?: string; textClassName?: string }> = ({
+  className = '',
+  iconClassName = 'h-10',
+  textClassName = 'text-[24px]',
+}) => (
+  <span className={`inline-flex items-end select-none ${className}`} aria-label="AssignmentMinds">
+    <AcademiaLogo className={`w-auto ${iconClassName}`} />
+    <span aria-hidden="true" className={`-ml-[3px] mb-[1px] font-bold uppercase leading-none tracking-[-0.01em] text-[#1A2839] ${textClassName}`}>
+      ssignment<span className="text-[#fea520]">Minds</span>
+      <sup className="ml-0.5 align-super text-[0.4em] font-semibold text-gray-400">™</sup>
+    </span>
+  </span>
+);

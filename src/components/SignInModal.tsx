@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, X, ArrowRight, ShieldCheck, AlertCircle, User } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
-import { AcademiaLogo } from './AcademiaLogo';
+import { BrandLogo } from './AcademiaLogo';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGoogleLogin } from '@react-oauth/google';
 import emailjs from '@emailjs/browser';
@@ -173,16 +173,8 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
 
             {/* Brand */}
             <div className="flex flex-col items-center mb-10 z-10">
-              <div className="flex items-center gap-1.5 mb-2 cursor-pointer group">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-[#fea520] blur opacity-0 group-hover:opacity-40 transition-opacity rounded-full"></div>
-                  <AcademiaLogo className="h-9 w-auto relative z-10 group-hover:scale-105 transition-transform" />
-                </div>
-                <span className="text-2xl tracking-tight uppercase">
-                  <span className="font-black text-[#000a1e]">Assignment</span>
-                  <span className="font-black text-[#fea520]">Minds</span>
-                  <sup className="text-[10px] font-bold text-gray-400 ml-0.5">TM</sup>
-                </span>
+              <div className="mb-2">
+                <BrandLogo iconClassName="h-10" textClassName="text-[24px]" />
               </div>
               <span className="text-[11px] sm:text-xs text-gray-500 font-medium tracking-wide">
                 World's No. 1 Essay & Assignment Help Co. since 2007

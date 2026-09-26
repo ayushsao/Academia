@@ -220,8 +220,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     <span className="sm:hidden">UK's #1 Academic Network</span>
                     <span className="hidden sm:inline truncate">UK's #1 Ranked Academic Consultation Network</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold whitespace-nowrap text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 shrink-0">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <div className="text-xs sm:text-[13px] font-medium whitespace-nowrap text-[#6e6e73] shrink-0">
                     <span>84 Ph.D. Mentors Active</span>
                   </div>
                 </div>
@@ -246,7 +245,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                         alt="UK Academic Scholar"
                         className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                       />
-                      <div className="absolute top-2 left-2 bg-white/95 backdrop-blur-md px-2 py-0.5 rounded-full shadow-xs border border-emerald-100 flex items-center gap-1 text-xs font-bold text-emerald-700">
+                      <div className="absolute top-2 left-2 bg-white/95 backdrop-blur-md px-2 py-0.5 rounded-full shadow-xs border border-white/60 flex items-center gap-1 text-xs font-semibold text-[#1d1d1f]">
                         <Award className="w-3 h-3 text-amber-500" />
                         98.4% Distinction
                       </div>
@@ -272,21 +271,21 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
 
                   {/* 3 Guarantee Cards (7 cols) */}
                   <div className="sm:col-span-7 flex flex-col justify-between gap-2">
-                    <div className="bg-white/95 backdrop-blur-sm rounded-xl p-2.5 border border-pink-100 shadow-xs flex items-center gap-2.5 hover:border-amber-300 transition-colors">
-                      <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                    <div className="bg-white/95 backdrop-blur-sm rounded-xl p-2.5 border border-pink-100 shadow-xs flex items-center gap-2.5 hover:border-[#d2d2d7] transition-colors">
+                      <div className="w-8 h-8 rounded-lg bg-[#f5f5f7] text-[#1d1d1f] flex items-center justify-center shrink-0">
                         <Award className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <span className="text-[13px] sm:text-[15px] font-bold text-gray-900">Guaranteed A+ Standard</span>
-                          <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/50">Top 5% Ph.D.</span>
+                          <span className="text-[11px] font-medium text-[#6e6e73] bg-[#f5f5f7] px-1.5 py-0.5 rounded border border-[#e5e5ea]">Top 5% Ph.D.</span>
                         </div>
                         <p className="text-xs sm:text-[13px] text-gray-500 leading-tight mt-0.5">Strict adherence to UK university grading rubrics & marking criteria.</p>
                       </div>
                     </div>
 
-                    <div className="bg-white/95 backdrop-blur-sm rounded-xl p-2.5 border border-pink-100 shadow-xs flex items-center gap-2.5 hover:border-emerald-300 transition-colors">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                    <div className="bg-white/95 backdrop-blur-sm rounded-xl p-2.5 border border-pink-100 shadow-xs flex items-center gap-2.5 hover:border-[#d2d2d7] transition-colors">
+                      <div className="w-8 h-8 rounded-lg bg-[#f5f5f7] text-[#1d1d1f] flex items-center justify-center shrink-0">
                         <ShieldCheck className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -297,14 +296,14 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                       </div>
                     </div>
 
-                    <div className="bg-white/95 backdrop-blur-sm rounded-xl p-2.5 border border-pink-100 shadow-xs flex items-center gap-2.5 hover:border-blue-300 transition-colors">
-                      <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+                    <div className="bg-white/95 backdrop-blur-sm rounded-xl p-2.5 border border-pink-100 shadow-xs flex items-center gap-2.5 hover:border-[#d2d2d7] transition-colors">
+                      <div className="w-8 h-8 rounded-lg bg-[#f5f5f7] text-[#1d1d1f] flex items-center justify-center shrink-0">
                         <Zap className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <span className="text-[13px] sm:text-[15px] font-bold text-gray-900">Urgent 3-Hour Delivery</span>
-                          <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200/50">24/7 Live</span>
+                          <span className="text-[11px] font-medium text-[#6e6e73] bg-[#f5f5f7] px-1.5 py-0.5 rounded border border-[#e5e5ea]">24/7 Live</span>
                         </div>
                         <p className="text-xs sm:text-[13px] text-gray-500 leading-tight mt-0.5">Direct scholar assignment with guaranteed on-time delivery.</p>
                       </div>
@@ -316,7 +315,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 <div className="bg-white/75 backdrop-blur-sm rounded-xl p-2 border border-pink-100/80 shrink-0">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[12.5px] font-bold text-gray-700 uppercase tracking-wider">Specialized Disciplines</span>
-                    <span className="text-xs font-semibold text-pink-600">85+ Subjects Covered</span>
+                    <span className="text-xs font-medium text-[#6e6e73]">85+ Subjects Covered</span>
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {['Business & Mgt', 'Law & OSCOLA', 'Nursing & Health', 'Computer Science & AI', 'Finance & SPSS', 'Engineering'].map((sub, i) => (
@@ -338,17 +337,17 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     <div className="text-[11px] text-gray-500 font-medium">Ph.D. Writers</div>
                   </div>
                   <div className="border-r border-pink-100">
-                    <div className="text-[13px] font-black text-emerald-600">0.0%</div>
+                    <div className="text-[13px] font-black text-[#1d1d1f]">0.0%</div>
                     <div className="text-[11px] text-gray-500 font-medium">Plagiarism</div>
                   </div>
                   <div>
-                    <div className="text-[13px] font-black text-amber-600">4.9 / 5.0</div>
+                    <div className="text-[13px] font-black text-[#1d1d1f]">4.9 / 5.0</div>
                     <div className="text-[11px] text-gray-500 font-medium">18k+ Reviews</div>
                   </div>
                 </div>
 
                 {/* 6. Verified Student Social Proof Testimonial */}
-                <div className="bg-gradient-to-r from-amber-500/10 via-pink-500/5 to-rose-500/10 rounded-xl p-2 border border-amber-200/60 flex items-center justify-between gap-2 shrink-0">
+                <div className="bg-[#f5f5f7] rounded-xl p-2 border border-[#e5e5ea] flex items-center justify-between gap-2 shrink-0">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0">
                       S
@@ -357,7 +356,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                       <strong className="text-gray-900 font-bold">"Scored 78% Distinction in UCL Master's Thesis!</strong> Flawless research and methodology."
                     </p>
                   </div>
-                  <span className="text-[11.5px] font-bold text-amber-700 bg-white px-2 py-0.5 rounded-full border border-amber-200 shrink-0">
+                  <span className="text-[11.5px] font-medium text-[#6e6e73] bg-white px-2 py-0.5 rounded-full border border-[#e5e5ea] shrink-0">
                     ★★★★★ Verified Student
                   </span>
                 </div>
@@ -425,8 +424,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     <span className="sm:hidden">Originality Check Active</span>
                     <span className="hidden sm:inline truncate">Turnitin Originality Check Active</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold whitespace-nowrap text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 shrink-0">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <div className="text-xs sm:text-[13px] font-medium whitespace-nowrap text-[#6e6e73] shrink-0">
                     <span>Turnitin Scanner Online</span>
                   </div>
                 </div>
@@ -451,7 +449,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                         alt="UK Students Collaborating"
                         className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                       />
-                      <div className="absolute top-2 right-2 bg-emerald-500 text-white rounded-full px-2 py-0.5 text-xs font-bold shadow-sm flex items-center gap-1 border border-white">
+                      <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-md text-[#1d1d1f] rounded-full px-2 py-0.5 text-xs font-semibold shadow-sm flex items-center gap-1 border border-white/60">
                         <CheckCircle2 className="w-3 h-3" /> A+ Distinction
                       </div>
                       <div className="absolute bottom-2 left-2 bg-[#000a1e] text-[#fea520] rounded-full px-2 py-0.5 text-[11px] font-black shadow-sm flex items-center gap-1 border border-[#fea520]/40">
@@ -463,7 +461,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                   {/* Right Guarantee Cards (7 cols) */}
                   <div className="sm:col-span-7 flex flex-col justify-between gap-2">
                     <div className="bg-white/95 rounded-xl p-2.5 border border-slate-200 shadow-xs flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-[#f5f5f7] text-[#1d1d1f] flex items-center justify-center shrink-0">
                         <PenTool className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -473,7 +471,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     </div>
 
                     <div className="bg-white/95 rounded-xl p-2.5 border border-slate-200 shadow-xs flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 font-black text-[13px]">
+                      <div className="w-8 h-8 rounded-lg bg-[#f5f5f7] text-[#1d1d1f] flex items-center justify-center shrink-0 font-black text-[13px]">
                         100%
                       </div>
                       <div className="flex-1 min-w-0">
@@ -483,7 +481,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     </div>
 
                     <div className="bg-white/95 rounded-xl p-2.5 border border-slate-200 shadow-xs flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-[#f5f5f7] text-[#1d1d1f] flex items-center justify-center shrink-0">
                         <ShieldCheck className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -498,7 +496,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 <div className="bg-white/80 backdrop-blur-sm rounded-xl p-2 border border-slate-200 shrink-0">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[12.5px] font-bold text-gray-700 uppercase tracking-wider">Citation & Referencing Precision</span>
-                    <span className="text-xs font-semibold text-blue-600">Full In-Text & Bibliography</span>
+                    <span className="text-xs font-medium text-[#6e6e73]">Full In-Text & Bibliography</span>
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {['Harvard UK', 'APA 7th Edition', 'OSCOLA Law', 'IEEE / ACM', 'Chicago & Turabian', 'MHRA'].map((c, i) => (
@@ -512,21 +510,21 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 {/* 5. Integrity Matrix Strip */}
                 <div className="grid grid-cols-3 gap-1.5 py-1.5 px-2 bg-white/85 backdrop-blur-sm rounded-xl border border-slate-200 text-center shadow-xs shrink-0">
                   <div className="border-r border-slate-200">
-                    <div className="text-[13px] font-black text-blue-600">&lt; 3%</div>
+                    <div className="text-[13px] font-black text-[#1d1d1f]">&lt; 3%</div>
                     <div className="text-[11px] text-gray-500 font-medium">Similarity Index</div>
                   </div>
                   <div className="border-r border-slate-200">
-                    <div className="text-[13px] font-black text-amber-600">20+</div>
+                    <div className="text-[13px] font-black text-[#1d1d1f]">20+</div>
                     <div className="text-[11px] text-gray-500 font-medium">Peer Sources</div>
                   </div>
                   <div>
-                    <div className="text-[13px] font-black text-indigo-600">100%</div>
+                    <div className="text-[13px] font-black text-[#1d1d1f]">100%</div>
                     <div className="text-[11px] text-gray-500 font-medium">Confidential</div>
                   </div>
                 </div>
 
                 {/* 6. Social Proof */}
-                <div className="bg-gradient-to-r from-blue-500/10 via-emerald-500/5 to-teal-500/10 rounded-xl p-2 border border-blue-200/60 flex items-center justify-between gap-2 shrink-0">
+                <div className="bg-[#f5f5f7] rounded-xl p-2 border border-[#e5e5ea] flex items-center justify-between gap-2 shrink-0">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
                       L
@@ -535,7 +533,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                       <strong className="text-gray-900 font-bold">"Turnitin scan came back 1% similarity!</strong> Tutor commended the critical arguments."
                     </p>
                   </div>
-                  <span className="text-[11.5px] font-bold text-blue-700 bg-white px-2 py-0.5 rounded-full border border-blue-200 shrink-0">
+                  <span className="text-[11.5px] font-medium text-[#6e6e73] bg-white px-2 py-0.5 rounded-full border border-[#e5e5ea] shrink-0">
                     Manchester MSc Student
                   </span>
                 </div>
@@ -596,8 +594,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     <span className="sm:hidden">UK's Highest-Rated Network</span>
                     <span className="hidden sm:inline truncate">UK's Highest-Rated Student Consultation Network</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold whitespace-nowrap text-emerald-300 bg-black/25 px-2 py-0.5 rounded-full border border-emerald-400/30 shrink-0">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <div className="text-xs sm:text-[13px] font-medium whitespace-nowrap text-white/70 shrink-0">
                     <span>1,200+ Ph.D. Writers Available</span>
                   </div>
                 </div>
@@ -766,7 +763,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
 
             {/* 1. Trust Guarantees Bar (From Pic 1) */}
             <div className="flex flex-wrap items-center justify-center sm:justify-between gap-x-3 gap-y-1 text-xs 2xl:text-[13px] font-bold text-gray-700 bg-gray-50/90 rounded-xl px-3 py-2 border border-gray-100 mb-4">
-              <span className="flex items-center gap-1.5 text-emerald-600 whitespace-nowrap">
+              <span className="flex items-center gap-1.5 text-[#1d1d1f] whitespace-nowrap">
                 <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
                 <span>Guaranteed Grade or Refund</span>
               </span>
@@ -776,7 +773,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 <span>100% Original</span>
               </span>
               <span className="hidden sm:inline text-gray-300">•</span>
-              <span className="flex items-center gap-1 text-blue-600 whitespace-nowrap">
+              <span className="flex items-center gap-1 text-[#1d1d1f] whitespace-nowrap">
                 <Clock className="w-3.5 h-3.5" />
                 <span>24/7 Support</span>
               </span>
@@ -1070,7 +1067,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                         }}
                       />
                       {attachedFileName ? (
-                        <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-[13px] px-2.5 py-1 rounded-full border border-emerald-200">
+                        <div className="flex items-center gap-1.5 bg-[#f5f5f7] text-[#1d1d1f] text-[13px] px-2.5 py-1 rounded-full border border-[#e5e5ea]">
                           <Paperclip className="w-3 h-3" />
                           <span className="max-w-[170px] truncate font-medium">{attachedFileName}</span>
                           <button
@@ -1095,7 +1092,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     </div>
                   </div>
                 ) : attachedFileName ? (
-                  <div className="flex items-center justify-between bg-emerald-50 text-emerald-700 text-[13px] px-3 py-1.5 rounded-lg border border-emerald-200">
+                  <div className="flex items-center justify-between bg-[#f5f5f7] text-[#1d1d1f] text-[13px] px-3 py-1.5 rounded-lg border border-[#e5e5ea]">
                     <span className="flex items-center gap-1.5 truncate font-medium">
                       <Paperclip className="w-3.5 h-3.5" /> {attachedFileName}
                     </span>
@@ -1153,7 +1150,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                       <span role="alert" className="text-xs font-semibold text-red-600">{quoteError}</span>
                     ) : (
                     <span className="text-sm font-medium text-[#708ab5] flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 stroke-[2.5]" /> Free Plagiarism Check Included
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#1d1d1f] stroke-[2.5]" /> Free Plagiarism Check Included
                     </span>
                     )}
                   </div>

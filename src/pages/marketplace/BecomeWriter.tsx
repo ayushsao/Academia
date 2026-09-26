@@ -192,7 +192,7 @@ export default function BecomeWriter() {
                         <div className="flex-1">
                             <h2 className="text-2xl font-extrabold text-[#0b1b33] sm:text-3xl">{r.cta.title}</h2>
                             <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-600">
-                                {r.cta.points.map(t => <li key={t} className="flex items-center gap-1.5"><Check className="h-4 w-4 text-emerald-600" />{t}</li>)}
+                                {r.cta.points.map(t => <li key={t} className="flex items-center gap-1.5"><Check className="h-4 w-4 text-[#1d1d1f]" />{t}</li>)}
                             </ul>
                             <p className="mt-3 text-xs text-slate-500">By applying you agree to the <Link to="/writer-terms" className="font-semibold text-[#002147] underline">writer terms</Link>.</p>
                         </div>

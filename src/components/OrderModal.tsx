@@ -710,7 +710,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                         <span className="text-[11px] text-[#708ab5]">Detailed originality verification report</span>
                       </div>
                     </div>
-                    <span className="text-xs font-bold text-emerald-700">FREE</span>
+                    <span className="text-xs font-semibold text-[#6e6e73]">Free</span>
                   </div>
 
                   {!catMode && (<>
@@ -761,7 +761,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                       <div>
                         <div className="text-sm font-bold flex items-center gap-2">
                           <span>Instant Online Checkout</span>
-                          <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] px-2 py-0.5 rounded-full font-semibold">Recommended</span>
+                          <span className="bg-white/10 text-white/80 border border-white/15 text-[10px] px-2 py-0.5 rounded-full font-medium">Recommended</span>
                         </div>
                         <p className="text-xs text-white/70">Cards, UPI, Netbanking & Wallets via Razorpay Standard Checkout</p>
                       </div>
@@ -827,7 +827,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   {/* UPI Block (India) */}
                   {showUpi && (
                   <div className="bg-white p-4 rounded-xl border border-[#d1e4ff] flex flex-col items-center text-center shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 right-0 bg-emerald-50 text-emerald-700 text-[9px] font-extrabold px-2 py-1 rounded-bl-xl border-b border-l border-emerald-100 uppercase tracking-wider">India</div>
+                    <div className="absolute top-0 right-0 bg-[#f5f5f7] text-[#1d1d1f] text-[9px] font-semibold px-2 py-1 rounded-bl-xl border-b border-l border-[#e5e5ea] uppercase tracking-wider">India</div>
 
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Scan to Pay (UPI)</p>
                     <div className="p-1 border border-gray-100 rounded-xl bg-white shadow-sm mb-3">
@@ -838,7 +838,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                       />
                     </div>
                     <p className="text-xl font-extrabold text-[#000a1e] mb-1">₹ {upiAmount.toLocaleString('en-IN')}</p>
-                    {!catMode && shownStd && <p className="text-[10px] text-emerald-600 font-bold mb-3">{sym} {grandTotal} Converted (1{sym} = ₹{shownStd.upi.rate})</p>}
+                    {!catMode && shownStd && <p className="text-[10px] text-[#6e6e73] font-medium mb-3">{sym} {grandTotal} Converted (1{sym} = ₹{shownStd.upi.rate})</p>}
 
                     <div className="w-full">
                       <span className="text-[10px] font-semibold text-gray-500 block mb-1">Or Send to Direct UPI ID:</span>

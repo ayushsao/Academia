@@ -200,7 +200,7 @@ export const Disciplines: React.FC<DisciplinesProps> = ({ onSelectDiscipline }) 
                 <div className="relative w-12 h-12 flex items-center justify-center">
                   <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
                     <path className="text-gray-100" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    <path className="text-green-500" strokeDasharray="90, 100" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path className="text-[#fea520]" strokeDasharray="90, 100" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                   </svg>
                   <span className="absolute text-[10px] font-bold text-gray-700">90%</span>
                 </div>

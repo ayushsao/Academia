@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, ShoppingCart, Menu, ChevronDown, User, LogOut, BadgeCheck, PenLine } from 'lucide-react';
-import { AcademiaLogo } from './AcademiaLogo';
+import { BrandLogo } from './AcademiaLogo';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { useNavigate, Link } from 'react-router-dom';
@@ -51,12 +51,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
       <div className="w-full pl-2 pr-4 md:pl-4 md:pr-8 2xl:pl-6 2xl:pr-12 flex items-center justify-between gap-4">
 
         {/* Logo */}
-        <div className="flex shrink-0 items-center gap-0 cursor-pointer group" onClick={() => navigate('/')}>
-          <AcademiaLogo className="h-11 w-auto z-10 transition-transform duration-300 group-hover:scale-105" />
-          <div className="flex flex-col z-0 ml-0.5">
-            <span className="text-2xl font-black text-[#000a1e] uppercase tracking-tight leading-none">ssignment<span className="text-[#fea520]">Minds</span></span>
-            <span className="text-[10px] sm:text-[11px] font-bold text-gray-500 tracking-wider pl-1.5 uppercase">Achieve Your Potential</span>
-          </div>
+        <div className="flex shrink-0 items-center cursor-pointer" onClick={() => navigate('/')}>
+          <BrandLogo iconClassName="h-9 sm:h-10" textClassName="text-[20px] sm:text-[24px]" />
         </div>
 
         {/* Desktop Nav Links */}
