@@ -61,7 +61,7 @@ interface Order {
     abstractPage?: boolean;
     totalAmount: number; currency?: string; status: string; assignedTo?: string;
     adminApproved?: boolean; adminApprovedAt?: string;
-    adminNotes?: string; revisionNote?: string; transactionId?: string;
+    adminNotes?: string; revisionNote?: string; transactionId?: string; writerId?: string | null;
     deliveryFiles?: { _id: string; originalName: string; mimeType?: string; size: number; uploadedAt: string; version: number }[];
     submittedAt?: string; completedAt?: string; feedback?: { rating: number; comment?: string; createdAt: string }; payment?: { provider: 'RAZORPAY' | 'MANUAL'; status: 'PAID' | 'PENDING_VERIFICATION'; providerPaymentId?: string; amountMinor?: number; currency?: string }; createdAt: string; updatedAt: string;
 }
@@ -109,8 +109,50 @@ const WriterSubmission = ({ order, token, onUpdate, download }: { order: Order; 
     const [busy, setBusy] = useState<'approve' | 'revision' | null>(null);
     const [asking, setAsking] = useState(false);
     const [note, setNote] = useState('');
+    const [uploading, setUploading] = useState(false);
+    const fileInput = React.useRef<HTMLInputElement>(null);
     const files = order.deliveryFiles || [];
-    if (!files.length) return null;
+    const cancelled = ['cancelled', 'Cancelled'].includes(order.status);
+    const completed = ['completed', 'Completed'].includes(order.status);
+    // The admin can upload the final file themselves (orders handled without a
+    // marketplace writer, or a corrected file). It then waits for approval, or
+    // reaches the customer at once if the order is already completed.
+    const upload = async (list: FileList | null) => {
+        if (!list?.length) return;
+        setUploading(true);
+        try {
+            const form = new FormData();
+            Array.from(list).forEach(f => form.append('files', f));
+            const res = await fetch(`${API}/order-workflow/admin/upload/${order.orderId}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Upload failed.');
+            onUpdate({ status: data.order.status, deliveryFiles: data.order.deliveryFiles, completedAt: data.order.completedAt, submittedAt: data.order.submittedAt });
+        } catch (e: any) { alert(e.message || 'Upload failed.'); }
+        finally { setUploading(false); if (fileInput.current) fileInput.current.value = ''; }
+    };
+    const uploadButton = !cancelled && (
+        <>
+            <button onClick={() => fileInput.current?.click()} disabled={uploading}
+                className="text-xs font-bold text-[#002147] bg-white border border-gray-200 hover:border-gray-300 px-3 py-2 rounded-lg flex items-center gap-1.5 disabled:opacity-50">
+                <UploadCloud className="w-3.5 h-3.5" />{uploading ? 'Uploading...' : files.length ? 'Upload a new version' : 'Upload final file'}
+            </button>
+            <input ref={fileInput} type="file" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.zip" className="hidden" onChange={e => upload(e.target.files)} />
+        </>
+    );
+    if (!files.length) return (
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="flex items-start justify-between gap-3">
+                <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Final work</p>
+                    <p className="text-xs text-gray-500">
+                        {completed ? 'This order is completed but has no final file, so the customer has nothing to download. Upload the final file.'
+                            : order.writerId ? 'The writer hasn’t uploaded the work yet.' : 'No final file yet. The writer uploads it, or you can upload it here.'}
+                    </p>
+                </div>
+                {uploadButton}
+            </div>
+        </div>
+    );
     const latest = Math.max(...files.map(f => f.version || 1));
     const current = files.filter(f => (f.version || 1) === latest);
     const earlier = files.filter(f => (f.version || 1) !== latest).sort((a, b) => b.version - a.version);
@@ -139,9 +181,12 @@ const WriterSubmission = ({ order, token, onUpdate, download }: { order: Order; 
     );
     return (
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Writer's submission</p>
+            <div className="flex items-start justify-between gap-3 mb-1">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Final work</p>
+                {uploadButton}
+            </div>
             <p className="text-xs text-gray-500 mb-4">
-                {order.status === 'submitted' ? 'Writer submitted the work. Check it, then approve it or ask for a revision.'
+                {order.status === 'submitted' ? 'The work has been submitted. Download and check it, then approve it or ask for a revision.'
                     : order.status === 'revision_required' ? 'Sent back to the writer for a revision.'
                         : ['completed', 'Completed'].includes(order.status) ? 'Approved. The customer can download the work.' : ''}
             </p>
@@ -447,6 +492,8 @@ const OrderDetailDrawer = ({
                     </div>
 
                     {/* Writer Marketplace Release Section */}
+                    {/* Only for new orders: approving sends them to writers. */}
+                    {['pending', 'Pending', 'available'].includes(order.status) && (
                     <div className={`rounded-2xl p-4 border ${order.adminApproved ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div>
@@ -475,6 +522,7 @@ const OrderDetailDrawer = ({
                             )}
                         </div>
                     </div>
+                    )}
 
                     <WriterSubmission order={order} token={token} download={handleForceDownload}
                         onUpdate={changes => { if (changes.status) setStatus(changes.status); onUpdate({ ...order, ...changes }); }} />

@@ -45,6 +45,42 @@ const normaliseStatus = (s) => {
     return map[s] || s;
 };
 
+// Validates uploaded delivery files (extension + real content) and stores them as
+// the order's next version. Returns { files } or { error } (temp files removed).
+async function storeDeliveryFiles(uploads, order, uploaderId) {
+    const discard = () => Promise.all((uploads || []).map(f => fs.promises.unlink(f.path).catch(() => {})));
+    if (!uploads || uploads.length === 0) return { error: 'Please upload at least one file.' };
+    for (const f of uploads) {
+        const ext = path.extname(f.originalname).toLowerCase();
+        if (!ALLOWED_DELIVERY_EXTS.includes(ext)) {
+            await discard();
+            return { error: `"${safeName(f.originalname)}" is not supported. Allowed: PDF, DOC, DOCX, PPT, PPTX, ZIP.` };
+        }
+        const head = Buffer.alloc(64);
+        const fh = await fs.promises.open(f.path, 'r');
+        const { bytesRead } = await fh.read(head, 0, 64, 0);
+        await fh.close();
+        if (!kindMatchesExtension(sniffOrderFileKind(head.subarray(0, bytesRead)), ext)) {
+            await discard();
+            return { error: `"${safeName(f.originalname)}" doesn't appear to be a valid file.` };
+        }
+    }
+    const version = (order.deliveryFiles.length ? Math.max(...order.deliveryFiles.map(f => f.version || 1)) : 0) + 1;
+    const files = [];
+    for (const f of uploads) {
+        const ext = path.extname(f.originalname).toLowerCase();
+        const storedName = `${crypto.randomBytes(16).toString('hex')}-${safeName(f.originalname)}`;
+        const storedPath = path.join(DELIVERY_DIR, storedName);
+        await fs.promises.rename(f.path, storedPath);
+        files.push({
+            originalName: f.originalname.slice(0, 200), fileName: storedName, filePath: storedPath,
+            mimeType: EXT_MIMES[ext] || 'application/octet-stream', size: f.size,
+            uploadedBy: uploaderId, uploadedAt: new Date(), version,
+        });
+    }
+    return { files };
+}
+
 // ── Middleware: Require writer role ────────────────────────────────────────
 function requireWriter(req, res, next) {
     if (!req.user || req.user.role !== 'WRITER') {
@@ -190,55 +226,10 @@ router.post('/writer/upload/:orderId', authenticateUser, requireWriter, delivery
             return res.status(404).json({ error: 'Order not found or not in a submittable state.' });
         }
 
-        if (!req.files || req.files.length === 0) {
-            return res.status(400).json({ error: 'Please upload at least one file.' });
-        }
+        const stored = await storeDeliveryFiles(req.files, order, req.user.id);
+        if (stored.error) return res.status(400).json({ error: stored.error });
 
-        // Validate and store files
-        const currentVersion = order.deliveryFiles.length > 0
-            ? Math.max(...order.deliveryFiles.map(f => f.version))
-            : 0;
-        const newVersion = currentVersion + 1;
-
-        const storedFiles = [];
-        for (const f of req.files) {
-            const ext = path.extname(f.originalname).toLowerCase();
-            if (!ALLOWED_DELIVERY_EXTS.includes(ext)) {
-                await discard();
-                return res.status(400).json({
-                    error: `"${safeName(f.originalname)}" is not supported. Allowed: PDF, DOC, DOCX, PPT, PPTX, ZIP.`
-                });
-            }
-
-            // Content sniffing validation
-            const head = Buffer.alloc(64);
-            const fh = await fs.promises.open(f.path, 'r');
-            const { bytesRead } = await fh.read(head, 0, 64, 0);
-            await fh.close();
-            const kind = sniffOrderFileKind(head.subarray(0, bytesRead));
-            if (!kindMatchesExtension(kind, ext)) {
-                await discard();
-                return res.status(400).json({ error: `"${safeName(f.originalname)}" doesn't appear to be a valid file.` });
-            }
-
-            const storedName = `${crypto.randomBytes(16).toString('hex')}-${safeName(f.originalname)}`;
-            const storedPath = path.join(DELIVERY_DIR, storedName);
-            await fs.promises.rename(f.path, storedPath);
-
-            const mimeType = EXT_MIMES[ext] || 'application/octet-stream';
-            storedFiles.push({
-                originalName: f.originalname.slice(0, 200),
-                fileName: storedName,
-                filePath: storedPath,
-                mimeType,
-                size: f.size,
-                uploadedBy: req.user.id,
-                uploadedAt: new Date(),
-                version: newVersion,
-            });
-        }
-
-        order.deliveryFiles.push(...storedFiles);
+        order.deliveryFiles.push(...stored.files);
         order.status = 'submitted';
         order.submittedAt = new Date();
         await order.save();
@@ -277,6 +268,47 @@ router.post('/admin/release/:orderId', authenticateAdmin, requirePermission('ord
         });
     } catch (err) {
         res.status(500).json({ error: 'Could not release order.' });
+    }
+});
+
+// POST /api/order-workflow/admin/upload/:orderId — the admin uploads the final work.
+// On an order already marked completed the file reaches the customer at once;
+// otherwise it waits as "Submitted" for the admin's approval, like a writer's upload.
+router.post('/admin/upload/:orderId', authenticateAdmin, requirePermission('orders.write'), deliveryUpload.array('files', 5), async (req, res) => {
+    const discard = () => Promise.all((req.files || []).map(f => fs.promises.unlink(f.path).catch(() => {})));
+    try {
+        const order = await Order.findOne({ orderId: req.params.orderId });
+        if (!order) { await discard(); return res.status(404).json({ error: 'Order not found.' }); }
+        if (['cancelled', 'Cancelled'].includes(order.status)) { await discard(); return res.status(409).json({ error: 'This order is cancelled.' }); }
+
+        const stored = await storeDeliveryFiles(req.files, order, req.admin.id);
+        if (stored.error) return res.status(400).json({ error: stored.error });
+        order.deliveryFiles.push(...stored.files);
+
+        const alreadyCompleted = isCompleted(order.status);
+        if (alreadyCompleted) {
+            order.status = 'completed';
+            order.completedAt = order.completedAt || new Date();
+        } else {
+            order.status = 'submitted';
+            order.submittedAt = new Date();
+        }
+        await order.save();
+        await recordAudit(req, 'ORDER_FINAL_FILE_UPLOADED', { targetType: 'ORDER', targetId: order.orderId, reason: stored.files.map(f => f.originalName).join(', ') });
+
+        if (alreadyCompleted) {
+            notify({
+                userId: order.userId, category: 'APPROVAL', type: 'ORDER_COMPLETED',
+                title: `Your completed work is ready: ${order.orderId}`,
+                message: `The final file for "${order.topicTitle}" is ready to download from your dashboard.`,
+                link: '/dashboard',
+            }).catch(() => {});
+        }
+        res.json({ order: { ...order.toObject(), status: normaliseStatus(order.status) } });
+    } catch (err) {
+        await discard();
+        console.error('[OrderWorkflow] admin upload error:', err.message);
+        res.status(500).json({ error: 'Could not upload files.' });
     }
 });
 

@@ -402,6 +402,13 @@ router.patch('/orders/:id', authenticateAdmin, async (req, res) => {
         const { status, adminNotes, assignedTo } = req.body;
         const update = {};
         if (status !== undefined) update.status = status;
+        if (status === 'completed' || status === 'Completed') {
+            // The customer downloads the final file from a completed order, so one must exist.
+            const current = await Order.findOne({ orderId: req.params.id }).select('deliveryFiles completedAt').lean();
+            if (current && !(current.deliveryFiles || []).length)
+                return res.status(400).json({ error: 'Upload the final file first (Final work section), then mark the order completed.' });
+            if (current && !current.completedAt) update.completedAt = new Date();
+        }
         if (adminNotes !== undefined) update.adminNotes = adminNotes;
         if (assignedTo !== undefined) update.assignedTo = assignedTo;
         if (Array.isArray(req.body.files)) update.files = req.body.files;

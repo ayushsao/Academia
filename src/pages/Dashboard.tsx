@@ -600,6 +600,10 @@ export const Dashboard: React.FC = () => {
                                                 </div>
                                             )}
 
+                                            {deliveryFiles.length === 0 && (
+                                                <p className="mb-3 rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs text-slate-600">Your final file is being prepared. It will appear here to download.</p>
+                                            )}
+
                                             {/* Actions */}
                                             <div className="flex items-center gap-2 mt-3">
                                                 {deliveryFiles.length > 0 && (
