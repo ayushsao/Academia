@@ -48,7 +48,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
 
   return (
     <nav className={`w-full z-50 transition-all duration-500 sticky top-0 ${scrolled ? 'bg-white/80 backdrop-blur-xl shadow-[0_4px_30px_rgb(0,0,0,0.05)] py-3 border-b border-gray-100/50' : 'bg-white py-5 border-b border-gray-100'}`}>
-      <div className="w-full px-4 md:px-8 2xl:px-12 flex items-center justify-between gap-4">
+      <div className="w-full pl-2 pr-4 md:pl-4 md:pr-8 2xl:pl-6 2xl:pr-12 flex items-center justify-between gap-4">
 
         {/* Logo */}
         <div className="flex shrink-0 items-center gap-0 cursor-pointer group" onClick={() => navigate('/')}>
@@ -68,7 +68,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
 
               {/* SERVICES MEGA MENU */}
               {link.hasDropdown && link.label === 'Services' && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-0 w-[800px] bg-white rounded-b-xl rounded-t-sm shadow-[0_10px_40px_rgba(0,0,0,0.1)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 p-6 border border-gray-100">
+                <div className="absolute top-full -left-6 mt-0 w-[800px] max-w-[calc(100vw-2rem)] bg-white rounded-b-xl rounded-t-sm shadow-[0_10px_40px_rgba(0,0,0,0.1)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 p-6 border border-gray-100">
                   <div className="grid grid-cols-3 gap-8">
 
                     {/* Column 1: Writing */}
