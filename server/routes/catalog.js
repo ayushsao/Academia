@@ -154,6 +154,9 @@ router.get('/sitemap.xml', async (_req, res) => {
                 return { loc: `/subjects/${subjectById.get(String(v.subjectId)).slug}/${v.slug}/${pr.slug}`, at: pr.updatedAt };
             }),
         ];
+        const { BlogPost } = await import('../db.js');
+        const posts = await BlogPost.find({ status: 'PUBLISHED' }).select('slug updatedAt').lean();
+        urls.push({ loc: '/blog', at: posts.reduce((a, p) => (p.updatedAt > a ? p.updatedAt : a), new Date(0)) }, ...posts.map(p => ({ loc: `/blog/${p.slug}`, at: p.updatedAt })));
         const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
         const body = urls.map(u => `  <url><loc>${esc(base + u.loc)}</loc><lastmod>${new Date(u.at).toISOString()}</lastmod></url>`).join('\n');
         res.type('application/xml').setHeader('Cache-Control', 'public, max-age=3600');

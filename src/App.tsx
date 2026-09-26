@@ -12,6 +12,8 @@ const Dashboard = named(() => import('./pages/Dashboard'), 'Dashboard');
 const AdminPanel = named(() => import('./pages/AdminPanel'), 'AdminPanel');
 const DynamicPage = named(() => import('./pages/DynamicPage'), 'DynamicPage');
 const CatalogPage = named(() => import('./pages/CatalogPage'), 'CatalogPage');
+const BlogIndexPage = named(() => import('./pages/BlogPages'), 'BlogIndexPage');
+const BlogPostPage = named(() => import('./pages/BlogPages'), 'BlogPostPage');
 const SubjectsPage = named(() => import('./pages/SubjectsPage'), 'SubjectsPage');
 const ResourcesPage = named(() => import('./pages/ResourcesPage'), 'ResourcesPage');
 const ReviewsPage = named(() => import('./pages/ReviewsPage'), 'ReviewsPage');
@@ -74,6 +76,8 @@ export default function App() {
                 <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/p/:slug" element={<DynamicPage />} />
+                    <Route path="/blog" element={<BlogIndexPage />} />
+                    <Route path="/blog/:slug" element={<BlogPostPage />} />
                     <Route path="/subjects" element={<SubjectsPage />} />
                     <Route path="/subjects/:subject" element={<CatalogPage />} />
                     <Route path="/subjects/:subject/:service" element={<CatalogPage />} />

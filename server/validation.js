@@ -514,3 +514,21 @@ export const seoInputSchema = z.object({
 }).strict();
 
 export const mediaAltSchema = z.object({ alt: plain(200) }).strict();
+
+// Admin → Blog. content is rich text (sanitised on the server before saving).
+export const blogPostSchema = z.object({
+    title: plain(160).refine(s => s.length >= 3, 'Title must be at least 3 characters.'),
+    slug: plain(120).default(''), // cleaned into a URL on the server
+    excerpt: plain(400).default(''),
+    content: z.string().max(200000).default(''),
+    coverMediaId: objectId.nullable().optional(),
+    coverAlt: plain(200).default(''),
+    category: plain(60).default(''),
+    tags: z.array(plain(40)).max(15).default([]),
+    author: plain(80).default(''),
+    status: z.enum(['DRAFT', 'PUBLISHED']).default('DRAFT'),
+    metaTitle: plain(120).default(''),
+    metaDescription: plain(320).default(''),
+}).strict();
+
+export const blogStatusSchema = z.object({ status: z.enum(['DRAFT', 'PUBLISHED']) }).strict();

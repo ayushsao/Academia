@@ -21,6 +21,8 @@ import { hasPermission, type AdminAccess } from './marketplace/admin/access';
 import TrustSafetyTab from './marketplace/admin/TrustSafetyTab';
 import CatalogTab from './marketplace/admin/catalog/CatalogTab';
 import SiteContentTab from './marketplace/admin/SiteContentTab';
+import BlogTab from './marketplace/admin/BlogTab';
+import { Newspaper } from 'lucide-react';
 import AdminPasswordDialog from './marketplace/admin/AdminPasswordDialog';
 import { AdminLogin, AdminSecurityDialog, restoreAdminSession, signOutAdmin } from './marketplace/admin/AdminAuth';
 
@@ -1189,7 +1191,7 @@ const SettingsTab = ({ token }: { token: string }) => {
 };
 
 // ─── Main Admin Panel ─────────────────────────────────────────────────────────
-type TabId = 'dashboard' | 'overview' | 'orders' | 'users' | 'writers' | 'applications' | 'assignments' | 'memberships' | 'recruitment' | 'catalog' | 'content' | 'trust' | 'audit' | 'contacts' | 'analytics' | 'settings' | 'admins';
+type TabId = 'dashboard' | 'overview' | 'orders' | 'users' | 'writers' | 'applications' | 'assignments' | 'memberships' | 'recruitment' | 'catalog' | 'content' | 'blog' | 'trust' | 'audit' | 'contacts' | 'analytics' | 'settings' | 'admins';
 
 // Each tab lists the permissions that unlock it (any one is enough). The server
 // enforces the same permissions; this only keeps the navigation honest.
@@ -1205,6 +1207,7 @@ const NAV: { id: TabId; label: string; title: string; icon: React.ReactNode; per
     { id: 'recruitment', label: 'Recruitment', title: 'Writer Recruitment', icon: <Megaphone className="w-5 h-5" />, perms: ['recruitment.read'] },
     { id: 'catalog', label: 'Catalog & Pricing', title: 'Catalog & Pricing', icon: <Library className="w-5 h-5" />, perms: ['catalog.manage', 'pricing.manage'] },
     { id: 'content', label: 'Site Content', title: 'Site Content', icon: <FileEdit className="w-5 h-5" />, perms: ['content.manage'] },
+    { id: 'blog', label: 'Blog', title: 'Blog', icon: <Newspaper className="w-5 h-5" />, perms: ['blog.manage'] },
     { id: 'trust', label: 'Trust & Safety', title: 'Trust & Safety', icon: <ShieldAlert className="w-5 h-5" />, perms: ['risk.review'] },
     { id: 'contacts', label: 'Messages', title: 'Contact Messages', icon: <MessageSquare className="w-5 h-5" />, perms: ['leads.manage'] },
     { id: 'analytics', label: 'Analytics', title: 'Traffic & Analytics', icon: <BarChart2 className="w-5 h-5" />, perms: ['analytics.read'] },
@@ -1354,6 +1357,7 @@ export const AdminPanel: React.FC = () => {
                     {current?.id === 'admins' && <AdminTeamTab token={token} />}
                     {current?.id === 'catalog' && <CatalogTab token={token} access={access} />}
                     {current?.id === 'content' && <SiteContentTab token={token} />}
+                    {current?.id === 'blog' && <BlogTab token={token} />}
                     {current?.id === 'trust' && <TrustSafetyTab token={token} access={access} />}
                 </main>
             </div>

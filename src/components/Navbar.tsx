@@ -42,7 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
     { label: 'Resources', hasDropdown: false, to: '/resources' },
     { label: 'Hire Writers', hasDropdown: true },
     { label: 'Reviews', hasDropdown: false, to: '/reviews' },
-    { label: 'Blogs', hasDropdown: false, to: '/p/blogs' },
+    { label: 'Blogs', hasDropdown: false, to: '/blog' },
     { label: 'Academic Tools', hasDropdown: true },
   ];
 

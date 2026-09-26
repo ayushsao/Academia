@@ -38,6 +38,7 @@ export const PERMISSIONS = {
     'recruitment.read': 'View writer recruitment funnel',
     'analytics.read': 'View site traffic analytics',
     'content.manage': 'Edit recruitment page, FAQ, pricing copy, terms and contact details',
+    'blog.manage': 'Write, publish and delete blog posts',
     // Admin CRM (academic catalogue)
     'catalog.manage': 'Manage subjects, services and projects (create, edit, publish, delete)',
     'pricing.manage': 'Manage pricing rules and word/page settings',
@@ -60,7 +61,7 @@ export const ROLE_PERMISSIONS = {
     HR: ['dashboard.view', 'writers.read', 'writers.review', 'writers.contact', 'writers.documents', 'writers.availability', 'writers.performance', 'recruitment.read', 'risk.review'],
     OPERATIONS: ['dashboard.view', 'assignments.manage', 'writers.read', 'writers.availability', 'writers.performance', 'orders.read', 'orders.write', 'catalog.manage'],
     FINANCE: ['dashboard.view', 'memberships.manage', 'subscriptions.read', 'subscriptions.manage', 'payments.read', 'payments.review', 'payouts.manage', 'orders.read', 'risk.review', 'pricing.manage'],
-    MARKETING: ['dashboard.view', 'recruitment.read', 'leads.manage', 'analytics.read', 'content.manage', 'catalog.manage'],
+    MARKETING: ['dashboard.view', 'recruitment.read', 'leads.manage', 'analytics.read', 'content.manage', 'catalog.manage', 'blog.manage'],
 };
 
 // No role (e.g. not an admin at all) means no permissions. Legacy admin accounts

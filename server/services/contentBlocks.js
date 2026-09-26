@@ -195,6 +195,8 @@ export async function buildPage(ctx, { liveOnly, mediaUrl, apiOrigin, preview = 
 
 /** Where a stored file is referenced from live content (for public media access). */
 export async function isPublicContentFile(storedName) {
+    const { BlogPost } = await import('../db.js');
+    if (await BlogPost.exists({ status: 'PUBLISHED', 'coverImage.storedName': storedName })) return true;
     const blocks = await ContentBlock.find({ status: 'ACTIVE', 'media.storedName': storedName }).select('entityType entityId').limit(20).lean();
     for (const b of blocks) {
         try { if ((await loadEntity(b.entityType, b.entityId)).live) return true; } catch { /* entity gone */ }

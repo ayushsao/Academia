@@ -993,6 +993,34 @@ export const ContentBlock = mongoose.model('ContentBlock', contentBlockSchema);
 export const CatalogFaq = mongoose.model('CatalogFaq', catalogFaqSchema);
 export const CatalogMedia = mongoose.model('CatalogMedia', catalogMediaSchema);
 
+// Blog posts written in Admin → Blog. Content is sanitised rich text; the cover
+// image comes from the media library. Only PUBLISHED posts are public.
+const blogPostSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  slug: { type: String, required: true, unique: true },
+  excerpt: { type: String, default: '' },
+  content: { type: String, default: '' },
+  coverImage: {
+    type: new mongoose.Schema({ mediaId: { type: mongoose.Schema.Types.ObjectId, ref: 'CatalogMedia' }, storedName: String, alt: String }, { _id: false }),
+    default: undefined,
+  },
+  category: { type: String, default: '' },
+  tags: { type: [String], default: [] },
+  author: { type: String, default: '' },
+  status: { type: String, enum: ['DRAFT', 'PUBLISHED'], default: 'DRAFT', index: true },
+  publishedAt: { type: Date },
+  readingMinutes: { type: Number, default: 1 },
+  seo: {
+    metaTitle: { type: String, default: '' },
+    metaDescription: { type: String, default: '' },
+  },
+  createdBy: { type: String, default: '' },
+  updatedBy: { type: String, default: '' },
+}, { timestamps: true });
+blogPostSchema.index({ status: 1, publishedAt: -1 });
+blogPostSchema.index({ category: 1, status: 1, publishedAt: -1 });
+export const BlogPost = mongoose.model('BlogPost', blogPostSchema);
+
 export const CatalogSubject = mongoose.model('CatalogSubject', catalogSubjectSchema);
 export const CatalogService = mongoose.model('CatalogService', catalogServiceSchema);
 export const CatalogProject = mongoose.model('CatalogProject', catalogProjectSchema);
