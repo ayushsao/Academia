@@ -14,6 +14,7 @@ import { UploadError } from '../services/writerFiles.js';
 import { effectiveAvailability, loadWriterBundle, computeOnboarding } from '../services/writerService.js';
 import { MEMBERSHIP_DISCLAIMER } from '../services/membershipSettings.js';
 import { canTakeOrders, OPEN_ORDER } from '../services/orderRelease.js';
+import { BIDDING_ORDER } from '../services/orderBidding.js';
 
 const router = Router();
 const actionLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60, message: { error: 'Too many requests. Please slow down.' } });
@@ -104,7 +105,7 @@ router.get('/writer/dashboard', authenticateUser, requireWriter, async (req, res
             Notification.countDocuments({ userId: w.userId, read: false }),
             WriterSubscription.findOne({ writerId: w._id, isOpen: true }).select('planName status currentPeriodEnd autoRenew billingPeriod').lean(),
             WriterAvailability.findOne({ writerId: w._id }),
-            canTakeOrders(w) ? Order.countDocuments(OPEN_ORDER) : 0,   // released client orders open to every plan holder
+            canTakeOrders(w) ? Order.countDocuments({ $or: [OPEN_ORDER, BIDDING_ORDER] }) : 0,   // released client orders open to every plan holder
         ]);
 
         // Profile completion: onboarding requirements plus optional extras that help matching.

@@ -141,7 +141,8 @@ router.get('/pages/project/:s/:v/:p', async (req, res) => {
 // GET /api/catalog/sitemap.xml — live, indexable catalogue pages.
 router.get('/sitemap.xml', async (_req, res) => {
     try {
-        const base = (process.env.APP_URL || '').trim().replace(/\/+$/, '');
+        // Sitemap URLs must be absolute; fall back to the production site.
+        const base = (process.env.APP_URL || 'https://academia-wheat-eta.vercel.app').trim().replace(/\/+$/, '');
         const { subjects, services, projects } = await liveTree();
         const subjectById = new Map(subjects.map(s => [String(s._id), s]));
         const serviceById = new Map(services.map(s => [String(s._id), s]));
@@ -154,6 +155,9 @@ router.get('/sitemap.xml', async (_req, res) => {
                 return { loc: `/subjects/${subjectById.get(String(v.subjectId)).slug}/${v.slug}/${pr.slug}`, at: pr.updatedAt };
             }),
         ];
+        // Main public pages (account areas are excluded — see public/robots.txt).
+        const now = new Date();
+        urls.unshift(...['/', '/subjects', '/hire-writers', '/become-a-writer', '/writer-membership', '/writer-terms', '/reviews', '/resources'].map(loc => ({ loc, at: now })));
         const { BlogPost } = await import('../db.js');
         const posts = await BlogPost.find({ status: 'PUBLISHED' }).select('slug updatedAt').lean();
         urls.push({ loc: '/blog', at: posts.reduce((a, p) => (p.updatedAt > a ? p.updatedAt : a), new Date(0)) }, ...posts.map(p => ({ loc: `/blog/${p.slug}`, at: p.updatedAt })));

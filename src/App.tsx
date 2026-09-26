@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import { useStore } from './store/useStore';
 
@@ -31,6 +31,7 @@ const WriterOnboarding = lazy(() => import('./pages/marketplace/WriterOnboarding
 const WriterDashboardLayout = lazy(() => import('./pages/marketplace/writer/WriterDashboardLayout'));
 const WriterOverview = lazy(() => import('./pages/marketplace/writer/WriterOverview'));
 const WriterOpportunities = lazy(() => import('./pages/marketplace/writer/WriterOpportunities'));
+const WriterBidding = lazy(() => import('./pages/marketplace/writer/WriterBidding'));
 const WriterAssignments = lazy(() => import('./pages/marketplace/writer/WriterAssignments'));
 const WriterAssignmentDetail = lazy(() => import('./pages/marketplace/writer/WriterAssignmentDetail'));
 const WriterHistory = lazy(() => import('./pages/marketplace/writer/WriterHistory'));
@@ -69,9 +70,31 @@ const ProtectedRoute = ({ children, area = 'customer' }: { children: React.React
     return <>{children}</>;
 };
 
+// Search engines: account areas (admin, customer dashboard, writer portal) are
+// "noindex"; public pages get a canonical URL (pages with their own SEO, like
+// catalogue and blog pages, update the same tag). Matches public/robots.txt.
+const PRIVATE_PATH = /^\/(admin|dashboard)(\/|$)|^\/writer\/(login|register|onboarding|verify|dashboard|membership|opportunities|bidding|bids|orders|assignments|history|earnings|messages|notifications|profile|documents|settings|jobs|active-jobs)(\/|$)/;
+function SearchIndexing() {
+    const { pathname } = useLocation();
+    useEffect(() => {
+        const isPrivate = PRIVATE_PATH.test(pathname);
+        let robots = document.head.querySelector<HTMLMetaElement>('meta[name="robots"][data-app]');
+        if (isPrivate) {
+            if (!robots) { robots = document.createElement('meta'); robots.name = 'robots'; robots.setAttribute('data-app', ''); document.head.appendChild(robots); }
+            robots.content = 'noindex, nofollow';
+        } else robots?.remove();
+        let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+        if (isPrivate) { if (canonical?.hasAttribute('data-app')) canonical.remove(); return; }
+        if (!canonical) { canonical = document.createElement('link'); canonical.rel = 'canonical'; canonical.setAttribute('data-app', ''); document.head.appendChild(canonical); }
+        canonical.href = window.location.origin + (pathname === '/' ? '/' : pathname.replace(/\/+$/, ''));
+    }, [pathname]);
+    return null;
+}
+
 export default function App() {
     return (
         <BrowserRouter>
+            <SearchIndexing />
             <Suspense fallback={<PageLoader />}>
                 <Routes>
                     <Route path="/" element={<Home />} />
@@ -109,13 +132,14 @@ export default function App() {
                     <Route path="/writer" element={<ProtectedRoute area="writer"><WriterDashboardLayout /></ProtectedRoute>}>
                         <Route path="dashboard" element={<WriterOverview />} />
                         <Route path="opportunities" element={<WriterOpportunities />} />
+                        <Route path="bidding" element={<WriterBidding />} />
                         <Route path="assignments" element={<WriterAssignments />} />
                         <Route path="assignments/:ref" element={<WriterAssignmentDetail />} />
                         <Route path="history" element={<WriterHistory />} />
                         <Route path="earnings" element={<WriterEarnings />} />
                         {/* Old bidding-era URLs */}
                         <Route path="jobs/*" element={<Navigate to="/writer/opportunities" replace />} />
-                        <Route path="bids" element={<Navigate to="/writer/opportunities" replace />} />
+                        <Route path="bids" element={<Navigate to="/writer/bidding" replace />} />
                         <Route path="active-jobs" element={<Navigate to="/writer/assignments" replace />} />
                         <Route path="completed" element={<Navigate to="/writer/history" replace />} />
                         <Route path="profile" element={<WriterProfileEdit />} />

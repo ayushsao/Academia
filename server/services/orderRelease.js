@@ -34,11 +34,11 @@ export const ELIGIBLE_WRITER = { status: { $in: ['APPROVED', 'ACTIVE'] }, 'membe
 export const canTakeOrders = (writer) => Boolean(writer && ['APPROVED', 'ACTIVE'].includes(writer.status) && writer.membership?.status === 'ACTIVE');
 
 // Released and not yet taken by a writer.
-export const OPEN_ORDER = { adminApproved: true, writerId: null, status: { $in: ['available', 'pending', 'Pending'] } };
+export const OPEN_ORDER = { adminApproved: true, writerId: null, status: { $in: ['available', 'pending', 'Pending'] }, 'bidding.open': { $ne: true } };
 
 // What a writer may see of an order: the brief. Never the client's contact
 // details, payment references, pricing breakdown or internal admin notes.
-export const WRITER_HIDDEN_FIELDS = '-userId -transactionId -payment -pricing -catalog -adminNotes -feedback';
+export const WRITER_HIDDEN_FIELDS = '-userId -transactionId -payment -pricing -catalog -adminNotes -feedback -totalAmount -paymentStatus -bidding';
 
 /**
  * A customer's view of their own order: everything about their order and the

@@ -40,13 +40,14 @@ function usePageMeta(title: string | null, description = '') {
         if (!meta) { meta = document.createElement('meta'); meta.name = 'description'; document.head.appendChild(meta); }
         const previousDescription = meta.content;
         meta.content = description;
-        const canonical = document.createElement('link');
-        canonical.rel = 'canonical'; canonical.href = window.location.origin + window.location.pathname;
-        document.head.appendChild(canonical);
+        let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+        const ownCanonical = !canonical;
+        if (!canonical) { canonical = document.createElement('link'); canonical.rel = 'canonical'; document.head.appendChild(canonical); }
+        canonical.href = window.location.origin + window.location.pathname;
         return () => {
             document.title = previous;
             if (created) meta!.remove(); else meta!.content = previousDescription;
-            canonical.remove();
+            if (ownCanonical) canonical!.remove();
         };
     }, [title, description]);
 }

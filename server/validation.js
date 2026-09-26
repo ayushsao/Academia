@@ -532,3 +532,15 @@ export const blogPostSchema = z.object({
 }).strict();
 
 export const blogStatusSchema = z.object({ status: z.enum(['DRAFT', 'PUBLISHED']) }).strict();
+
+// Writer bidding: the budget an admin/HR sets, and a writer's bid.
+export const biddingSchema = z.object({
+    open: z.boolean(),
+    minBid: z.number().positive().max(1000000),
+    maxBid: z.number().positive().max(1000000),
+}).strict().refine(v => v.minBid <= v.maxBid, { message: 'The minimum budget cannot be more than the maximum.', path: ['minBid'] });
+
+export const bidSchema = z.object({
+    amount: z.number().positive().max(1000000),
+    note: plain(1000).default(''),
+}).strict();

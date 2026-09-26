@@ -82,6 +82,20 @@ const orderSchema = new mongoose.Schema({
   adminNotes: { type: String, default: '' },
   // What the admin asked the writer to change (shown to the writer; adminNotes stay internal).
   revisionNote: { type: String, default: '' },
+  // Writer bidding: the writer budget an admin/HR sets. Writers see only this
+  // range, never the customer's price (totalAmount / pricing).
+  bidding: {
+    type: new mongoose.Schema({
+      open: { type: Boolean, default: false }, minBid: Number, maxBid: Number, currency: String,
+      openedAt: Date, updatedAt: Date, closedAt: Date,
+    }, { _id: false }),
+    default: undefined,
+  },
+  // What the assigned writer is paid (from an accepted bid).
+  writerPayout: {
+    type: new mongoose.Schema({ amount: Number, currency: String, source: String }, { _id: false }),
+    default: undefined,
+  },
   transactionId: { type: String, default: '' },
   currency: { type: String, default: 'GBP' },
   // Writer-delivered files (final work submissions)
@@ -169,6 +183,19 @@ const pageViewSchema = new mongoose.Schema({
 
 export const User = mongoose.model('User', userSchema);
 export const Order = mongoose.model('Order', orderSchema);
+
+// One writer's bid on an order open for bidding.
+const orderBidSchema = new mongoose.Schema({
+  order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', required: true, index: true },
+  orderId: { type: String, required: true, index: true },
+  writerUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  amount: { type: Number, required: true },
+  currency: { type: String, required: true },
+  note: { type: String, default: '' },
+  status: { type: String, enum: ['PENDING', 'ACCEPTED', 'REJECTED', 'WITHDRAWN'], default: 'PENDING', index: true },
+}, { timestamps: true });
+orderBidSchema.index({ order: 1, writerUserId: 1 }, { unique: true });
+export const OrderBid = mongoose.model('OrderBid', orderBidSchema);
 
 // An online payment in progress for a customer order: the server-priced order
 // fields and the exact amount Razorpay must confirm before the order exists.

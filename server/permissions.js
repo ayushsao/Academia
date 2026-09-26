@@ -39,6 +39,7 @@ export const PERMISSIONS = {
     'analytics.read': 'View site traffic analytics',
     'content.manage': 'Edit recruitment page, FAQ, pricing copy, terms and contact details',
     'blog.manage': 'Write, publish and delete blog posts',
+    'bidding.manage': 'Open orders for writer bidding, set writer budgets and accept bids',
     // Admin CRM (academic catalogue)
     'catalog.manage': 'Manage subjects, services and projects (create, edit, publish, delete)',
     'pricing.manage': 'Manage pricing rules and word/page settings',
@@ -58,8 +59,8 @@ const ALL = Object.keys(PERMISSIONS);
 
 export const ROLE_PERMISSIONS = {
     SUPER_ADMIN: ALL,
-    HR: ['dashboard.view', 'writers.read', 'writers.review', 'writers.contact', 'writers.documents', 'writers.availability', 'writers.performance', 'recruitment.read', 'risk.review'],
-    OPERATIONS: ['dashboard.view', 'assignments.manage', 'writers.read', 'writers.availability', 'writers.performance', 'orders.read', 'orders.write', 'catalog.manage'],
+    HR: ['dashboard.view', 'writers.read', 'writers.review', 'writers.contact', 'writers.documents', 'writers.availability', 'writers.performance', 'recruitment.read', 'risk.review', 'bidding.manage'],
+    OPERATIONS: ['dashboard.view', 'assignments.manage', 'writers.read', 'writers.availability', 'writers.performance', 'orders.read', 'orders.write', 'catalog.manage', 'bidding.manage'],
     FINANCE: ['dashboard.view', 'memberships.manage', 'subscriptions.read', 'subscriptions.manage', 'payments.read', 'payments.review', 'payouts.manage', 'orders.read', 'risk.review', 'pricing.manage'],
     MARKETING: ['dashboard.view', 'recruitment.read', 'leads.manage', 'analytics.read', 'content.manage', 'catalog.manage', 'blog.manage'],
 };

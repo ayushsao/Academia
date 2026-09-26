@@ -25,8 +25,8 @@ type Order = {
     pages: number;
     wordCount: number;
     deadline: string;
-    totalAmount: number;
-    currency: string;
+    // The writer's own payout (from an accepted bid). The customer's price is never sent to writers.
+    writerPayout?: { amount: number; currency: string };
     status: string;
     files: string[];
     deliveryFiles: OrderFile[];
@@ -271,7 +271,7 @@ export default function WriterOrdersPage() {
                                                 <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" />{order.subject}</span>
                                                 <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" />{order.pages} pg{order.pages > 1 ? 's' : ''}{order.wordCount ? ` · ${order.wordCount} words` : ''}</span>
                                                 <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{order.deadline}</span>
-                                                <span className="flex items-center gap-1"><DollarSign className="w-3.5 h-3.5" />{order.currency || '£'} {order.totalAmount}</span>
+                                                {order.writerPayout && <span className="flex items-center gap-1"><DollarSign className="w-3.5 h-3.5" />Your payout: {order.writerPayout.currency} {order.writerPayout.amount}</span>}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2 shrink-0">

@@ -11,6 +11,8 @@ import { EXT_MIMES, sniffOrderFileKind, kindMatchesExtension } from '../services
 import { recordAudit } from '../services/audit.js';
 import { notify } from '../services/notifications.js';
 import { streamOrderFile } from '../services/orderFiles.js';
+import { validateInput, biddingSchema, bidSchema } from '../validation.js';
+import { BiddingError, setBidding, listForWriter, placeBid, withdrawBid, bidsForOrder, acceptBid } from '../services/orderBidding.js';
 import { releaseOrder, getOrderSettings, saveOrderSettings, canTakeOrders, clientOrderView, isCompleted, OPEN_ORDER, WRITER_HIDDEN_FIELDS } from '../services/orderRelease.js';
 
 const require = createRequire(import.meta.url);
@@ -138,7 +140,7 @@ router.get('/writer/my-orders', authenticateUser, requireWriter, async (req, res
     try {
         // The client's name only — never their email or other contact details.
         const orders = await Order.find({ writerId: req.user.id })
-            .select('-transactionId -payment -pricing -catalog -adminNotes -deliveryFiles.filePath')
+            .select('-transactionId -payment -pricing -catalog -adminNotes -deliveryFiles.filePath -totalAmount -paymentStatus -bidding')
             .populate('userId', 'name')
             .sort({ createdAt: -1 })
             .lean();
@@ -158,7 +160,7 @@ router.get('/writer/orders/:orderId', authenticateUser, requireWriter, async (re
             orderId: req.params.orderId,
             $or: [{ writerId: req.user.id }, ...(canTakeOrders(writer) ? [OPEN_ORDER] : [])],
         })
-            .select('-transactionId -payment -pricing -catalog -adminNotes -deliveryFiles.filePath')
+            .select('-transactionId -payment -pricing -catalog -adminNotes -deliveryFiles.filePath -totalAmount -paymentStatus -bidding')
             .populate('userId', 'name')
             .lean();
 
@@ -310,6 +312,64 @@ router.post('/admin/upload/:orderId', authenticateAdmin, requirePermission('orde
         console.error('[OrderWorkflow] admin upload error:', err.message);
         res.status(500).json({ error: 'Could not upload files.' });
     }
+});
+
+// ── Writer bidding ─────────────────────────────────────────────────────────
+const biddingFail = (res, err, fallback) => {
+    if (err instanceof BiddingError) return res.status(err.status).json({ error: err.message });
+    console.error('[Bidding]', err?.message);
+    res.status(500).json({ error: fallback });
+};
+
+// Admin/HR: orders that can be (or are) open for bidding, with bid counts.
+router.get('/admin/bidding', noStore, authenticateAdmin, requirePermission('bidding.manage', 'orders.write'), async (req, res) => {
+    try {
+        const orders = await Order.find({ writerId: null, status: { $in: ['available', 'pending', 'Pending'] } })
+            .select('orderId service subject academicLevel topicTitle pages wordCount deadline totalAmount currency bidding adminApproved createdAt')
+            .sort({ createdAt: -1 }).limit(200).lean();
+        const { OrderBid } = await import('../db.js');
+        const counts = await OrderBid.aggregate([{ $match: { order: { $in: orders.map(o => o._id) }, status: 'PENDING' } }, { $group: { _id: '$order', n: { $sum: 1 } } }]);
+        const byOrder = new Map(counts.map(c => [String(c._id), c.n]));
+        res.json({ orders: orders.map(o => ({ ...o, _id: undefined, openBids: byOrder.get(String(o._id)) || 0 })) });
+    } catch (err) { biddingFail(res, err, 'Could not load bidding projects.'); }
+});
+
+router.get('/admin/bidding/:orderId', noStore, authenticateAdmin, requirePermission('bidding.manage', 'orders.write'), async (req, res) => {
+    try { res.json(await bidsForOrder(req.params.orderId)); }
+    catch (err) { biddingFail(res, err, 'Could not load bids.'); }
+});
+
+// Open/close bidding and set the writer budget (can be changed any time).
+router.put('/admin/bidding/:orderId', authenticateAdmin, requirePermission('bidding.manage', 'orders.write'), validateInput(biddingSchema), async (req, res) => {
+    try {
+        const order = await setBidding(req.params.orderId, req.body);
+        await recordAudit(req, 'ORDER_BIDDING_UPDATED', { targetType: 'ORDER', targetId: order.orderId, reason: `${order.bidding.open ? 'open' : 'closed'} ${order.bidding.currency} ${order.bidding.minBid}-${order.bidding.maxBid}` });
+        res.json({ bidding: order.bidding, status: order.status });
+    } catch (err) { biddingFail(res, err, 'Could not update bidding.'); }
+});
+
+router.post('/admin/bids/:bidId/accept', authenticateAdmin, requirePermission('bidding.manage', 'orders.write'), async (req, res) => {
+    try {
+        const order = await acceptBid(req.params.bidId);
+        await recordAudit(req, 'ORDER_BID_ACCEPTED', { targetType: 'ORDER', targetId: order.orderId, reason: `${order.writerPayout.currency} ${order.writerPayout.amount} → ${order.assignedTo}` });
+        res.json({ order: { orderId: order.orderId, status: order.status, assignedTo: order.assignedTo, writerPayout: order.writerPayout } });
+    } catch (err) { biddingFail(res, err, 'Could not accept the bid.'); }
+});
+
+// Writer: projects open for bids (budget only — never the customer's price).
+router.get('/writer/bidding', noStore, authenticateUser, requireWriter, async (req, res) => {
+    try { res.json(await listForWriter(req.user.id)); }
+    catch (err) { biddingFail(res, err, 'Could not load projects.'); }
+});
+
+router.post('/writer/bidding/:orderId/bid', authenticateUser, requireWriter, validateInput(bidSchema), async (req, res) => {
+    try { res.json({ bid: await placeBid(req.user.id, req.params.orderId, req.body) }); }
+    catch (err) { biddingFail(res, err, 'Could not place the bid.'); }
+});
+
+router.delete('/writer/bidding/:orderId/bid', authenticateUser, requireWriter, async (req, res) => {
+    try { res.json({ bid: await withdrawBid(req.user.id, req.params.orderId) }); }
+    catch (err) { biddingFail(res, err, 'Could not withdraw the bid.'); }
 });
 
 // GET/PUT /api/order-workflow/admin/settings — auto-approve new (paid) orders.

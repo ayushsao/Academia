@@ -1,0 +1,35 @@
+# Public pages are open to search engines; account areas are not.
+User-agent: *
+Allow: /
+
+# Admin console and customer account
+Disallow: /admin
+Disallow: /dashboard
+
+# Writer portal (sign-in, onboarding and the signed-in area).
+# Public writer profiles (/writer/<id>) stay crawlable.
+Disallow: /writer/login
+Disallow: /writer/register
+Disallow: /writer/onboarding
+Disallow: /writer/verify
+Disallow: /writer/dashboard
+Disallow: /writer/membership
+Disallow: /writer/opportunities
+Disallow: /writer/bidding
+Disallow: /writer/bids
+Disallow: /writer/orders
+Disallow: /writer/assignments
+Disallow: /writer/history
+Disallow: /writer/earnings
+Disallow: /writer/messages
+Disallow: /writer/notifications
+Disallow: /writer/profile
+Disallow: /writer/documents
+Disallow: /writer/settings
+Disallow: /writer/jobs
+Disallow: /writer/active-jobs
+
+# API
+Disallow: /api/
+
+Sitemap: https://academia-wheat-eta.vercel.app/sitemap.xml

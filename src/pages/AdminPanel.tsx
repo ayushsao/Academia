@@ -22,7 +22,8 @@ import TrustSafetyTab from './marketplace/admin/TrustSafetyTab';
 import CatalogTab from './marketplace/admin/catalog/CatalogTab';
 import SiteContentTab from './marketplace/admin/SiteContentTab';
 import BlogTab from './marketplace/admin/BlogTab';
-import { Newspaper } from 'lucide-react';
+import BiddingTab from './marketplace/admin/BiddingTab';
+import { Newspaper, Gavel } from 'lucide-react';
 import AdminPasswordDialog from './marketplace/admin/AdminPasswordDialog';
 import { AdminLogin, AdminSecurityDialog, restoreAdminSession, signOutAdmin } from './marketplace/admin/AdminAuth';
 
@@ -55,7 +56,9 @@ interface Stats {
 }
 interface Order {
     _id: string; orderId: string; userId: string; user_name?: string; user_email?: string;
-    service: string; subject: string; academicLevel: string; pages: number;
+    service: string; subject: string; academicLevel: string; pages: number; wordCount?: number;
+    pricing?: { words?: number; pages?: number; wordsPerPage?: number; subtotal?: number; addOns?: { key: string; label: string; price: number }[]; addOnsTotal?: number; discountPercent?: number; discount?: number; total?: number; currency?: string };
+    writerPayout?: { amount: number; currency: string };
     deadline: string; topicTitle: string; instructions?: string;
     files?: string[];
     turnitinReport?: boolean;
@@ -240,6 +243,12 @@ const StatCard = ({ label, value, sub, icon, accent }: { label: string; value: s
     </div>
 );
 
+// Add-on price as saved in the order's quotation (nothing when not recorded).
+const addOnPrice = (order: Order, key: string) => {
+    const a = order.pricing?.addOns?.find(x => x.key === key);
+    return a ? ` (+${formatOrderTotal(a.price, order.pricing?.currency)})` : '';
+};
+
 // ─── Order Detail Side Drawer ─────────────────────────────────────────────────
 const OrderDetailDrawer = ({
     order, token, onClose, onUpdate
@@ -385,11 +394,13 @@ const OrderDetailDrawer = ({
                                 ['Service', order.service],
                                 ['Subject', order.subject],
                                 ['Academic Level', order.academicLevel],
-                                ['Pages', `${order.pages} pages (~${order.pages * 250} words)`],
+                                ['Pages', `${order.pages} page${order.pages === 1 ? '' : 's'}`],
+                                ['Word Count', order.wordCount ? `${order.wordCount.toLocaleString()} words` : 'Not recorded'],
                                 ['Deadline', order.deadline],
                                 ['Total Amount', formatOrderTotal(order.totalAmount, order.currency)],
                                 ['Payment', order.payment?.provider === 'RAZORPAY' && order.payment.status === 'PAID' ? 'Paid online · Razorpay (verified by server)' : 'Manual — verify the reference before starting work'],
                                 ['Transaction ID', order.transactionId || 'Not Provided'],
+                                ...(order.writerPayout ? [['Writer Payout', `${order.writerPayout.currency} ${order.writerPayout.amount}`]] : []),
                             ] as [string, string][]).map(([k, v]) => (
                                 <div key={k}>
                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{k}</p>
@@ -398,6 +409,19 @@ const OrderDetailDrawer = ({
                             ))}
                         </div>
                     </div>
+
+                    {/* The quotation saved with the order (never recalculated here). */}
+                    {order.pricing?.total != null && (
+                        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Saved Quote</p>
+                            <dl className="space-y-1.5 text-sm">
+                                <div className="flex justify-between"><dt className="text-gray-500">{order.pricing.pages ?? order.pages} page{(order.pricing.pages ?? order.pages) === 1 ? '' : 's'} · {(order.pricing.words ?? order.wordCount ?? 0).toLocaleString()} words{order.pricing.wordsPerPage ? ` (${order.pricing.wordsPerPage}/page)` : ''}</dt><dd className="font-semibold text-[#000a1e]">{formatOrderTotal(order.pricing.subtotal ?? 0, order.pricing.currency)}</dd></div>
+                                {(order.pricing.addOns || []).map(a => <div key={a.key} className="flex justify-between"><dt className="text-gray-500">{a.label}</dt><dd className="font-semibold text-[#000a1e]">{formatOrderTotal(a.price, order.pricing!.currency)}</dd></div>)}
+                                {Boolean(order.pricing.discount) && <div className="flex justify-between"><dt className="text-gray-500">Discount{order.pricing.discountPercent ? ` (${order.pricing.discountPercent}%)` : ''}</dt><dd className="font-semibold text-[#000a1e]">−{formatOrderTotal(order.pricing.discount!, order.pricing.currency)}</dd></div>}
+                                <div className="flex justify-between border-t border-gray-100 pt-1.5"><dt className="font-semibold text-[#000a1e]">Total</dt><dd className="font-bold text-[#000a1e]">{formatOrderTotal(order.pricing.total, order.pricing.currency)}</dd></div>
+                            </dl>
+                        </div>
+                    )}
 
                     {/* Add-ons */}
                     <div className="flex flex-wrap gap-2">
@@ -408,12 +432,12 @@ const OrderDetailDrawer = ({
                         )}
                         {order.topExpert && (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg text-xs font-bold">
-                                <Award className="w-3 h-3" /> Top Expert (+£15)
+                                <Award className="w-3 h-3" /> Top Expert{addOnPrice(order, 'topExpert')}
                             </span>
                         )}
                         {order.abstractPage && (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold">
-                                <FileText className="w-3 h-3" /> Abstract Page (+£10)
+                                <FileText className="w-3 h-3" /> Abstract Page{addOnPrice(order, 'abstractPage')}
                             </span>
                         )}
                         {!order.turnitinReport && !order.topExpert && !order.abstractPage && (
@@ -1191,7 +1215,7 @@ const SettingsTab = ({ token }: { token: string }) => {
 };
 
 // ─── Main Admin Panel ─────────────────────────────────────────────────────────
-type TabId = 'dashboard' | 'overview' | 'orders' | 'users' | 'writers' | 'applications' | 'assignments' | 'memberships' | 'recruitment' | 'catalog' | 'content' | 'blog' | 'trust' | 'audit' | 'contacts' | 'analytics' | 'settings' | 'admins';
+type TabId = 'dashboard' | 'overview' | 'orders' | 'users' | 'writers' | 'applications' | 'assignments' | 'memberships' | 'recruitment' | 'catalog' | 'content' | 'blog' | 'bidding' | 'trust' | 'audit' | 'contacts' | 'analytics' | 'settings' | 'admins';
 
 // Each tab lists the permissions that unlock it (any one is enough). The server
 // enforces the same permissions; this only keeps the navigation honest.
@@ -1208,6 +1232,7 @@ const NAV: { id: TabId; label: string; title: string; icon: React.ReactNode; per
     { id: 'catalog', label: 'Catalog & Pricing', title: 'Catalog & Pricing', icon: <Library className="w-5 h-5" />, perms: ['catalog.manage', 'pricing.manage'] },
     { id: 'content', label: 'Site Content', title: 'Site Content', icon: <FileEdit className="w-5 h-5" />, perms: ['content.manage'] },
     { id: 'blog', label: 'Blog', title: 'Blog', icon: <Newspaper className="w-5 h-5" />, perms: ['blog.manage'] },
+    { id: 'bidding', label: 'Writer Bidding', title: 'Writer Bidding', icon: <Gavel className="w-5 h-5" />, perms: ['bidding.manage', 'orders.write'] },
     { id: 'trust', label: 'Trust & Safety', title: 'Trust & Safety', icon: <ShieldAlert className="w-5 h-5" />, perms: ['risk.review'] },
     { id: 'contacts', label: 'Messages', title: 'Contact Messages', icon: <MessageSquare className="w-5 h-5" />, perms: ['leads.manage'] },
     { id: 'analytics', label: 'Analytics', title: 'Traffic & Analytics', icon: <BarChart2 className="w-5 h-5" />, perms: ['analytics.read'] },
@@ -1358,6 +1383,7 @@ export const AdminPanel: React.FC = () => {
                     {current?.id === 'catalog' && <CatalogTab token={token} access={access} />}
                     {current?.id === 'content' && <SiteContentTab token={token} />}
                     {current?.id === 'blog' && <BlogTab token={token} />}
+                    {current?.id === 'bidding' && <BiddingTab token={token} />}
                     {current?.id === 'trust' && <TrustSafetyTab token={token} access={access} />}
                 </main>
             </div>

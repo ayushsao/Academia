@@ -104,7 +104,7 @@ function OfferCard({ offer, reasons, onDone }: { offer: Offer; reasons: Record<s
 type ClientOrder = {
     orderId: string; service: string; subject: string; academicLevel?: string; topicTitle: string;
     description?: string; instructions?: string; pages: number; wordCount?: number; deadline: string;
-    totalAmount?: number; currency?: string; files?: string[];
+    files?: string[];
     turnitinReport?: boolean; topExpert?: boolean; abstractPage?: boolean;
 };
 type ClientOrders = { orders: ClientOrder[]; requiresMembership?: boolean };
@@ -144,12 +144,6 @@ function ClientOrderCard({ order, onTaken }: { order: ClientOrder; onTaken: (msg
                         <span className="inline-flex items-center gap-1.5"><Calendar className="h-4 w-4 text-slate-400" />Due {order.deadline}</span>
                     </p>
                 </div>
-                {Boolean(order.totalAmount) && (
-                    <div className="shrink-0 text-left sm:text-right">
-                        <p className="text-2xl font-extrabold text-[#0b1b33]">{order.currency || ''} {order.totalAmount}</p>
-                        <p className="text-xs text-slate-500">order value</p>
-                    </div>
-                )}
             </div>
 
             {(brief || extras.length > 0 || (order.files?.length ?? 0) > 0) && (
