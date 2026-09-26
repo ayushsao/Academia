@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { Suspense, lazy, useState } from 'react';
+import React, { Suspense, useState } from 'react';
+import { lazyPage } from '../lib/lazyPage';
 import { Calculator } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { ScrollReveal } from '../components/ScrollReveal';
@@ -35,11 +36,11 @@ import { Consultant, Discipline, ServiceType, SubjectType } from '../types';
 import type { OrderQuote } from '../lib/orderQuote';
 
 // Modals are only downloaded when first opened (they render nothing while closed).
-const OrderModal = lazy(() => import('../components/OrderModal').then(m => ({ default: m.OrderModal })));
-const ConsultantModal = lazy(() => import('../components/ConsultantModal').then(m => ({ default: m.ConsultantModal })));
-const ToolModal = lazy(() => import('../components/ToolModal').then(m => ({ default: m.ToolModal })));
-const DisciplineModal = lazy(() => import('../components/DisciplineModal').then(m => ({ default: m.DisciplineModal })));
-const SignInModal = lazy(() => import('../components/SignInModal').then(m => ({ default: m.SignInModal })));
+const OrderModal = lazyPage(() => import('../components/OrderModal').then(m => ({ default: m.OrderModal })));
+const ConsultantModal = lazyPage(() => import('../components/ConsultantModal').then(m => ({ default: m.ConsultantModal })));
+const ToolModal = lazyPage(() => import('../components/ToolModal').then(m => ({ default: m.ToolModal })));
+const DisciplineModal = lazyPage(() => import('../components/DisciplineModal').then(m => ({ default: m.DisciplineModal })));
+const SignInModal = lazyPage(() => import('../components/SignInModal').then(m => ({ default: m.SignInModal })));
 
 export default function App() {
   // Modal & Drawer visibility states

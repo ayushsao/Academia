@@ -1,12 +1,13 @@
-import React, { Suspense, lazy, useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import { useStore } from './store/useStore';
+import { lazyPage, PageErrorBoundary } from './lib/lazyPage';
 
 // Every page except Home is loaded on demand, so a first visit only downloads
 // what the landing page needs (admin, dashboards and tools come later, if ever).
 const named = <T extends Record<string, any>>(load: () => Promise<T>, name: keyof T) =>
-    lazy(() => load().then(m => ({ default: m[name] })));
+    lazyPage(() => load().then(m => ({ default: m[name] })));
 
 const Dashboard = named(() => import('./pages/Dashboard'), 'Dashboard');
 const AdminPanel = named(() => import('./pages/AdminPanel'), 'AdminPanel');
@@ -21,30 +22,30 @@ const ReviewsPage = named(() => import('./pages/ReviewsPage'), 'ReviewsPage');
 const ChatWidget = named(() => import('./components/ChatWidget'), 'ChatWidget');
 
 // Writer Pages
-const HireWriters = lazy(() => import('./pages/marketplace/HireWriters'));
-const WriterProfilePage = lazy(() => import('./pages/marketplace/WriterProfilePage'));
-const BecomeWriter = lazy(() => import('./pages/marketplace/BecomeWriter'));
-const WriterPricing = lazy(() => import('./pages/marketplace/WriterPricing'));
-const WriterTerms = lazy(() => import('./pages/marketplace/WriterTerms'));
-const WriterLogin = lazy(() => import('./pages/marketplace/WriterLogin'));
-const WriterRegister = lazy(() => import('./pages/marketplace/WriterRegister'));
-const WriterOnboarding = lazy(() => import('./pages/marketplace/WriterOnboarding'));
-const WriterDashboardLayout = lazy(() => import('./pages/marketplace/writer/WriterDashboardLayout'));
-const WriterOverview = lazy(() => import('./pages/marketplace/writer/WriterOverview'));
-const WriterOpportunities = lazy(() => import('./pages/marketplace/writer/WriterOpportunities'));
-const WriterBidding = lazy(() => import('./pages/marketplace/writer/WriterBidding'));
-const WriterAssignments = lazy(() => import('./pages/marketplace/writer/WriterAssignments'));
-const WriterAssignmentDetail = lazy(() => import('./pages/marketplace/writer/WriterAssignmentDetail'));
-const WriterHistory = lazy(() => import('./pages/marketplace/writer/WriterHistory'));
-const WriterEarnings = lazy(() => import('./pages/marketplace/writer/WriterEarnings'));
-const WriterNotifications = lazy(() => import('./pages/marketplace/writer/WriterNotifications'));
-const WriterSettings = lazy(() => import('./pages/marketplace/writer/WriterSettings'));
-const WriterProfileEdit = lazy(() => import('./pages/marketplace/writer/WriterProfileEdit'));
-const WriterDocuments = lazy(() => import('./pages/marketplace/writer/WriterDocuments'));
-const WriterMessages = lazy(() => import('./pages/marketplace/writer/WriterMessages'));
-const WriterMembership = lazy(() => import('./pages/marketplace/writer/WriterMembership'));
-const MembershipCheckout = lazy(() => import('./pages/marketplace/writer/MembershipCheckout'));
-const WriterOrders = lazy(() => import('./pages/marketplace/writer/WriterOrders'));
+const HireWriters = lazyPage(() => import('./pages/marketplace/HireWriters'));
+const WriterProfilePage = lazyPage(() => import('./pages/marketplace/WriterProfilePage'));
+const BecomeWriter = lazyPage(() => import('./pages/marketplace/BecomeWriter'));
+const WriterPricing = lazyPage(() => import('./pages/marketplace/WriterPricing'));
+const WriterTerms = lazyPage(() => import('./pages/marketplace/WriterTerms'));
+const WriterLogin = lazyPage(() => import('./pages/marketplace/WriterLogin'));
+const WriterRegister = lazyPage(() => import('./pages/marketplace/WriterRegister'));
+const WriterOnboarding = lazyPage(() => import('./pages/marketplace/WriterOnboarding'));
+const WriterDashboardLayout = lazyPage(() => import('./pages/marketplace/writer/WriterDashboardLayout'));
+const WriterOverview = lazyPage(() => import('./pages/marketplace/writer/WriterOverview'));
+const WriterOpportunities = lazyPage(() => import('./pages/marketplace/writer/WriterOpportunities'));
+const WriterBidding = lazyPage(() => import('./pages/marketplace/writer/WriterBidding'));
+const WriterAssignments = lazyPage(() => import('./pages/marketplace/writer/WriterAssignments'));
+const WriterAssignmentDetail = lazyPage(() => import('./pages/marketplace/writer/WriterAssignmentDetail'));
+const WriterHistory = lazyPage(() => import('./pages/marketplace/writer/WriterHistory'));
+const WriterEarnings = lazyPage(() => import('./pages/marketplace/writer/WriterEarnings'));
+const WriterNotifications = lazyPage(() => import('./pages/marketplace/writer/WriterNotifications'));
+const WriterSettings = lazyPage(() => import('./pages/marketplace/writer/WriterSettings'));
+const WriterProfileEdit = lazyPage(() => import('./pages/marketplace/writer/WriterProfileEdit'));
+const WriterDocuments = lazyPage(() => import('./pages/marketplace/writer/WriterDocuments'));
+const WriterMessages = lazyPage(() => import('./pages/marketplace/writer/WriterMessages'));
+const WriterMembership = lazyPage(() => import('./pages/marketplace/writer/WriterMembership'));
+const MembershipCheckout = lazyPage(() => import('./pages/marketplace/writer/MembershipCheckout'));
+const WriterOrders = lazyPage(() => import('./pages/marketplace/writer/WriterOrders'));
 
 const PageLoader = () => (
     <div className="flex min-h-[60vh] items-center justify-center" role="status" aria-label="Loading">
@@ -96,6 +97,7 @@ export default function App() {
     return (
         <BrowserRouter>
             <SearchIndexing />
+            <PageErrorBoundary>
             <Suspense fallback={<PageLoader />}>
                 <Routes>
                     <Route path="/" element={<Home />} />
@@ -164,6 +166,7 @@ export default function App() {
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </Suspense>
+            </PageErrorBoundary>
             <DeferredChatWidget />
         </BrowserRouter>
     );

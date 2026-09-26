@@ -10,6 +10,10 @@ import { useStore } from './store/useStore';
 
 import { API } from './lib/api';
 import { ADMIN_COOKIE_SESSION, isWriterApi } from './lib/session';
+import { reloadForNewVersion } from './lib/lazyPage';
+
+// A file needed by the page is gone after a new deploy: load the new version.
+window.addEventListener('vite:preloadError', (event) => { if (reloadForNewVersion()) event.preventDefault(); });
 
 // Global fetch interceptor for auth. Sessions are httpOnly cookies, so every API
 // call is sent with credentials. A Bearer token is added only when the browser

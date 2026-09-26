@@ -120,6 +120,27 @@ body {
   position: relative;
 }
 
+/* "clip" hides sideways overflow without making <body> a scroll container,
+   which would stop the sticky navigation bar from staying at the top. */
+@supports (overflow: clip) {
+  html,
+  body {
+    overflow-x: clip;
+  }
+}
+
+/* Smooth scrolling; jumps to a section stop below the sticky navigation bar. */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 96px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 .premium-card {
   transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
