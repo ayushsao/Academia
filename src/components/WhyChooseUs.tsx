@@ -82,7 +82,7 @@ export const WhyChooseUs: React.FC = () => {
     ];
 
     return (
-        <section className="py-20 md:py-24 bg-white relative">
+        <section className="py-20 md:py-24 bg-[#f6f6fa] relative">
             <div className="max-w-[1250px] mx-auto px-4 relative z-10">
 
                 {/* Yellow Top CTA */}

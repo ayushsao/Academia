@@ -67,7 +67,7 @@ export const ContactSection: React.FC = () => {
     };
 
     return (
-        <section id="contact-us" className="py-20 lg:py-32 bg-[#fafafa] relative overflow-hidden">
+        <section id="contact-us" className="py-20 lg:py-32 bg-[#f6f6fa] relative overflow-hidden">
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#fea520]/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3"></div>
 
             <div className="flex justify-center mb-6">

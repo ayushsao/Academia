@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, ShoppingCart, Menu, ChevronDown, User, LogOut, BadgeCheck } from 'lucide-react';
+import { Search, ShoppingCart, Menu, ChevronDown, User, LogOut, BadgeCheck, PenLine } from 'lucide-react';
 import { AcademiaLogo } from './AcademiaLogo';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
@@ -48,10 +48,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
 
   return (
     <nav className={`w-full z-50 transition-all duration-500 sticky top-0 ${scrolled ? 'bg-white/80 backdrop-blur-xl shadow-[0_4px_30px_rgb(0,0,0,0.05)] py-3 border-b border-gray-100/50' : 'bg-white py-5 border-b border-gray-100'}`}>
-      <div className="w-full px-4 md:px-8 lg:px-12 flex items-center justify-between">
+      <div className="w-full px-4 md:px-8 2xl:px-12 flex items-center justify-between gap-4">
 
         {/* Logo */}
-        <div className="flex items-center gap-0 cursor-pointer group" onClick={() => navigate('/')}>
+        <div className="flex shrink-0 items-center gap-0 cursor-pointer group" onClick={() => navigate('/')}>
           <AcademiaLogo className="h-11 w-auto z-10 transition-transform duration-300 group-hover:scale-105" />
           <div className="flex flex-col z-0 ml-0.5">
             <span className="text-2xl font-black text-[#000a1e] uppercase tracking-tight leading-none">ssignment<span className="text-[#fea520]">Minds</span></span>
@@ -60,9 +60,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
         </div>
 
         {/* Desktop Nav Links */}
-        <div className="hidden lg:flex items-center gap-6 xl:gap-8">
+        <div className="hidden xl:flex items-center gap-4 2xl:gap-8">
           {navLinks.map((link, idx) => (
-            <div key={idx} className="group relative flex items-center gap-1 text-[#2d2d2d] hover:text-[#fea520] font-medium text-sm transition-colors py-4">
+            <div key={idx} className="group relative flex items-center gap-1 whitespace-nowrap text-[#2d2d2d] hover:text-[#fea520] font-medium text-sm transition-colors py-4">
               <span onClick={() => { if (!link.hasDropdown) navigate(link.to || `/p/${link.label.toLowerCase().replace(/ /g, '-')}`); }} className="cursor-pointer">{link.label}</span>
               {link.hasDropdown && <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-[#fea520] transition-colors cursor-pointer" />}
 
@@ -197,17 +197,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
         </div>
 
         {/* Right Side Tools */}
-        <div className="hidden lg:flex items-center gap-4">
-          <button className="text-[#2d2d2d] hover:text-[#fea520] transition-colors p-2">
+        <div className="hidden xl:flex shrink-0 items-center gap-3 2xl:gap-4">
+          <button className="hidden 2xl:block text-[#2d2d2d] hover:text-[#fea520] transition-colors p-2">
             <Search className="w-5 h-5" />
           </button>
 
-          <button onClick={onOpenOrder} className="bg-[#fea520] hover:bg-[#e36100] text-[#000a1e] font-bold px-5 py-2.5 rounded text-sm shadow-sm transition-colors">
+          <button onClick={onOpenOrder} className="bg-[#fea520] hover:bg-[#e36100] text-[#000a1e] font-bold px-4 2xl:px-5 py-2.5 rounded text-sm shadow-sm transition-colors whitespace-nowrap">
             Order Now
           </button>
 
           {writerSignedIn && (
-            <Link to="/writer/dashboard" className="text-sm font-semibold text-[#002147] hover:text-[#e36100] transition-colors whitespace-nowrap">Writer Dashboard</Link>
+            <Link to="/writer/dashboard" title="Writer Dashboard" aria-label="Writer Dashboard" className="flex items-center gap-1.5 p-2 2xl:p-0 text-sm font-semibold text-[#002147] hover:text-[#e36100] transition-colors whitespace-nowrap">
+              <PenLine className="w-5 h-5 2xl:hidden" /><span className="hidden 2xl:inline">Writer Dashboard</span>
+            </Link>
           )}
 
           {user ? (
@@ -247,7 +249,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
         </div>
 
         {/* Mobile Menu Toggle */}
-        <div className="flex lg:hidden items-center gap-3">
+        <div className="flex xl:hidden items-center gap-3">
           <button onClick={() => { if (user) { navigate('/dashboard'); } else { onOpenSignIn(); } }} className="text-[#2d2d2d] p-1 relative">
             <ShoppingCart className="w-5 h-5" />
             <span className="absolute top-0 right-0 bg-[#fea520] text-[#000a1e] text-[9px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center -translate-y-1 translate-x-1 shadow-sm">{activeOrderCount}</span>
@@ -265,7 +267,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 overflow-hidden"
+            className="xl:hidden absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 overflow-hidden"
           >
             <div className="flex flex-col p-4 gap-4">
               {navLinks.map((link, idx) => (

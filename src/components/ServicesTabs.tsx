@@ -109,7 +109,7 @@ export const ServicesTabs: React.FC = () => {
     ];
 
     return (
-        <section className="py-20 bg-white relative">
+        <section className="py-20 bg-[#f6f6fa] relative">
             <div className="max-w-[1100px] mx-auto px-4 sm:px-6 relative z-10 border-t border-white/50">
 
                 {/* Title */}

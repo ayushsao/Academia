@@ -21,13 +21,13 @@ export const CtaBanner: React.FC<CtaBannerProps> = ({ onOrderClick }) => {
     ];
 
     return (
-        <section className="w-full bg-[#ffdce5] relative py-12 md:py-16 overflow-hidden flex flex-col items-center justify-center">
+        <section className="w-full bg-white relative py-12 md:py-16 overflow-hidden flex flex-col items-center justify-center">
 
             {/* Center Content */}
             <div className="relative z-20 text-center px-4 flex flex-col items-center justify-center min-h-[160px]">
                 <h2 className="text-[26px] md:text-[34px] font-extrabold text-[#2d2d2d] leading-snug tracking-tight mb-5">
-                    JOIN <span className="text-[#fea520]">10,000+</span> STUDENTS<br />
-                    WHO TRUST US
+                    Join <span className="text-[#fea520]">10,000+</span> students<br />
+                    who trust us
                 </h2>
 
                 <button

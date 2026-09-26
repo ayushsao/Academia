@@ -1,18 +1,21 @@
 ﻿@import "tailwindcss";
 
 @theme {
-  /* Apple system font: SF Pro on Apple devices, the platform UI font elsewhere. */
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  /* Apple-style type: headings top out at bold, never heavy/black. */
+  /* Poppins throughout (self-hosted), with system fallbacks while it loads. */
+  --font-sans: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* Headings top out at bold, never heavy/black. */
   --font-weight-extrabold: 700;
   --font-weight-black: 700;
+  /* Poppins reads best with near-normal letter spacing on headings. */
+  --tracking-tight: -0.01em;
+  --tracking-tighter: -0.015em;
   --color-primary: #000a1e;
   --color-primary-container: #002147;
   --color-on-primary-container: #708ab5;
   --color-secondary: #865300;
   --color-secondary-container: #fea520;
   --color-on-secondary-container: #694000;
-  --color-surface: #f8f9ff;
+  --color-surface: #f6f6fa;
   --color-surface-container-lowest: #ffffff;
   --color-surface-container-low: #eef4ff;
   --color-surface-container: #e4efff;
@@ -26,7 +29,9 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
+  color: #2c2c2c;           /* dark grey text, softer than pure black */
+  background-color: #ffffff;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

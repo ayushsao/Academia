@@ -136,14 +136,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans relative z-0">
-
-      {/* --- Ambient Background Globs for Global Website Aesthetic --- */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-[-1] opacity-70">
-        <div className="absolute top-[-5%] left-[-10%] w-[500px] h-[500px] bg-[#fea520] rounded-full blur-[200px] opacity-[0.12] mix-blend-multiply"></div>
-        <div className="absolute top-[35%] right-[-10%] w-[600px] h-[600px] bg-[#fea520] rounded-full blur-[200px] opacity-[0.12] mix-blend-multiply"></div>
-        <div className="absolute bottom-[-10%] left-[20%] w-[800px] h-[800px] bg-[#002147] rounded-full blur-[250px] opacity-[0.08] mix-blend-multiply"></div>
-      </div>
+    <div className="min-h-screen bg-white flex flex-col font-sans relative z-0">
 
       {/* Mobile rotate barrier */}
       <div className="hidden max-[768px]:landscape:flex fixed inset-0 z-[999] bg-[#000a1e] text-white flex-col items-center justify-center p-6 text-center">

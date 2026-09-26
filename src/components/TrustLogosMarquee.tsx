@@ -12,7 +12,7 @@ export const TrustLogosMarquee: React.FC = () => {
     ];
 
     return (
-        <div className="bg-white py-14 overflow-hidden relative">
+        <div className="bg-[#f6f6fa] py-14 overflow-hidden relative">
             <div className="max-w-[1300px] mx-auto px-4 md:px-8 relative hidden md:block">
 
                 {/* Floating Pink Card Layout */}

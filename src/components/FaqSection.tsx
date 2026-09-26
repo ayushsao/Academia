@@ -55,7 +55,7 @@ export const FaqSection: React.FC = () => {
     const [openIdx, setOpenIdx] = useState<number | null>(0);
 
     return (
-        <section className="py-16 md:py-24 bg-[#f8f9fa] border-t border-gray-200">
+        <section className="py-16 md:py-24 bg-[#f6f6fa]">
             <div className="max-w-[1200px] mx-auto px-4 md:px-6">
 
                 <div className="text-center mb-10">

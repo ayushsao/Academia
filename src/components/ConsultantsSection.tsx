@@ -84,7 +84,7 @@ export const ConsultantsSection: React.FC<ConsultantsSectionProps> = ({ onConsul
   const visibleCards = getVisibleWriters();
 
   return (
-    <section className="py-20 bg-[#fff5f7] relative overflow-hidden text-center z-10 border-t border-white/50">
+    <section className="py-20 bg-white relative overflow-hidden text-center z-10">
       <div className="max-w-[1280px] mx-auto px-4 md:px-6 relative flex flex-col items-center">
 
         {/* Title */}

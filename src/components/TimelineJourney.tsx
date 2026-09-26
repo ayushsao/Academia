@@ -32,7 +32,7 @@ export const TimelineJourney: React.FC<TimelineJourneyProps> = ({ onStartOrder }
   };
 
   return (
-    <section id="how-it-works-section" className="py-24 md:py-32 bg-[#f8f9ff] relative overflow-hidden">
+    <section id="how-it-works-section" className="py-24 md:py-32 bg-white relative overflow-hidden">
       <div className="max-w-[1280px] mx-auto px-4 relative">
         <motion.div
           initial="hidden"

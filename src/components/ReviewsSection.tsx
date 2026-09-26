@@ -26,7 +26,7 @@ export const ReviewsSection: React.FC = () => {
   ];
 
   return (
-    <section className="py-20 bg-white relative">
+    <section className="py-20 bg-[#f6f6fa] relative">
       <div className="max-w-[1250px] mx-auto px-4 relative">
 
         {/* Header */}
