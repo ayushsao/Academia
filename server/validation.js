@@ -536,9 +536,23 @@ export const blogStatusSchema = z.object({ status: z.enum(['DRAFT', 'PUBLISHED']
 // Writer bidding: the budget an admin/HR sets, and a writer's bid.
 export const biddingSchema = z.object({
     open: z.boolean(),
-    minBid: z.number().positive().max(1000000),
-    maxBid: z.number().positive().max(1000000),
-}).strict().refine(v => v.minBid <= v.maxBid, { message: 'The minimum budget cannot be more than the maximum.', path: ['minBid'] });
+    // Optional writer budget: both or neither.
+    minBid: z.number().positive().max(1000000).nullable().optional(),
+    maxBid: z.number().positive().max(1000000).nullable().optional(),
+}).strict()
+    .refine(v => (v.minBid == null) === (v.maxBid == null), { message: 'Set both the minimum and the maximum, or leave both empty.', path: ['minBid'] })
+    .refine(v => v.minBid == null || v.minBid <= v.maxBid, { message: 'The minimum budget cannot be more than the maximum.', path: ['minBid'] });
+
+// Writer bid rates per 1,000 words (base currency): default and per service.
+const bidRate = z.object({ min: z.number().nonnegative().max(100000), max: z.number().nonnegative().max(100000) }).strict()
+    .refine(r => r.min <= r.max, { message: 'The minimum rate cannot be more than the maximum.' });
+export const bidRatesSchema = z.object({
+    min: z.number().nonnegative().max(100000).nullable(),
+    max: z.number().nonnegative().max(100000).nullable(),
+    services: z.record(z.string().trim().min(1).max(120), bidRate).default({}),
+}).strict()
+    .refine(v => (v.min == null) === (v.max == null), { message: 'Set both the default minimum and maximum, or leave both empty.', path: ['min'] })
+    .refine(v => v.min == null || v.min <= v.max, { message: 'The default minimum cannot be more than the maximum.', path: ['min'] });
 
 export const bidSchema = z.object({
     amount: z.number().positive().max(1000000),

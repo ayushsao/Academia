@@ -11,7 +11,9 @@ import { EXT_MIMES, sniffOrderFileKind, kindMatchesExtension } from '../services
 import { recordAudit } from '../services/audit.js';
 import { notify } from '../services/notifications.js';
 import { streamOrderFile } from '../services/orderFiles.js';
-import { validateInput, biddingSchema, bidSchema } from '../validation.js';
+import { validateInput, biddingSchema, bidSchema, bidRatesSchema } from '../validation.js';
+import { bidRatesView, saveBidRates, budgetFor, getBidRates } from '../services/bidLimits.js';
+import { getRateCard } from '../services/orderPricing.js';
 import { BiddingError, setBidding, listForWriter, placeBid, withdrawBid, bidsForOrder, acceptBid } from '../services/orderBidding.js';
 import { releaseOrder, getOrderSettings, saveOrderSettings, canTakeOrders, clientOrderView, isCompleted, OPEN_ORDER, WRITER_HIDDEN_FIELDS } from '../services/orderRelease.js';
 
@@ -171,35 +173,10 @@ router.get('/writer/orders/:orderId', authenticateUser, requireWriter, async (re
     }
 });
 
-// POST /api/order-workflow/writer/accept/:orderId — writer accepts an order (requires active membership)
-router.post('/writer/accept/:orderId', authenticateUser, requireWriter, async (req, res) => {
-    try {
-        // 1. Check writer membership (plan purchase ke baad)
-        const writer = await Writer.findOne({ userId: req.user.id }).select('status membership').lean();
-        if (!canTakeOrders(writer)) {
-            return res.status(403).json({ error: 'An active membership plan is required to accept client orders.' });
-        }
-
-        // 2. Claim the order atomically: when two writers accept at once, only the first gets it.
-        const order = await Order.findOneAndUpdate(
-            { ...OPEN_ORDER, orderId: req.params.orderId },
-            { $set: { writerId: req.user.id, status: 'in_progress', assignedTo: req.user.name || 'Writer' } },
-            { new: true },
-        ).select(WRITER_HIDDEN_FIELDS);
-
-        if (!order) {
-            return res.status(409).json({ error: 'This order was just taken by another writer, or is no longer available.' });
-        }
-
-        res.json({
-            message: 'Order accepted successfully.',
-            order: { ...order.toObject(), status: normaliseStatus(order.status) },
-        });
-    } catch (err) {
-        console.error('[OrderWorkflow] accept error:', err.message);
-        res.status(500).json({ error: 'Could not accept order.' });
-    }
-});
+// POST /api/order-workflow/writer/accept/:orderId — no longer used: approved orders
+// are open for bids, and an admin assigns each one from its bids.
+router.post('/writer/accept/:orderId', authenticateUser, requireWriter, (_req, res) =>
+    res.status(409).json({ error: 'Place a bid on this project — the admin assigns it from the bids.' }));
 
 // GET /api/order-workflow/writer/files/:orderId/:name — the client's reference files,
 // only for the writer the order is assigned to.
@@ -325,13 +302,29 @@ const biddingFail = (res, err, fallback) => {
 router.get('/admin/bidding', noStore, authenticateAdmin, requirePermission('bidding.manage', 'orders.write'), async (req, res) => {
     try {
         const orders = await Order.find({ writerId: null, status: { $in: ['available', 'pending', 'Pending'] } })
-            .select('orderId service subject academicLevel topicTitle pages wordCount deadline totalAmount currency bidding adminApproved createdAt')
+            .select('orderId service subject academicLevel topicTitle pages wordCount deadline totalAmount currency pricing.exchangeRate bidding adminApproved createdAt')
             .sort({ createdAt: -1 }).limit(200).lean();
+        const [rates, card] = await Promise.all([getBidRates(), getRateCard()]);
+        for (const o of orders) { const b = await budgetFor(o, rates, card); o.suggestedBudget = b ? { min: b.minBid, max: b.maxBid, currency: b.currency, words: b.words } : null; delete o.pricing; }
         const { OrderBid } = await import('../db.js');
         const counts = await OrderBid.aggregate([{ $match: { order: { $in: orders.map(o => o._id) }, status: 'PENDING' } }, { $group: { _id: '$order', n: { $sum: 1 } } }]);
         const byOrder = new Map(counts.map(c => [String(c._id), c.n]));
         res.json({ orders: orders.map(o => ({ ...o, _id: undefined, openBids: byOrder.get(String(o._id)) || 0 })) });
     } catch (err) { biddingFail(res, err, 'Could not load bidding projects.'); }
+});
+
+// Bid limits by work: per 1,000 words, default and per service (base currency).
+router.get('/admin/bid-rates', noStore, authenticateAdmin, requirePermission('bidding.manage', 'orders.write'), async (req, res) => {
+    try { res.json(await bidRatesView()); }
+    catch (err) { biddingFail(res, err, 'Could not load bid limits.'); }
+});
+
+router.put('/admin/bid-rates', authenticateAdmin, requirePermission('bidding.manage', 'orders.write'), validateInput(bidRatesSchema), async (req, res) => {
+    try {
+        const rates = await saveBidRates(req.body);
+        await recordAudit(req, 'BID_RATES_UPDATED', { targetType: 'SETTINGS', reason: `default ${rates.min ?? '-'}-${rates.max ?? '-'} per 1000 words, ${Object.keys(rates.services || {}).length} service rate(s)` });
+        res.json({ rates });
+    } catch (err) { biddingFail(res, err, 'Could not save bid limits.'); }
 });
 
 router.get('/admin/bidding/:orderId', noStore, authenticateAdmin, requirePermission('bidding.manage', 'orders.write'), async (req, res) => {
@@ -343,7 +336,7 @@ router.get('/admin/bidding/:orderId', noStore, authenticateAdmin, requirePermiss
 router.put('/admin/bidding/:orderId', authenticateAdmin, requirePermission('bidding.manage', 'orders.write'), validateInput(biddingSchema), async (req, res) => {
     try {
         const order = await setBidding(req.params.orderId, req.body);
-        await recordAudit(req, 'ORDER_BIDDING_UPDATED', { targetType: 'ORDER', targetId: order.orderId, reason: `${order.bidding.open ? 'open' : 'closed'} ${order.bidding.currency} ${order.bidding.minBid}-${order.bidding.maxBid}` });
+        await recordAudit(req, 'ORDER_BIDDING_UPDATED', { targetType: 'ORDER', targetId: order.orderId, reason: `${order.bidding.open ? 'open' : 'closed'}${order.bidding.minBid != null ? ` ${order.bidding.currency} ${order.bidding.minBid}-${order.bidding.maxBid}` : ' (no budget)'}` });
         res.json({ bidding: order.bidding, status: order.status });
     } catch (err) { biddingFail(res, err, 'Could not update bidding.'); }
 });

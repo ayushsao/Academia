@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, GraduationCap, FileText, Check, X, Inbox, Calendar, Crown, Paperclip } from 'lucide-react';
+import { BookOpen, GraduationCap, FileText, Check, X, Inbox, Calendar, Crown, Paperclip, Gavel } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { formatMoney } from '../../../lib/money';
 import type { Offer } from '../../../lib/assignmentTypes';
@@ -99,8 +99,8 @@ function OfferCard({ offer, reasons, onDone }: { offer: Offer; reasons: Record<s
     );
 }
 
-// A customer order the admin released to the marketplace. Open to every writer
-// with a live membership plan, whatever their subject; the first to accept gets it.
+// A customer order the admin approved for writers. Open to every writer with a
+// live membership plan, whatever their subject; the admin assigns it from the bids.
 type ClientOrder = {
     orderId: string; service: string; subject: string; academicLevel?: string; topicTitle: string;
     description?: string; instructions?: string; pages: number; wordCount?: number; deadline: string;
@@ -109,27 +109,10 @@ type ClientOrder = {
 };
 type ClientOrders = { orders: ClientOrder[]; requiresMembership?: boolean };
 
-function ClientOrderCard({ order, onTaken }: { order: ClientOrder; onTaken: (msg: string) => void }) {
-    const navigate = useNavigate();
-    const [busy, setBusy] = useState(false);
-    const [error, setError] = useState('');
+function ClientOrderCard({ order }: { order: ClientOrder }) {
     const [open, setOpen] = useState(false);
     const brief = order.instructions || order.description || '';
     const extras = [order.turnitinReport && 'Turnitin report', order.topExpert && 'Top expert', order.abstractPage && 'Abstract page'].filter(Boolean) as string[];
-
-    const accept = async () => {
-        if (!window.confirm(`Accept order ${order.orderId}? You'll be responsible for delivering it by the deadline.`)) return;
-        setBusy(true); setError('');
-        try {
-            await api(`/order-workflow/writer/accept/${encodeURIComponent(order.orderId)}`, { method: 'POST' });
-            navigate('/writer/orders', { state: { tab: 'my-orders' } });
-        } catch (e) {
-            // Someone else took it first: drop it from the list.
-            if ((e as { status?: number }).status === 409) onTaken((e as Error).message);
-            else setError((e as Error).message);
-            setBusy(false);
-        }
-    };
 
     return (
         <article className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
@@ -154,17 +137,16 @@ function ClientOrderCard({ order, onTaken }: { order: ClientOrder; onTaken: (msg
                     {brief && <div><h4 className="font-semibold text-[#0b1b33]">Instructions</h4><p className="mt-1 whitespace-pre-line">{brief}</p></div>}
                     {extras.length > 0 && <p><span className="font-semibold text-[#0b1b33]">Extras:</span> {extras.join(', ')}</p>}
                     {(order.files?.length ?? 0) > 0 && (
-                        <p className="inline-flex items-center gap-2"><Paperclip className="h-4 w-4 text-slate-400" />{order.files!.length} reference file{order.files!.length === 1 ? '' : 's'} — available to download after you accept.</p>
+                        <p className="inline-flex items-center gap-2"><Paperclip className="h-4 w-4 text-slate-400" />{order.files!.length} reference file{order.files!.length === 1 ? '' : 's'} — available to download once you're assigned.</p>
                     )}
                 </div>
             )}
 
-            {error && <Notice tone="error" className="mt-4">{error}</Notice>}
-
+            {/* Approved orders are assigned from writers' bids. */}
             <div className="mt-5">
-                <button onClick={accept} disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#002147] px-6 py-3 font-semibold text-white hover:bg-[#0b2f5c] disabled:opacity-50">
-                    {busy ? <Spinner className="h-4 w-4" /> : <Check className="h-4 w-4" />} Accept order
-                </button>
+                <Link to={`/writer/bidding?order=${encodeURIComponent(order.orderId)}`} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#002147] px-6 py-3 font-semibold text-white hover:bg-[#0b2f5c]">
+                    <Gavel className="h-4 w-4" /> Place bid
+                </Link>
             </div>
         </article>
     );
@@ -204,7 +186,7 @@ export default function WriterOpportunities() {
                 {clientOrders && !clientOrders.requiresMembership && clientOrders.orders.length === 0 && (
                     <p className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-8 text-center text-sm text-slate-500">No open client orders right now. We’ll notify you as soon as one is approved.</p>
                 )}
-                {clientOrders?.orders.map(o => <React.Fragment key={o.orderId}><ClientOrderCard order={o} onTaken={m => { setMessage(m); loadOrders(); }} /></React.Fragment>)}
+                {clientOrders?.orders.map(o => <React.Fragment key={o.orderId}><ClientOrderCard order={o} /></React.Fragment>)}
             </section>
 
             <h2 className="text-lg font-bold text-[#0b1b33]">Assignment offers</h2>

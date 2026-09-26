@@ -85,7 +85,7 @@ export default function WriterOrdersPage() {
     const [requiresMembership, setRequiresMembership] = useState(false);
     const [membershipPlan, setMembershipPlan] = useState('');
     // Orders an admin opened for bids (budget only — never the customer's price).
-    const [biddingProjects, setBiddingProjects] = useState<{ orderId: string; topicTitle: string; subject: string; pages: number; wordCount?: number; deadline: string; budget: { min: number; max: number; currency: string } | null; myBid: { amount: number; currency: string; status: string } | null }[]>([]);
+    const [biddingProjects, setBiddingProjects] = useState<{ orderId: string; topicTitle: string; subject: string; pages: number; wordCount?: number; deadline: string; budget: { min: number; max: number; currency: string } | null; currency?: string; myBid: { amount: number; currency: string; status: string } | null }[]>([]);
     const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
     const [accepting, setAccepting] = useState<string | null>(null);
     const [uploading, setUploading] = useState<string | null>(null);
@@ -97,15 +97,18 @@ export default function WriterOrdersPage() {
         setLoading(true);
         setError('');
         try {
-            const [avail, mine] = await Promise.all([
+            const [avail, mine, bidding] = await Promise.all([
                 api<{ orders: Order[]; requiresMembership?: boolean; membershipPlan?: string }>('/order-workflow/writer/available', { token: token || undefined }),
                 api<{ orders: Order[] }>('/order-workflow/writer/my-orders', { token: token || undefined }),
+                api<{ projects: typeof biddingProjects }>('/order-workflow/writer/bidding').catch(() => null),
             ]);
-            setAvailableOrders(avail.orders || []);
+            // Approved orders are won by bidding: they're listed as "Open for bids".
+            // (Older servers without bidding still list them here with Accept.)
+            setBiddingProjects(bidding?.projects || []);
+            setAvailableOrders(bidding ? [] : avail.orders || []);
             setRequiresMembership(Boolean(avail.requiresMembership));
             setMembershipPlan(avail.membershipPlan || '');
             setMyOrders(mine.orders || []);
-            api<{ projects: typeof biddingProjects }>('/order-workflow/writer/bidding').then(d => setBiddingProjects(d.projects || [])).catch(() => setBiddingProjects([]));
         } catch (e: any) {
             setError(e.message || 'Failed to load orders.');
         } finally {
@@ -174,7 +177,7 @@ export default function WriterOrdersPage() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <h1 className="text-2xl font-extrabold text-[#002147] sm:text-3xl">Client Orders</h1>
-                    <p className="mt-1 text-slate-600">Accept orders, deliver work, and manage submissions.</p>
+                    <p className="mt-1 text-slate-600">Bid on approved orders, deliver work, and manage submissions.</p>
                 </div>
                 <button onClick={loadOrders} className="inline-flex items-center gap-2 self-start rounded-xl bg-slate-100 border border-slate-200 px-4 py-2.5 font-semibold text-slate-700 hover:bg-slate-200 transition">
                     <RefreshCw className="h-4 w-4" /> Refresh
@@ -214,7 +217,9 @@ export default function WriterOrdersPage() {
                                 <p className="mt-1 text-xs text-slate-500">{p.subject} · {p.pages} pg{p.pages > 1 ? 's' : ''}{p.wordCount ? ` · ${p.wordCount} words` : ''} · due {p.deadline}</p>
                                 {p.myBid && <p className="mt-1 text-xs font-semibold text-slate-600">Your bid: {p.myBid.currency} {p.myBid.amount} · {p.myBid.status === 'PENDING' ? 'waiting for the admin' : p.myBid.status.toLowerCase()}</p>}
                             </div>
-                            {p.budget && <p className="shrink-0 text-sm font-bold text-[#0b1b33]">{p.budget.currency} {p.budget.min}–{p.budget.max}<span className="block text-xs font-normal text-slate-500">writer budget</span></p>}
+                            {p.budget
+                                ? <p className="shrink-0 text-sm font-bold text-[#0b1b33]">{p.budget.currency} {p.budget.min}–{p.budget.max}<span className="block text-xs font-normal text-slate-500">writer budget</span></p>
+                                : <p className="shrink-0 text-sm font-semibold text-slate-600">Name your price</p>}
                             <Link to={`/writer/bidding?order=${encodeURIComponent(p.orderId)}`} className="shrink-0 rounded-xl bg-[#002147] px-5 py-2.5 text-center text-sm font-bold text-white hover:bg-[#001233]">
                                 {p.myBid?.status === 'PENDING' ? 'Update bid' : 'Place bid'}
                             </Link>
@@ -263,7 +268,7 @@ export default function WriterOrdersPage() {
                         {tab === 'available' ? 'No orders available right now.' : 'No orders assigned to you yet.'}
                     </p>
                     <p className="text-sm text-slate-400 mt-2">
-                        {tab === 'available' ? 'New orders will appear here once approved by admin.' : 'Accept an available order to get started.'}
+                        {tab === 'available' ? 'New orders will appear here once approved by admin — then place your bid.' : 'Place a bid on an available order to get started.'}
                     </p>
                 </div>
             ) : (

@@ -22,7 +22,7 @@ import TrustSafetyTab from './marketplace/admin/TrustSafetyTab';
 import CatalogTab from './marketplace/admin/catalog/CatalogTab';
 import SiteContentTab from './marketplace/admin/SiteContentTab';
 import BlogTab from './marketplace/admin/BlogTab';
-import BiddingTab from './marketplace/admin/BiddingTab';
+import BiddingTab, { ProjectRow } from './marketplace/admin/BiddingTab';
 import { Newspaper, Gavel } from 'lucide-react';
 import AdminPasswordDialog from './marketplace/admin/AdminPasswordDialog';
 import { AdminLogin, AdminSecurityDialog, restoreAdminSession, signOutAdmin } from './marketplace/admin/AdminAuth';
@@ -263,12 +263,12 @@ const OrderDetailDrawer = ({
     const adminFileInputRef = React.useRef<HTMLInputElement>(null);
 
     const handleReleaseToWriters = async () => {
-        if (!confirm(`Approve order ${order.orderId} and release to writers with active membership plans?`)) return;
+        if (!confirm(`Approve order ${order.orderId}? Writers with an active plan can then bid on it.`)) return;
         setReleasing(true);
         try {
             const data = await apiFetch(`/order-workflow/admin/release/${order.orderId}`, { method: 'POST' }, token);
             onUpdate({ ...order, status: data.order.status, adminApproved: data.order.adminApproved, adminApprovedAt: data.order.adminApprovedAt });
-            alert('Order approved and released to writers with active memberships!');
+            alert('Order approved — writers can now bid on it.');
         } catch (e: any) {
             alert(e.message || 'Failed to release order.');
         } finally {
@@ -531,8 +531,8 @@ const OrderDetailDrawer = ({
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">
                                     {order.adminApproved
-                                        ? 'This order is approved and visible to writers with active membership plans.'
-                                        : 'Writers cannot see or accept this order until admin approves and releases it.'}
+                                        ? 'Approved — writers with an active plan can bid on it. Pick a bid below.'
+                                        : 'Writers can’t see this order until you approve it; then they place bids.'}
                                 </p>
                             </div>
                             {!order.adminApproved && (!order.assignedTo || order.assignedTo === '') && (
@@ -543,11 +543,21 @@ const OrderDetailDrawer = ({
                                     className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-1.5 shadow-sm shrink-0 disabled:opacity-50"
                                 >
                                     <CheckCircle2 className="w-4 h-4" />
-                                    {releasing ? 'Releasing...' : 'Approve for Writers'}
+                                    {releasing ? 'Approving...' : 'Approve & open for bids'}
                                 </button>
                             )}
                         </div>
                     </div>
+                    )}
+
+                    {/* Writers' bids — accept one to assign the order (the lowest is marked). */}
+                    {order.adminApproved && !(order as any).writerId && ['pending', 'Pending', 'available'].includes(order.status) && (
+                        <ul className="rounded-2xl border border-gray-100 bg-white">
+                            <ProjectRow token={token} startOpen
+                                row={{ orderId: order.orderId, service: order.service, subject: order.subject, topicTitle: order.topicTitle, pages: order.pages, wordCount: order.wordCount, deadline: order.deadline, totalAmount: order.totalAmount, currency: order.currency, bidding: (order as any).bidding || null, adminApproved: order.adminApproved, openBids: 0, createdAt: order.createdAt }}
+                                onChanged={() => {}}
+                                onAssigned={o => { setStatus(o.status); onUpdate({ ...order, status: o.status, assignedTo: o.assignedTo, writerPayout: o.writerPayout, writerId: 'assigned' } as any); }} />
+                        </ul>
                     )}
 
                     <WriterSubmission order={order} token={token} download={handleForceDownload}

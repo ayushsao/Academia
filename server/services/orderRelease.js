@@ -33,8 +33,9 @@ export async function saveOrderSettings(changes) {
 export const ELIGIBLE_WRITER = { status: { $in: ['APPROVED', 'ACTIVE'] }, 'membership.status': 'ACTIVE' };
 export const canTakeOrders = (writer) => Boolean(writer && ['APPROVED', 'ACTIVE'].includes(writer.status) && writer.membership?.status === 'ACTIVE');
 
-// Released and not yet taken by a writer.
-export const OPEN_ORDER = { adminApproved: true, writerId: null, status: { $in: ['available', 'pending', 'Pending'] }, 'bidding.open': { $ne: true } };
+// Released and not yet taken by a writer — open for writers' bids unless an
+// admin has closed bidding on it.
+export const OPEN_ORDER = { adminApproved: true, writerId: null, status: { $in: ['available', 'pending', 'Pending'] }, 'bidding.open': { $ne: false } };
 
 // What a writer may see of an order: the brief. Never the client's contact
 // details, payment references, pricing breakdown or internal admin notes.
@@ -64,9 +65,17 @@ export function clientOrderView(order) {
  * taken by a writer, or closed) — so writers are never notified twice.
  */
 export async function releaseOrder(orderId) {
+    // The bid limit comes from the admin's rates for this kind of work and its word count.
+    const pending = await Order.findOne({ orderId }).select('service wordCount pages currency pricing').lean();
+    const { budgetFor } = await import('./bidLimits.js');
+    const budget = pending ? await budgetFor(pending).catch(() => null) : null;
+    const now = new Date();
     const order = await Order.findOneAndUpdate(
         { orderId, adminApproved: { $ne: true }, writerId: null, status: { $in: ['pending', 'Pending'] } },
-        { $set: { adminApproved: true, adminApprovedAt: new Date(), status: 'available' } },
+        { $set: {
+            adminApproved: true, adminApprovedAt: now, status: 'available', 'bidding.open': true, 'bidding.openedAt': now,
+            ...(budget && { 'bidding.minBid': budget.minBid, 'bidding.maxBid': budget.maxBid, 'bidding.currency': budget.currency }),
+        } },
         { new: true },
     );
     if (order) notifyEligibleWriters(order).catch(err => console.error('[Orders] writer notifications failed:', err.message));
@@ -92,9 +101,9 @@ async function notifyEligibleWriters(order) {
             userId: w.userId,
             category: 'OPPORTUNITY',
             type: 'ORDER_AVAILABLE',
-            title: `New client order: ${order.subject}`,
-            message: `“${order.topicTitle}” — ${order.pages} page${order.pages === 1 ? '' : 's'}, due ${order.deadline}. The first writer to accept gets it.`,
-            link: '/writer/opportunities',
+            title: `New project open for bids: ${order.subject}`,
+            message: `“${order.topicTitle}” — ${order.pages} page${order.pages === 1 ? '' : 's'}, due ${order.deadline}.${order.bidding?.minBid != null ? ` Bid limit ${order.bidding.currency} ${order.bidding.minBid}–${order.bidding.maxBid}.` : ''} Place your bid.`,
+            link: `/writer/bidding?order=${encodeURIComponent(order.orderId)}`,
             dedupeKey: `order-available:${order.orderId}:${w._id}`,
         }).catch(() => {});
     }

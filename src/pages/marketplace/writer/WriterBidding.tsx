@@ -12,7 +12,7 @@ type Bid = { id: string; amount: number; currency: string; note: string; status:
 type Project = {
     orderId: string; service: string; subject: string; academicLevel?: string; topicTitle: string; description?: string; instructions?: string;
     pages: number; wordCount?: number; deadline: string; turnitinReport?: boolean; topExpert?: boolean; abstractPage?: boolean; filesCount: number;
-    budget: { min: number; max: number; currency: string } | null; postedAt: string; myBid: Bid | null;
+    budget: { min: number; max: number; currency: string } | null; currency?: string; postedAt: string; myBid: Bid | null;
 };
 type Data = { projects: Project[]; requiresMembership: boolean };
 
@@ -27,7 +27,9 @@ function ProjectCard({ project, highlight, onChanged }: { project: Project; high
     const [note, setNote] = useState(project.myBid?.note || '');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
-    const b = project.budget!;
+    // Optional admin budget; without one the writer names their price.
+    const b = project.budget;
+    const currency = b?.currency || project.currency || 'GBP';
     const brief = project.instructions || project.description || '';
     const extras = [project.turnitinReport && 'Turnitin report', project.topExpert && 'Top expert', project.abstractPage && 'Abstract page'].filter(Boolean) as string[];
     const bidOpen = !project.myBid || ['PENDING', 'WITHDRAWN'].includes(project.myBid.status);
@@ -36,11 +38,12 @@ function ProjectCard({ project, highlight, onChanged }: { project: Project; high
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
         const value = Number(amount);
-        if (!(value >= b.min && value <= b.max)) return setError(`Your bid must be between ${b.currency} ${b.min} and ${b.max}.`);
+        if (!(value > 0)) return setError('Enter your price for this project.');
+        if (b && !(value >= b.min && value <= b.max)) return setError(`Your bid must be between ${b.currency} ${b.min} and ${b.max}.`);
         setBusy(true); setError('');
         try {
             await api(`/order-workflow/writer/bidding/${encodeURIComponent(project.orderId)}/bid`, { method: 'POST', body: { amount: value, note } });
-            onChanged(`Bid of ${b.currency} ${value} sent for ${project.orderId}.`);
+            onChanged(`Bid of ${currency} ${value} sent for ${project.orderId}.`);
         } catch (err) { setError((err as Error).message); }
         finally { setBusy(false); }
     };
@@ -65,8 +68,10 @@ function ProjectCard({ project, highlight, onChanged }: { project: Project; high
                     </p>
                 </div>
                 <div className="shrink-0 text-left sm:text-right">
-                    <p className="text-xl font-extrabold text-[#0b1b33]">{b.currency} {b.min}–{b.max}</p>
-                    <p className="text-xs text-slate-500">writer budget</p>
+                    {b ? <>
+                        <p className="text-xl font-extrabold text-[#0b1b33]">{b.currency} {b.min}–{b.max}</p>
+                        <p className="text-xs text-slate-500">writer budget</p>
+                    </> : <p className="text-sm font-semibold text-slate-600">Name your price</p>}
                 </div>
             </div>
 
@@ -82,8 +87,8 @@ function ProjectCard({ project, highlight, onChanged }: { project: Project; high
                     {project.filesCount > 0 && <p className="inline-flex items-center gap-2"><Paperclip className="h-4 w-4 text-slate-400" />{project.filesCount} reference file{project.filesCount === 1 ? '' : 's'} — available after your bid is accepted.</p>}
                     {bidOpen && (
                         <form onSubmit={submit} className="space-y-3 rounded-xl border border-slate-200 p-4">
-                            <label htmlFor={`amount-${project.orderId}`} className="block font-semibold text-[#0b1b33]">Your bid ({b.currency}) <span className="font-normal text-slate-500">— between {b.min} and {b.max}</span></label>
-                            <input id={`amount-${project.orderId}`} type="number" inputMode="decimal" step="0.01" min={b.min} max={b.max} value={amount} onChange={e => setAmount(e.target.value)} required className={cn(inputClass, 'max-w-[200px]')} />
+                            <label htmlFor={`amount-${project.orderId}`} className="block font-semibold text-[#0b1b33]">Your bid ({currency}) <span className="font-normal text-slate-500">— {b ? `between ${b.min} and ${b.max}` : 'your price to complete this project'}</span></label>
+                            <input id={`amount-${project.orderId}`} type="number" inputMode="decimal" step="0.01" min={b ? b.min : 0.01} max={b ? b.max : undefined} value={amount} onChange={e => setAmount(e.target.value)} required className={cn(inputClass, 'max-w-[200px]')} />
                             <textarea rows={2} maxLength={1000} value={note} onChange={e => setNote(e.target.value)} placeholder="Why you're a good fit (optional)" aria-label="Note to the admin" className={cn(inputClass, 'text-sm')} />
                             <div className="flex flex-wrap gap-2">
                                 <button type="submit" disabled={busy} className="inline-flex items-center gap-2 rounded-xl bg-[#002147] px-5 py-2.5 font-semibold text-white disabled:opacity-50">
@@ -113,7 +118,7 @@ export default function WriterBidding() {
         <div className="space-y-6">
             <div>
                 <h1 className="text-2xl font-extrabold text-[#002147] sm:text-3xl">Bidding</h1>
-                <p className="mt-1 text-slate-600">Projects open for bids. Bid within the writer budget; the admin chooses one writer for each project.</p>
+                <p className="mt-1 text-slate-600">Orders approved for writers. Place your bid (within the budget, if one is set); the admin assigns each project from the bids.</p>
             </div>
             {message && <Notice tone="success">{message}</Notice>}
             {error && <Notice tone="error">{error}</Notice>}

@@ -1,6 +1,6 @@
 import { Order, OrderBid, Writer, User } from '../db.js';
 import { notify } from './notifications.js';
-import { ELIGIBLE_WRITER, canTakeOrders } from './orderRelease.js';
+import { ELIGIBLE_WRITER, canTakeOrders, OPEN_ORDER } from './orderRelease.js';
 
 // Writer bidding on customer orders. An admin/HR opens bidding on an order with
 // a writer budget (min–max); eligible writers bid within that range; the admin
@@ -11,8 +11,10 @@ import { ELIGIBLE_WRITER, canTakeOrders } from './orderRelease.js';
 export class BiddingError extends Error { constructor(message, status = 400) { super(message); this.status = status; } }
 
 const OPEN_STATUSES = ['available', 'pending', 'Pending'];
-// An order writers can bid on right now.
-export const BIDDING_ORDER = { writerId: null, status: { $in: OPEN_STATUSES }, 'bidding.open': true };
+// An order writers can bid on right now: approved by an admin, not yet
+// assigned, and bidding not closed.
+export const BIDDING_ORDER = OPEN_ORDER;
+const hasBudget = (b) => b && b.minBid != null && b.maxBid != null;
 
 const money = (n) => Math.round(Number(n) * 100) / 100;
 
@@ -21,20 +23,22 @@ export const writerBrief = (o) => ({
     orderId: o.orderId, service: o.service, subject: o.subject, academicLevel: o.academicLevel, topicTitle: o.topicTitle,
     description: o.description, instructions: o.instructions, pages: o.pages, wordCount: o.wordCount, deadline: o.deadline,
     turnitinReport: o.turnitinReport, topExpert: o.topExpert, abstractPage: o.abstractPage, filesCount: (o.files || []).length,
-    budget: o.bidding ? { min: o.bidding.minBid, max: o.bidding.maxBid, currency: o.bidding.currency } : null,
+    currency: o.bidding?.currency || o.currency || 'GBP',
+    budget: hasBudget(o.bidding) ? { min: o.bidding.minBid, max: o.bidding.maxBid, currency: o.bidding.currency || o.currency || 'GBP' } : null,
     postedAt: o.bidding?.openedAt || o.createdAt,
 });
 
 const bidView = (b) => b && ({ id: String(b._id), amount: b.amount, currency: b.currency, note: b.note, status: b.status, updatedAt: b.updatedAt });
 
-/** Admin/HR: open bidding or update the budget; closing keeps existing bids. */
+/** Admin/HR: open/close bidding and set (or clear) the optional writer budget. */
 export async function setBidding(orderId, { open, minBid, maxBid }) {
     const order = await Order.findOne({ orderId });
     if (!order) throw new BiddingError('Order not found.', 404);
     if (order.writerId || !OPEN_STATUSES.includes(order.status)) throw new BiddingError('Bidding is only for new orders that no writer has taken.', 409);
-    const min = money(minBid), max = money(maxBid);
-    if (!(min > 0) || !(max > 0) || min > max) throw new BiddingError('Set a writer budget: the minimum must be above 0 and not more than the maximum.');
-    const wasOpen = Boolean(order.bidding?.open);
+    const withBudget = minBid != null && maxBid != null;
+    const min = withBudget ? money(minBid) : undefined, max = withBudget ? money(maxBid) : undefined;
+    if (withBudget && (!(min > 0) || !(max > 0) || min > max)) throw new BiddingError('Set a writer budget: the minimum must be above 0 and not more than the maximum.');
+    const wasOpen = order.adminApproved && order.bidding?.open !== false;
     const now = new Date();
     order.bidding = {
         open: Boolean(open), minBid: min, maxBid: max, currency: order.bidding?.currency || order.currency || 'GBP',
@@ -49,12 +53,13 @@ export async function setBidding(orderId, { open, minBid, maxBid }) {
 
 async function notifyWriters(order) {
     const b = order.bidding;
+    const budget = hasBudget(b) ? ` Budget ${b.currency} ${b.minBid}–${b.maxBid}.` : '';
     const writers = Writer.find(ELIGIBLE_WRITER).select('_id userId').lean().cursor();
     for await (const w of writers) {
         await notify({
             userId: w.userId, category: 'OPPORTUNITY', type: 'BIDDING_OPEN',
             title: `New project open for bids: ${order.subject}`,
-            message: `“${order.topicTitle}” — ${order.pages} page${order.pages === 1 ? '' : 's'}, due ${order.deadline}. Budget ${b.currency} ${b.minBid}–${b.maxBid}. Place your bid.`,
+            message: `“${order.topicTitle}” — ${order.pages} page${order.pages === 1 ? '' : 's'}, due ${order.deadline}.${budget} Place your bid.`,
             link: `/writer/bidding?order=${encodeURIComponent(order.orderId)}`,
             dedupeKey: `bidding-open:${order.orderId}:${w._id}`,
         }).catch(() => {});
@@ -70,7 +75,7 @@ async function requireEligible(userId) {
 export async function listForWriter(userId) {
     const writer = await Writer.findOne({ userId }).select('status membership').lean();
     if (!canTakeOrders(writer)) return { projects: [], requiresMembership: true };
-    const orders = await Order.find(BIDDING_ORDER).sort({ 'bidding.openedAt': -1 }).lean();
+    const orders = await Order.find(BIDDING_ORDER).sort({ adminApprovedAt: -1, createdAt: -1 }).lean();
     const bids = await OrderBid.find({ writerUserId: userId, order: { $in: orders.map(o => o._id) } }).lean();
     const mine = new Map(bids.map(b => [String(b.order), b]));
     return { projects: orders.map(o => ({ ...writerBrief(o), myBid: bidView(mine.get(String(o._id))) })), requiresMembership: false };
@@ -82,13 +87,15 @@ export async function placeBid(userId, orderId, { amount, note = '' }) {
     const order = await Order.findOne({ ...BIDDING_ORDER, orderId }).lean();
     if (!order) throw new BiddingError('This project is not open for bids.', 404);
     const value = money(amount);
-    if (!(value >= order.bidding.minBid && value <= order.bidding.maxBid))
-        throw new BiddingError(`Your bid must be between ${order.bidding.currency} ${order.bidding.minBid} and ${order.bidding.maxBid}.`);
+    const currency = order.bidding?.currency || order.currency || 'GBP';
+    if (!(value > 0)) throw new BiddingError('Enter your price for this project.');
+    if (hasBudget(order.bidding) && !(value >= order.bidding.minBid && value <= order.bidding.maxBid))
+        throw new BiddingError(`Your bid must be between ${currency} ${order.bidding.minBid} and ${order.bidding.maxBid}.`);
     const existing = await OrderBid.findOne({ order: order._id, writerUserId: userId });
     if (existing && !['PENDING', 'WITHDRAWN'].includes(existing.status)) throw new BiddingError('This bid has already been decided.', 409);
     const bid = await OrderBid.findOneAndUpdate(
         { order: order._id, writerUserId: userId },
-        { $set: { orderId: order.orderId, amount: value, currency: order.bidding.currency, note: String(note).slice(0, 1000), status: 'PENDING' } },
+        { $set: { orderId: order.orderId, amount: value, currency, note: String(note).slice(0, 1000), status: 'PENDING' } },
         { upsert: true, new: true, setDefaultsOnInsert: true },
     );
     return bidView(bid);
@@ -111,7 +118,7 @@ export async function bidsForOrder(orderId) {
         bidding: order.bidding || null,
         bids: bids.map(b => ({
             ...bidView(b), writerName: names.get(String(b.writerUserId)) || 'Writer',
-            withinBudget: Boolean(order.bidding && b.amount >= order.bidding.minBid && b.amount <= order.bidding.maxBid),
+            withinBudget: !hasBudget(order.bidding) || (b.amount >= order.bidding.minBid && b.amount <= order.bidding.maxBid),
             createdAt: b.createdAt,
         })),
     };
@@ -123,7 +130,7 @@ export async function acceptBid(bidId) {
     if (!bid || bid.status !== 'PENDING') throw new BiddingError('This bid is no longer open.', 409);
     const writerUser = await User.findById(bid.writerUserId).select('name').lean();
     const current = await Order.findById(bid.order).select('bidding').lean();
-    if (!current?.bidding || bid.amount < current.bidding.minBid || bid.amount > current.bidding.maxBid)
+    if (hasBudget(current?.bidding) && (bid.amount < current.bidding.minBid || bid.amount > current.bidding.maxBid))
         throw new BiddingError('This bid is outside the current writer budget.', 409);
     // Atomic: only one bid can win, and only while the order is still open.
     const order = await Order.findOneAndUpdate(
