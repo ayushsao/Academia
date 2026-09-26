@@ -29,7 +29,13 @@ export const DELIVERY_TYPES = ['STANDARD', 'EXPRESS', 'URGENT', 'EMERGENCY'];
 export const DELIVERY_LABELS = { STANDARD: 'Standard', EXPRESS: 'Express', URGENT: 'Urgent', EMERGENCY: 'Emergency' };
 
 // minHours: the shortest time to the deadline for that type (Emergency is anything shorter).
+// mode SMOOTH: the multiplier rises gradually as the deadline gets closer — each
+// type's multiplier applies exactly at its "minHours" point (Emergency at the
+// minimum notice) and deadlines in between are interpolated hour by hour.
+// mode STEPS: every deadline within a type pays that type's multiplier.
+export const PRICING_MODES = ['SMOOTH', 'STEPS'];
 export const DEFAULT_WORD_PRICING = {
+    mode: 'SMOOTH',
     tiers: {
         STANDARD: { multiplier: 2, minHours: 144 },   // 6 days or more
         EXPRESS: { multiplier: 3, minHours: 72 },     // 3–6 days
@@ -61,7 +67,10 @@ export function validateWordPricing(value) {
     const h = (t) => Number(tiers[t]?.minHours);
     if (!(h('URGENT') >= MIN_NOTICE_HOURS && h('EXPRESS') > h('URGENT') && h('STANDARD') > h('EXPRESS') && h('STANDARD') <= 24 * 90))
         throw new WordPricingError('Deadline limits must be in order: Standard longer than Express, Express longer than Urgent, Urgent at least 3 hours.');
+    const mode = value?.mode === undefined ? 'SMOOTH' : value.mode;
+    if (!PRICING_MODES.includes(mode)) throw new WordPricingError('Choose gradual or fixed-step pricing.');
     return {
+        mode,
         tiers: Object.fromEntries(DELIVERY_TYPES.map(t => [t, { multiplier: Math.round(Number(tiers[t].multiplier) * 100) / 100, minHours: t === 'EMERGENCY' ? 0 : Math.round(h(t)) }])),
     };
 }
@@ -127,6 +136,28 @@ export async function inrRate(currency) {
 }
 
 // ── Quote ───────────────────────────────────────────────────────────────────
+/** The multiplier for a deadline `hours` away (see PRICING_MODES), to 2 decimals. */
+export function multiplierFor(hours, { mode = 'SMOOTH', tiers }) {
+    const type = deliveryTypeFor(hours, tiers);
+    if (mode === 'STEPS') return tiers[type].multiplier;
+    // Anchor points from the longest deadline to the shortest.
+    const points = [
+        [tiers.STANDARD.minHours, tiers.STANDARD.multiplier],
+        [tiers.EXPRESS.minHours, tiers.EXPRESS.multiplier],
+        [tiers.URGENT.minHours, tiers.URGENT.multiplier],
+        [MIN_NOTICE_HOURS, tiers.EMERGENCY.multiplier],
+    ];
+    if (hours >= points[0][0]) return points[0][1];
+    for (let i = 1; i < points.length; i++) {
+        const [h1, m1] = points[i - 1], [h2, m2] = points[i];
+        if (hours >= h2) {
+            const share = h1 > h2 ? (h1 - hours) / (h1 - h2) : 1;
+            return Math.round((m1 + (m2 - m1) * share) * 100) / 100;
+        }
+    }
+    return points[points.length - 1][1];
+}
+
 export function deliveryTypeFor(hours, tiers) {
     if (hours >= tiers.STANDARD.minHours) return 'STANDARD';
     if (hours >= tiers.EXPRESS.minHours) return 'EXPRESS';
@@ -150,9 +181,9 @@ export async function quoteByWords({ words, spacing, deadlineAt, currency }, { n
     const hours = (due.getTime() - now.getTime()) / 3600000;
     if (hours < MIN_NOTICE_HOURS) throw new WordPricingError(`Choose a deadline at least ${MIN_NOTICE_HOURS} hours from now.`);
 
-    const { tiers } = await getWordPricing();
-    const deliveryType = deliveryTypeFor(hours, tiers);
-    const multiplier = tiers[deliveryType].multiplier;
+    const settings = await getWordPricing();
+    const deliveryType = deliveryTypeFor(hours, settings.tiers);
+    const multiplier = multiplierFor(hours, settings);
     const inrTotal = Math.round(w * BASE_RATE_PER_WORD_INR * multiplier);
     const { rate, fx } = await inrRate(cur);
     const total = cur === 'INR' ? inrTotal : Math.max(1, Math.round(Number((inrTotal * rate).toFixed(6))));

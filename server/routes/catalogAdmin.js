@@ -304,7 +304,7 @@ router.put('/word-pricing', PRICING, validateInput(wordPricingSchema), async (re
     try {
         const saved = await saveWordPricing(req.body);
         const t = saved.tiers;
-        await recordAudit(req, 'ORDER_WORD_PRICING_UPDATED', { targetType: 'CATALOG_CONFIG', reason: `Standard ${t.STANDARD.multiplier}× · Express ${t.EXPRESS.multiplier}× · Urgent ${t.URGENT.multiplier}× · Emergency ${t.EMERGENCY.multiplier}×` });
+        await recordAudit(req, 'ORDER_WORD_PRICING_UPDATED', { targetType: 'CATALOG_CONFIG', reason: `${saved.mode === 'STEPS' ? 'Fixed steps' : 'Gradual'} · Standard ${t.STANDARD.multiplier}× · Express ${t.EXPRESS.multiplier}× · Urgent ${t.URGENT.multiplier}× · Emergency ${t.EMERGENCY.multiplier}×` });
         res.json({ pricing: await wordPricingView() });
     } catch (err) {
         if (err instanceof WordPricingError) return res.status(err.status).json({ error: err.message });

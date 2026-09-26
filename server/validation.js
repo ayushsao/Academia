@@ -92,6 +92,7 @@ export const orderQuoteSchema = z.object({
 // Admin: delivery-type multipliers (2×–5×) and the deadline hours at which each applies.
 const tier = z.object({ multiplier: z.coerce.number().min(2).max(5), minHours: z.coerce.number().min(0).max(24 * 90) }).strict();
 export const wordPricingSchema = z.object({
+    mode: z.enum(['SMOOTH', 'STEPS']).optional(),
     tiers: z.object({ STANDARD: tier, EXPRESS: tier, URGENT: tier, EMERGENCY: tier }).strict(),
 }).strict();
 
