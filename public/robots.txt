@@ -32,4 +32,4 @@ Disallow: /writer/active-jobs
 # API
 Disallow: /api/
 
-Sitemap: https://academia-wheat-eta.vercel.app/sitemap.xml
+Sitemap: https://www.assignmentminds.com/sitemap.xml

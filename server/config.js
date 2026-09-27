@@ -47,6 +47,8 @@ export const ADMIN_2FA_REQUIRED = (process.env.ADMIN_2FA_REQUIRED || (IS_PRODUCT
 // any extra origins listed in CORS_ORIGINS (comma-separated, e.g. a custom domain).
 const normalizeOrigin = (o) => { try { const u = new URL(o.trim()); return `${u.protocol}//${u.host}`; } catch { return ''; } };
 export const ALLOWED_ORIGINS = new Set([
+    'https://www.assignmentminds.com',
+    'https://assignmentminds.com',
     'https://academia-wheat-eta.vercel.app',
     process.env.APP_URL || '',
     ...(process.env.CORS_ORIGINS || '').split(','),

@@ -22,8 +22,10 @@ import type { CatalogOrderContext, PublicPricing, PublicQuote } from '../lib/cat
 import { openRazorpayCheckout } from '../lib/razorpay';
 import { useOrderQuote, SPACING_OPTIONS, DEFAULT_SPACING, pagesFor, deadlineAtFrom, type OrderQuote, type Spacing, localDateString } from '../lib/orderQuote';
 
-// Manual UPI payments go to the business's Razorpay UPI QR (public/payments/upi-qr.png).
-// It's a fixed QR, so the customer enters the amount in their UPI app.
+// UPI (rupee orders) is paid with a Razorpay QR made for the order: its amount is
+// fixed, so it can't be changed in the UPI app, and the order is confirmed
+// automatically. The business's fixed QR (public/payments/upi-qr.png, amount
+// typed by the customer) is only a fallback when that isn't available.
 const UPI_ID = 'ayushkumarsao954397.rzp@rxairtel';
 // Standard orders are priced in the customer's currency (the server converts).
 const ORDER_CURRENCIES = ['GBP', 'USD', 'EUR', 'AUD', 'CAD', 'INR'];
@@ -101,6 +103,28 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [isRazorpayLoading, setIsRazorpayLoading] = useState(false);
   const [razorpayError, setRazorpayError] = useState<string>('');
   const [isPaymentVerified, setIsPaymentVerified] = useState(false);
+
+  // UPI QR for this order (locked amount).
+  const [upiQr, setUpiQr] = useState<{ qrId: string; imageUrl: string; amount: number; expiresAt: number; status: 'waiting' | 'expired' } | null>(null);
+  const [upiQrBusy, setUpiQrBusy] = useState(false);
+  const [upiQrError, setUpiQrError] = useState('');
+  const [upiQrUnavailable, setUpiQrUnavailable] = useState(false);
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  const upiPoll = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(() => {
+    // Leaving the payment step (or closing the form) stops checking and drops the QR.
+    if (!isOpen || step !== 2) {
+      if (upiPoll.current) clearTimeout(upiPoll.current);
+      upiPoll.current = null;
+      setUpiQr(null); setUpiQrError('');
+    }
+  }, [isOpen, step]);
+  React.useEffect(() => () => { if (upiPoll.current) clearTimeout(upiPoll.current); }, []);
+  React.useEffect(() => {
+    if (upiQr?.status !== 'waiting') return;
+    const t = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [upiQr?.status]);
 
   const addOrder = useStore(state => state.addOrder);
   const user = useStore(state => state.user);
@@ -219,6 +243,9 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const showUpi = catMode ? catQuote?.currency === 'INR' : quoteCurrency === 'INR';
   const showPaypal = catMode ? (!!catQuote && catQuote.currency !== 'INR') : quoteCurrency !== 'INR';
   const upiAmount = catMode ? catTotal : grandTotal;
+  // Rupee orders pay by the order's own UPI QR (no reference needed) unless it isn't available.
+  const upiQrMode = showUpi && !upiQrUnavailable;
+  const upiSecondsLeft = upiQr ? Math.max(0, Math.round((upiQr.expiresAt - nowTick) / 1000)) : 0;
   const paypalAmount = catMode ? `${catTotal}${catQuote?.currency || ''}` : `${grandTotal}${shownStd?.currency || 'GBP'}`;
   // Ready to order only when the price shown is the quote for exactly these inputs.
   const quoteReady = catMode ? !!catQuote : !!stdQuote;
@@ -439,6 +466,51 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     } catch (e: any) {
       setIsRazorpayLoading(false);
       setRazorpayError(e?.message || 'Could not start the payment.');
+    }
+  };
+
+  // UPI QR: the server opens a single-use QR for its own price (the amount can't be
+  // changed in the UPI app); the order is created once Razorpay reports the payment.
+  const pollUpiQr = (qrId: string) => {
+    upiPoll.current = setTimeout(async () => {
+      try {
+        const r = await fetch(`${API}/orders/upi-qr/${encodeURIComponent(qrId)}`);
+        const data = await r.json().catch(() => ({}));
+        if (r.ok && data.status === 'PAID' && data.order) {
+          upiPoll.current = null;
+          setIsPaymentVerified(true);
+          setUpiQr(null);
+          await orderPlaced(data.order, `UPI QR ${qrId} (verified)`);
+          return;
+        }
+        if (r.ok && data.status === 'EXPIRED') { upiPoll.current = null; setUpiQr(q => q && { ...q, status: 'expired' }); return; }
+        if (r.status === 401) { upiPoll.current = null; handleOrderApiError(401, data); return; }
+      } catch { /* network blip: keep checking */ }
+      pollUpiQr(qrId);
+    }, 4000);
+  };
+
+  const handleUpiQr = async () => {
+    if (!canPlaceOrder()) return;
+    setUpiQrBusy(true);
+    setUpiQrError('');
+    try {
+      const files = await uploadAttachments();
+      const { res, data } = await postJson('/orders/upi-qr', orderDetails(files));
+      if (!res.ok) {
+        if (handleOrderApiError(res.status, data)) return;
+        if (res.status >= 500) { setUpiQrUnavailable(true); return; }   // QR payments not available: fixed QR instead
+        setUpiQrError(data.error || 'Could not create the UPI QR.');
+        return;
+      }
+      if (upiPoll.current) clearTimeout(upiPoll.current);
+      setUpiQr({ qrId: data.qrId, imageUrl: data.imageUrl, amount: data.amountMinor / 100, expiresAt: new Date(data.expiresAt).getTime(), status: 'waiting' });
+      setNowTick(Date.now());
+      pollUpiQr(data.qrId);
+    } catch (e: any) {
+      setUpiQrError(e?.message || 'Could not create the UPI QR.');
+    } finally {
+      setUpiQrBusy(false);
     }
   };
 
@@ -871,7 +943,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 {/* Divider */}
                 <div className="relative flex py-1 items-center">
                   <div className="flex-grow border-t border-[#d1e4ff]"></div>
-                  <span className="flex-shrink mx-4 text-[11px] font-bold text-[#74777f] uppercase tracking-wider">Or Pay Manually via UPI / PayPal</span>
+                  <span className="flex-shrink mx-4 text-[11px] font-bold text-[#74777f] uppercase tracking-wider">{upiQrMode ? 'Or pay with a UPI QR' : 'Or Pay Manually via UPI / PayPal'}</span>
                   <div className="flex-grow border-t border-[#d1e4ff]"></div>
                 </div>
 
@@ -880,7 +952,9 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   <div className="flex items-start gap-3">
                     <ShieldCheck className="w-5 h-5 text-[#002147] flex-shrink-0 mt-0.5" />
                     <div className="text-xs text-[#002147] leading-relaxed">
-                      <strong>Secure Manual Payment:</strong> {showUpi && showPaypal ? 'Scan the UPI QR code (India) OR use PayPal (International).' : showUpi ? 'Scan the UPI QR code or pay to the UPI ID.' : 'Pay with PayPal.'} Enter your Transaction/Reference ID below to verify your order.
+                      {upiQrMode
+                        ? <><strong>Secure UPI Payment:</strong> Get a UPI QR for the exact amount of your order and scan it with any UPI app. The amount is fixed, and your order is confirmed automatically once you pay.</>
+                        : <><strong>Secure Manual Payment:</strong> {showUpi && showPaypal ? 'Scan the UPI QR code (India) OR use PayPal (International).' : showUpi ? 'Scan the UPI QR code or pay to the UPI ID.' : 'Pay with PayPal.'} Enter your Transaction/Reference ID below to verify your order.</>}
                     </div>
                   </div>
 
@@ -891,6 +965,29 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                     <div className="absolute top-0 right-0 bg-[#f5f5f7] text-[#1d1d1f] text-[9px] font-semibold px-2 py-1 rounded-bl-xl border-b border-l border-[#e5e5ea] uppercase tracking-wider">India</div>
 
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Scan to Pay (UPI)</p>
+                    {upiQrMode ? (
+                      upiQr?.status === 'waiting' ? (<>
+                        <div className="p-1 border border-gray-100 rounded-xl bg-white shadow-sm mb-3">
+                          <img src={upiQr.imageUrl} alt="UPI QR code for this order" data-testid="order-upi-qr" className="w-52 h-auto object-contain" />
+                        </div>
+                        <p className="text-xl font-extrabold text-[#000a1e] mb-1">₹ {upiQr.amount.toLocaleString('en-IN')}</p>
+                        <p className="text-[11px] text-[#1d1d1f] font-semibold mb-2 inline-flex items-center gap-1"><Lock className="w-3 h-3" /> Amount is fixed · scan with any UPI app</p>
+                        <p role="status" className="text-[11px] text-[#6e6e73] inline-flex items-center gap-1.5">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Waiting for your payment… {Math.floor(upiSecondsLeft / 60)}:{String(upiSecondsLeft % 60).padStart(2, '0')} left
+                        </p>
+                      </>) : upiQr?.status === 'expired' ? (<>
+                        <p className="text-sm font-semibold text-[#1d1d1f] mb-1">This QR has expired.</p>
+                        <p className="text-[11px] text-[#6e6e73] mb-3">If you already paid, your order will be confirmed shortly. Otherwise, get a new QR.</p>
+                        <button type="button" onClick={handleUpiQr} disabled={upiQrBusy} className="rounded-lg bg-[#000a1e] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#002147] disabled:opacity-60">{upiQrBusy ? 'Creating QR…' : 'Get a new QR'}</button>
+                      </>) : (<>
+                        <p className="text-xl font-extrabold text-[#000a1e] mb-1">₹ {upiAmount.toLocaleString('en-IN')}</p>
+                        <p className="text-[11px] text-[#6e6e73] font-medium mb-3 max-w-xs">You'll get a QR for exactly this amount. It can't be changed in your UPI app, and your order is confirmed automatically once you pay.</p>
+                        <button type="button" onClick={handleUpiQr} disabled={upiQrBusy || !quoteReady} data-testid="get-upi-qr"
+                          className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#000a1e] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#002147] disabled:opacity-60 w-full">
+                          {upiQrBusy ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating QR…</> : <><Lock className="w-3.5 h-3.5" /> Get UPI QR for ₹ {upiAmount.toLocaleString('en-IN')}</>}
+                        </button>
+                      </>)
+                    ) : (<>
                     <div className="p-1 border border-gray-100 rounded-xl bg-white shadow-sm mb-3">
                       <img loading="lazy" decoding="async"
                         src="/payments/upi-qr.png"
@@ -906,6 +1003,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                       <span className="text-[10px] font-semibold text-gray-500 block mb-1">Or Send to Direct UPI ID:</span>
                       <span className="font-mono text-xs bg-[#eef4ff] text-[#002147] px-2 py-1 rounded-md border border-[#d1e4ff] select-all w-full block truncate" title={UPI_ID}>{UPI_ID}</span>
                     </div>
+                    </>)}
+                    {upiQrError && <p role="alert" className="mt-2 text-xs font-medium text-red-600">{upiQrError}</p>}
                   </div>
                   )}
 
@@ -931,7 +1030,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   )}
                 </div>
 
-                <div>
+                {!upiQrMode && <div>
                   <label className="block text-xs font-bold text-[#44474e] uppercase mb-1.5">Enter Transaction ID / UTR Number / PayPal Ref *</label>
                   <input
                     type="text"
@@ -941,7 +1040,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                     className="w-full bg-white border border-[#d1e4ff] rounded-xl p-3 text-sm font-semibold text-[#000a1e] focus:border-[#fea520] outline-none transition-colors shadow-sm"
                     required
                   />
-                </div>
+                </div>}
               </div>
             </div>
           </div>
@@ -1018,7 +1117,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   <span>Continue</span>
                   <ArrowRight className="w-4 h-4 text-[#fea520]" />
                 </button>
-              ) : (
+              ) : upiQrMode ? null : (
                 <button
                   onClick={() => handleCompleteOrder()}
                   disabled={isSubmitting || !quoteReady}

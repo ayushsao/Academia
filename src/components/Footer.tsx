@@ -74,7 +74,7 @@ export const Footer: React.FC<FooterProps> = () => {
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="w-4 h-4 shrink-0 text-white" />
-                <span className="hover:text-white cursor-pointer">assignmentminds@gmail.com</span>
+                <span className="hover:text-white cursor-pointer">support@assignmentminds.com</span>
               </li>
             </ul>
 

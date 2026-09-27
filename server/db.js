@@ -216,6 +216,11 @@ const orderCheckoutSchema = new mongoose.Schema({
   currency: { type: String, required: true },
   providerOrderId: { type: String, index: { unique: true, sparse: true } },
   providerPaymentId: String,
+  // CHECKOUT: Razorpay checkout (providerOrderId = Razorpay order id).
+  // UPI_QR: a single-use, fixed-amount UPI QR (providerOrderId = QR code id).
+  method: { type: String, enum: ['CHECKOUT', 'UPI_QR'], default: 'CHECKOUT' },
+  qrImageUrl: String,
+  expiresAt: Date,
   status: { type: String, enum: ['CREATED', 'CONFIRMING', 'PAID'], default: 'CREATED', index: true },
   orderRef: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
   needsAttention: String,

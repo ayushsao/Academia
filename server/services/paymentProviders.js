@@ -42,6 +42,27 @@ export async function createRazorpayOrder({ amountMinor, currency, receipt, note
     return rzp('POST', '/orders', { amount: amountMinor, currency, receipt, notes });
 }
 
+// UPI QR for one order: single use and fixed amount — the customer's UPI app
+// shows the amount and it can't be changed; Razorpay refuses any other amount.
+// Rupees only. Closes itself at `closeBy` (unix seconds).
+export async function createRazorpayUpiQr({ amountMinor, closeBy, description, notes }) {
+    if (!razorpayEnabled()) throw new PaymentProviderError('Online payments are not configured.', 503);
+    if (amountMinor < RAZORPAY_MIN_MINOR) throw new PaymentProviderError('Amount is below the minimum for online payment.', 400);
+    return rzp('POST', '/payments/qr_codes', {
+        type: 'upi_qr', name: 'AssignmentMinds', usage: 'single_use', fixed_amount: true,
+        payment_amount: amountMinor, description, close_by: closeBy, notes,
+    });
+}
+export const listRazorpayQrPayments = (qrId) => rzp('GET', `/payments/qr_codes/${encodeURIComponent(qrId)}/payments`);
+
+/** Captures an authorised payment; returns the payment once it's captured. */
+export async function captureRazorpayPayment(payment) {
+    if (payment.status === 'authorized')
+        payment = await rzp('POST', `/payments/${encodeURIComponent(payment.id)}/capture`, { amount: payment.amount, currency: payment.currency });
+    if (payment.status !== 'captured') throw new PaymentProviderError(`Payment is ${payment.status}, not captured.`, 402);
+    return payment;
+}
+
 const safeEqualHex = (a, b) => {
     const x = Buffer.from(String(a), 'utf8'), y = Buffer.from(String(b), 'utf8');
     return x.length === y.length && crypto.timingSafeEqual(x, y);

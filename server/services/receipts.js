@@ -6,9 +6,9 @@ import { Order, SiteSettings, User } from '../db.js';
 
 export const BUSINESS = {
     name: 'AssignmentMinds',
-    email: 'assignmentminds@gmail.com',
+    email: 'support@assignmentminds.com',
     phone: '+91 92636 06941',
-    website: (process.env.APP_URL || 'https://academia-wheat-eta.vercel.app').replace(/\/+$/, ''),
+    website: (process.env.APP_URL || 'https://www.assignmentminds.com').replace(/\/+$/, ''),
 };
 
 export const isPaid = (order) => order?.payment?.status === 'PAID';

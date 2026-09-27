@@ -10,7 +10,7 @@ import { ownedFileNames, streamOrderFile, customerCanAccess, receiveOrderFiles, 
 import { quote, isLiveSelection, PricingError } from '../services/pricing.js';
 import { fromMinor, toMinor } from '../services/money.js';
 import { razorpayEnabled, razorpayKeyId, verifyRazorpaySignature, PaymentProviderError } from '../services/paymentProviders.js';
-import { createOrderRecord, startCheckout, completeCheckout } from '../services/orderCheckout.js';
+import { createOrderRecord, startCheckout, completeCheckout, startUpiQr, settleUpiQr } from '../services/orderCheckout.js';
 
 const router = Router();
 
@@ -196,6 +196,28 @@ router.post('/checkout/confirm', checkoutLimiter, authenticateUser, validateInpu
         const order = await completeCheckout({ providerOrderId: orderId, paymentId, userId: req.user.id });
         res.status(201).json({ order: clientOrderView(order) });
     } catch (err) { orderError(res, err, 'Could not confirm the payment. If you were charged, contact support with your payment ID.'); }
+});
+
+// ── UPI QR with a locked amount ────────────────────────────────────────────────
+// POST /api/orders/upi-qr — prices the order on the server and opens a single-use
+// Razorpay UPI QR for exactly that amount (the customer can't change it).
+router.post('/upi-qr', checkoutLimiter, authenticateUser, validateInput(orderCheckoutSchema), async (req, res) => {
+    try {
+        if (!razorpayEnabled()) return res.status(503).json({ error: 'UPI QR payment is not available right now.' });
+        const { fields, currency, totalMinor } = await prepareOrder(req.body, req.user.id);
+        const checkout = await startUpiQr({ userId: req.user.id, fields, amountMinor: totalMinor, currency });
+        res.json({ qrId: checkout.providerOrderId, imageUrl: checkout.qrImageUrl, amountMinor: totalMinor, currency, expiresAt: checkout.expiresAt });
+    } catch (err) { orderError(res, err, 'Could not create the UPI QR.'); }
+});
+
+// GET /api/orders/upi-qr/:qrId — has the QR been paid? (the order form checks every few seconds)
+const qrStatusLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 600, message: { error: 'Too many requests. Please wait a moment.' } });
+router.get('/upi-qr/:qrId', qrStatusLimiter, authenticateUser, async (req, res) => {
+    try {
+        if (!/^qr_[A-Za-z0-9]{6,40}$/.test(req.params.qrId)) return res.status(404).json({ error: 'This payment was not found.' });
+        const { status, order } = await settleUpiQr({ qrId: req.params.qrId, userId: req.user.id });
+        res.json({ status, ...(order && { order: clientOrderView(order) }) });
+    } catch (err) { orderError(res, err, 'Could not check the payment.'); }
 });
 
 // GET /api/orders/:id — single order

@@ -100,7 +100,7 @@ export const ContactSection: React.FC = () => {
                     {
                         icon: Mail,
                         label: 'Email Address',
-                        value: 'assignmentminds@gmail.com'
+                        value: 'support@assignmentminds.com'
                     },
                     {
                         icon: MessageCircle,

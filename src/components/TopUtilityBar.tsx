@@ -11,9 +11,9 @@ export const TopUtilityBar: React.FC = () => {
                         +91 92636 06941
                     </a>
                     <div className="w-px h-4 bg-white/30 hidden sm:block"></div>
-                    <a href="mailto:assignmentminds@gmail.com" className="flex items-center gap-2 hover:opacity-80 transition-opacity hidden sm:flex">
+                    <a href="mailto:support@assignmentminds.com" className="flex items-center gap-2 hover:opacity-80 transition-opacity hidden sm:flex">
                         <Mail className="w-4 h-4" />
-                        assignmentminds@gmail.com
+                        support@assignmentminds.com
                     </a>
                 </div>
                 <div className="flex items-center justify-center flex-wrap gap-2 text-[11px] sm:text-[13px] text-center w-full md:w-auto">

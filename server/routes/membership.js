@@ -17,7 +17,7 @@ import {
 import { membershipEligibility } from '../services/writerService.js';
 import { notify as sendNotification } from '../services/notifications.js';
 import { AbuseError, assertReferenceUnused, afterCheckout } from '../services/abuse.js';
-import { settleCheckoutFromWebhook } from '../services/orderCheckout.js';
+import { settleCheckoutFromWebhook, settleUpiQrFromWebhook } from '../services/orderCheckout.js';
 
 const router = Router();
 const payLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 40, message: { error: 'Too many payment attempts. Please try again later.' } });
@@ -281,6 +281,11 @@ router.post('/webhooks/razorpay', async (req, res) => {
     try {
         const event = JSON.parse(raw.toString('utf8'));
         const entity = event?.payload?.payment?.entity;
+        // A payment to a customer order's UPI QR (these payments have no Razorpay order).
+        if (event.event === 'qr_code.credited') {
+            await settleUpiQrFromWebhook(event?.payload?.qr_code?.entity?.id, entity);
+            return res.json({ ok: true });
+        }
         if (!entity?.order_id) return res.json({ ok: true });
         const payment = await SubscriptionPayment.findOne({ provider: 'RAZORPAY', providerOrderId: entity.order_id });
         if (!payment) {

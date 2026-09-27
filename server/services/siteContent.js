@@ -96,7 +96,7 @@ export const DEFAULT_CONTENT = {
         ].join('\n\n'),
     },
     contact: {
-        email: 'assignmentminds@gmail.com',
+        email: 'support@assignmentminds.com',
         phone: '',
         whatsapp: '',
         hours: 'Monday–Saturday, 9:00–18:00 (UK time)',

@@ -142,7 +142,7 @@ router.get('/pages/project/:s/:v/:p', async (req, res) => {
 router.get('/sitemap.xml', async (_req, res) => {
     try {
         // Sitemap URLs must be absolute; fall back to the production site.
-        const base = (process.env.APP_URL || 'https://academia-wheat-eta.vercel.app').trim().replace(/\/+$/, '');
+        const base = (process.env.APP_URL || 'https://www.assignmentminds.com').trim().replace(/\/+$/, '');
         const { subjects, services, projects } = await liveTree();
         const subjectById = new Map(subjects.map(s => [String(s._id), s]));
         const serviceById = new Map(services.map(s => [String(s._id), s]));
