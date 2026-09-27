@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail } from 'lucide-react';
+import { Mail, Tag } from 'lucide-react';
 
 export const TopUtilityBar: React.FC = () => {
     return (
@@ -20,8 +20,11 @@ export const TopUtilityBar: React.FC = () => {
                         support@assignmentminds.com
                     </a>
                 </div>
-                <p className="text-center w-full md:w-auto">
-                    Expert-crafted assignments, <span className="font-bold">save 51%</span>
+                <p className="flex items-center justify-center gap-2 w-full md:w-auto">
+                    <span className="w-5 h-5 rounded-full bg-white/20 ring-1 ring-white/30 flex items-center justify-center shrink-0" aria-hidden="true">
+                        <Tag className="w-3 h-3" strokeWidth={2} />
+                    </span>
+                    <span>Expert-crafted assignments, <span className="font-bold">save 51%</span></span>
                 </p>
             </div>
         </div>
