@@ -8,5 +8,6 @@ export type BlogCard = {
 export type BlogPostData = BlogCard & { content: string; updatedAt: string; seo: { title: string; description: string } };
 export type BlogList = { total: number; page: number; limit: number; posts: BlogCard[]; categories: string[] };
 
-export const coverSrc = (post: Pick<BlogCard, 'cover'>) => (post.cover ? absoluteMedia(post.cover) : null);
+// Uploaded covers are served by the API; bundled ones (/blog-covers/…) by this site.
+export const coverSrc = (post: Pick<BlogCard, 'cover'>) => (!post.cover ? null : post.cover.startsWith('/api/') || /^https?:\/\//.test(post.cover) ? absoluteMedia(post.cover) : post.cover);
 export const postDate = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });

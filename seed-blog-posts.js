@@ -2,9 +2,12 @@ import 'dotenv/config';
 import mongoose from 'mongoose';
 import { BlogPost, connectDB } from './server/db.js';
 import { cleanRichText } from './server/services/contentBlocks.js';
+import { EXTRA_POSTS } from './seed-data/blog-posts-extra.js';
 
-// Adds ten starter blog posts as PUBLISHED. Safe to run again: a post whose
-// slug already exists is skipped, so edits made in Admin → Blog are kept.
+// Adds the starter blog posts as PUBLISHED, each with a cover photo from
+// public/blog-covers/<slug>.jpg (public-domain CC0 images). Safe to run again:
+// a post whose slug already exists is skipped, except that it gets its cover
+// if it has none, so edits made in Admin → Blog are kept.
 // Run: node seed-blog-posts.js
 
 const AUTHOR = 'AssignmentMinds Editorial';
@@ -283,18 +286,64 @@ const POSTS = [
     },
 ];
 
+const COVER_ALT = {
+    'how-to-write-a-strong-essay-introduction': 'Hand writing notes on paper beside a cup of coffee',
+    'harvard-apa-mla-referencing-guide': 'Long library aisle lined with bookshelves',
+    'how-to-structure-a-dissertation': 'Stack of books and a plant on a desk by a window',
+    'writing-a-critical-literature-review': 'Old book tied with string beside dried flowers',
+    'how-to-avoid-plagiarism': 'Close-up of vintage typewriter keys',
+    'time-management-for-assignment-deadlines': 'Alarm clock on a desk next to a laptop',
+    'how-to-write-a-thesis-statement': 'Fountain pen nib resting on a desk',
+    'how-to-write-a-case-study-analysis': 'Students working together at a table with notebooks and laptops',
+    'qualitative-vs-quantitative-research': 'Hands reviewing printed charts and a phone showing data',
+    'proofreading-checklist-before-submission': 'Red pen on an open notebook beside a cup',
+    'how-to-write-a-reflective-essay': 'Open notebook and a cup of coffee on a dark table',
+    'how-to-write-a-research-proposal': 'Researcher looking into a microscope',
+    'how-to-write-a-dissertation-abstract': 'Students working in a large domed library reading room',
+    'how-to-write-a-lab-report': 'Laboratory flasks filled with coloured liquids',
+    'how-to-write-an-essay-conclusion': 'Road winding towards the sunset',
+    'critical-thinking-in-academic-writing': 'Chess pieces mid-game on a wooden board',
+    'finding-credible-academic-sources': 'Open books on a table in front of bookshelves',
+    'how-to-write-an-annotated-bibliography': 'Glasses and pencils on an open grid notebook',
+    'oxford-and-chicago-footnote-referencing': 'Stack of old leather-bound books',
+    'how-to-write-a-business-report': 'Person working on a laptop showing charts',
+    'how-to-write-an-argumentative-essay': 'Black chess pieces on a black and white board',
+    'how-to-write-a-compare-and-contrast-essay': 'Two ceramic cups on a wooden table',
+    'how-to-choose-a-dissertation-topic': 'Glowing light bulbs hanging in a room',
+    'working-with-your-dissertation-supervisor': 'Two people reviewing notes together at laptops',
+    'designing-a-survey-questionnaire': 'Hand writing in a notebook on a wooden desk',
+    'thematic-analysis-of-interviews': 'Microphone lying on a wooden surface',
+    'exam-revision-techniques-that-work': 'Students seen through a gap in a bookshelf',
+    'how-to-write-a-personal-statement': 'Smiling graduate in a cap at a graduation ceremony',
+    'formal-academic-writing-style': 'Open book under a desk lamp',
+    'peel-paragraph-structure': 'Colourful building blocks on a green table',
+    'presenting-data-tables-and-figures': 'Laptop screen showing bar and pie charts',
+    'how-to-succeed-in-group-projects': 'Team working around a table with laptops, seen from above',
+    'how-to-give-an-academic-presentation': 'Rows of empty seats in a lecture room',
+};
+const cover = (slug) => ({ url: `/blog-covers/${slug}.jpg`, alt: COVER_ALT[slug] || '' });
+
 const words = (html) => String(html).replace(/<[^>]*>/g, ' ').split(/\s+/).filter(Boolean).length;
 
 async function seed() {
     await connectDB();
     const start = Date.now();
-    let added = 0;
-    for (const [i, p] of POSTS.entries()) {
-        if (await BlogPost.exists({ slug: p.slug })) { console.log(`- skipped (exists): ${p.slug}`); continue; }
+    let added = 0, covered = 0;
+    for (const [i, p] of [...POSTS, ...EXTRA_POSTS].entries()) {
+        const existing = await BlogPost.findOne({ slug: p.slug }).select('coverImage').lean();
+        if (existing) {
+            if (!existing.coverImage?.storedName && !existing.coverImage?.url) {
+                await BlogPost.updateOne({ _id: existing._id }, { $set: { coverImage: cover(p.slug) } });
+                covered++;
+                console.log(`~ cover added: ${p.slug}`);
+            } else console.log(`- skipped (exists): ${p.slug}`);
+            continue;
+        }
         const content = cleanRichText(p.content);
         await BlogPost.create({
             ...p,
             content,
+            coverImage: cover(p.slug),
             author: AUTHOR,
             status: 'PUBLISHED',
             // One minute apart so the list keeps this order (first post newest).
@@ -307,7 +356,7 @@ async function seed() {
         added++;
         console.log(`+ added: ${p.slug}`);
     }
-    console.log(`Done. ${added} added, ${POSTS.length - added} skipped.`);
+    console.log(`Done. ${added} added, ${covered} covers added to existing posts.`);
     await mongoose.disconnect();
 }
 

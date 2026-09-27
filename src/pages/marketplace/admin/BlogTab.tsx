@@ -12,12 +12,12 @@ import { ConfirmDialog, Label, fieldClass } from './catalog/shared';
 type Status = 'DRAFT' | 'PUBLISHED';
 type Post = {
     id: string; title: string; slug: string; excerpt: string; content: string; category: string; tags: string[]; author: string;
-    status: Status; publishedAt?: string; readingMinutes: number; cover: { mediaId: string | null; storedName: string; alt: string } | null;
+    status: Status; publishedAt?: string; readingMinutes: number; cover: { mediaId: string | null; storedName: string; url?: string; alt: string } | null;
     metaTitle: string; metaDescription: string; updatedAt: string;
 };
 type Draft = {
     title: string; slug: string; excerpt: string; content: string; category: string; tags: string; author: string;
-    cover: { mediaId: string | null; storedName: string; alt: string } | null; coverChanged: boolean; metaTitle: string; metaDescription: string;
+    cover: { mediaId: string | null; storedName: string; url?: string; alt: string } | null; coverChanged: boolean; metaTitle: string; metaDescription: string;
 };
 
 const EMPTY: Draft = { title: '', slug: '', excerpt: '', content: '', category: '', tags: '', author: '', cover: null, coverChanged: false, metaTitle: '', metaDescription: '' };
@@ -98,7 +98,9 @@ function Editor({ token, post, onDone }: { token: string; post: Post | null; onD
                         <p className="text-sm font-bold text-[#000a1e]">Cover image</p>
                         {d.cover ? (
                             <div className="space-y-2">
-                                <AdminImg src={`/media/${d.cover.storedName}`} alt={d.cover.alt} token={token} className="aspect-[16/9] w-full rounded-xl object-cover" />
+                                {d.cover.storedName
+                                    ? <AdminImg src={`/media/${d.cover.storedName}`} alt={d.cover.alt} token={token} className="aspect-[16/9] w-full rounded-xl object-cover" />
+                                    : <img src={d.cover.url} alt={d.cover.alt} className="aspect-[16/9] w-full rounded-xl object-cover" />}
                                 <input value={d.cover.alt} maxLength={200} onChange={e => set({ cover: { ...d.cover!, alt: e.target.value } })} placeholder="Describe the image (for accessibility)" aria-label="Cover image description" className={fieldClass} />
                                 <div className="flex gap-2">
                                     <button onClick={() => setPicking(true)} className="text-xs font-semibold text-[#002147] hover:underline">Change</button>

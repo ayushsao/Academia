@@ -14,7 +14,9 @@ const slugify = (s) => String(s).toLowerCase().normalize('NFKD').replace(/[̀-ͯ
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 100) || 'post';
 const words = (html) => String(html).replace(/<[^>]*>/g, ' ').split(/\s+/).filter(Boolean).length;
 const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const coverUrl = (post) => (post.coverImage?.storedName ? `/api/catalog/media/${encodeURIComponent(post.coverImage.storedName)}` : null);
+const coverUrl = (post) => (post.coverImage?.storedName
+    ? `/api/catalog/media/${encodeURIComponent(post.coverImage.storedName)}`
+    : post.coverImage?.url || null);
 
 // What the website shows.
 const publicCard = (p) => ({
@@ -28,7 +30,9 @@ const publicPost = (p) => ({
 const adminView = (p) => ({
     id: String(p._id), title: p.title, slug: p.slug, excerpt: p.excerpt, content: p.content, category: p.category, tags: p.tags,
     author: p.author, status: p.status, publishedAt: p.publishedAt, readingMinutes: p.readingMinutes,
-    cover: p.coverImage?.storedName ? { mediaId: p.coverImage.mediaId ? String(p.coverImage.mediaId) : null, storedName: p.coverImage.storedName, alt: p.coverImage.alt || '' } : null,
+    cover: p.coverImage?.storedName || p.coverImage?.url
+        ? { mediaId: p.coverImage.mediaId ? String(p.coverImage.mediaId) : null, storedName: p.coverImage.storedName || '', url: p.coverImage.url || '', alt: p.coverImage.alt || '' }
+        : null,
     metaTitle: p.seo?.metaTitle || '', metaDescription: p.seo?.metaDescription || '', createdAt: p.createdAt, updatedAt: p.updatedAt,
 });
 

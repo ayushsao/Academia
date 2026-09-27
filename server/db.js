@@ -1043,7 +1043,8 @@ const blogPostSchema = new mongoose.Schema({
   excerpt: { type: String, default: '' },
   content: { type: String, default: '' },
   coverImage: {
-    type: new mongoose.Schema({ mediaId: { type: mongoose.Schema.Types.ObjectId, ref: 'CatalogMedia' }, storedName: String, alt: String }, { _id: false }),
+    // storedName: a media-library upload; url: a site path such as /blog-covers/x.jpg.
+    type: new mongoose.Schema({ mediaId: { type: mongoose.Schema.Types.ObjectId, ref: 'CatalogMedia' }, storedName: String, url: String, alt: String }, { _id: false }),
     default: undefined,
   },
   category: { type: String, default: '' },
