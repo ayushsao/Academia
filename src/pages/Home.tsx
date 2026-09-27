@@ -150,14 +150,17 @@ export default function App() {
         <p className="text-sm text-gray-300">This website is best viewed in portrait mode on mobile devices.</p>
       </div>
 
-      <TopUtilityBar />
-      <Navbar
-        onOpenOrder={() => handleOpenOrder()}
-        onOpenSignIn={() => setSignInModalOpen(true)}
-        onOpenDrawer={() => setDrawerOpen(true)}
-        activeSection={activeSection}
-        onNavigate={handleNavigate}
-      />
+      {/* Top bar and navbar stay pinned together while the page scrolls. */}
+      <div className="sticky top-0 z-50">
+        <TopUtilityBar />
+        <Navbar
+          onOpenOrder={() => handleOpenOrder()}
+          onOpenSignIn={() => setSignInModalOpen(true)}
+          onOpenDrawer={() => setDrawerOpen(true)}
+          activeSection={activeSection}
+          onNavigate={handleNavigate}
+        />
+      </div>
 
       <main className="flex-grow">
         {/* Intro sequence handled internally */}

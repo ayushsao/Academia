@@ -139,7 +139,7 @@ body {
 /* Smooth scrolling; jumps to a section stop below the sticky navigation bar. */
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 96px;
+  scroll-padding-top: 124px;
 }
 
 @media (prefers-reduced-motion: reduce) {
