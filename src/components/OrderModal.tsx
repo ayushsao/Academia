@@ -22,6 +22,9 @@ import type { CatalogOrderContext, PublicPricing, PublicQuote } from '../lib/cat
 import { openRazorpayCheckout } from '../lib/razorpay';
 import { useOrderQuote, SPACING_OPTIONS, DEFAULT_SPACING, pagesFor, deadlineAtFrom, type OrderQuote, type Spacing, localDateString } from '../lib/orderQuote';
 
+// Manual UPI payments go to the business's Razorpay UPI QR (public/payments/upi-qr.png).
+// It's a fixed QR, so the customer enters the amount in their UPI app.
+const UPI_ID = 'ayushkumarsao954397.rzp@rxairtel';
 // Standard orders are priced in the customer's currency (the server converts).
 const ORDER_CURRENCIES = ['GBP', 'USD', 'EUR', 'AUD', 'CAD', 'INR'];
 // "2026-10-05 (10:00 PM)" from the home calculator → date and time fields.
@@ -890,17 +893,18 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Scan to Pay (UPI)</p>
                     <div className="p-1 border border-gray-100 rounded-xl bg-white shadow-sm mb-3">
                       <img loading="lazy" decoding="async"
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(`upi://pay?pa=academiapro@ybl&pn=AcademiaPro&am=${upiAmount}&cu=INR`)}`}
-                        alt="UPI QR Code"
-                        className="w-24 h-24 object-contain"
+                        src="/payments/upi-qr.png"
+                        alt="AssignmentMinds UPI QR code — scan with any UPI app"
+                        width={454} height={556}
+                        className="w-40 h-auto object-contain"
                       />
                     </div>
                     <p className="text-xl font-extrabold text-[#000a1e] mb-1">₹ {upiAmount.toLocaleString('en-IN')}</p>
-                    <p className="text-[10px] text-[#6e6e73] font-medium mb-3">Total payable in INR</p>
+                    <p className="text-[10px] text-[#6e6e73] font-medium mb-3">Enter this amount in your UPI app (GPay, PhonePe, Paytm…)</p>
 
                     <div className="w-full">
                       <span className="text-[10px] font-semibold text-gray-500 block mb-1">Or Send to Direct UPI ID:</span>
-                      <span className="font-mono text-xs bg-[#eef4ff] text-[#002147] px-2 py-1 rounded-md border border-[#d1e4ff] select-all w-full block truncate">academiapro@ybl</span>
+                      <span className="font-mono text-xs bg-[#eef4ff] text-[#002147] px-2 py-1 rounded-md border border-[#d1e4ff] select-all w-full block truncate" title={UPI_ID}>{UPI_ID}</span>
                     </div>
                   </div>
                   )}
