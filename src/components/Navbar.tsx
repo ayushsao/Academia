@@ -47,7 +47,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
   ];
 
   return (
-    <nav className={`w-full z-50 transition-all duration-500 sticky top-0 ${scrolled ? 'bg-white/80 backdrop-blur-xl shadow-[0_4px_30px_rgb(0,0,0,0.05)] py-3 border-b border-gray-100/50' : 'bg-white py-5 border-b border-gray-100'}`}>
+    <nav className={`w-full z-50 transition-all duration-300 sticky top-0 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-[0_2px_16px_rgba(30,58,95,0.08)] py-3 border-b border-[#e5e7eb]/60' : 'bg-white py-4 border-b border-[#f0f2f5]'}`}>
       <div className="w-full pl-2 pr-4 md:pl-4 md:pr-8 2xl:pl-6 2xl:pr-12 flex items-center justify-between gap-4">
 
         {/* Logo */}
@@ -58,7 +58,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
         {/* Desktop Nav Links */}
         <div className="hidden xl:flex items-center gap-4 2xl:gap-8">
           {navLinks.map((link, idx) => (
-            <div key={idx} className="group relative flex items-center gap-1 whitespace-nowrap text-[#2d2d2d] hover:text-[#fea520] font-medium text-sm transition-colors py-4">
+            <div key={idx} className="group relative flex items-center gap-1 whitespace-nowrap text-[#374151] hover:text-[#eb6200] font-medium text-sm transition-colors py-4">
               <span onClick={() => { if (!link.hasDropdown) navigate(link.to || `/p/${link.label.toLowerCase().replace(/ /g, '-')}`); }} className="cursor-pointer">{link.label}</span>
               {link.hasDropdown && <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-[#fea520] transition-colors cursor-pointer" />}
 
@@ -198,7 +198,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
             <Search className="w-5 h-5" />
           </button>
 
-          <button onClick={onOpenOrder} className="bg-[#fea520] hover:bg-[#e36100] text-[#000a1e] font-bold px-4 2xl:px-5 py-2.5 rounded text-sm shadow-sm transition-colors whitespace-nowrap">
+          <button onClick={onOpenOrder} className="bg-[#eb6200] hover:bg-[#d45600] text-white font-bold px-5 2xl:px-6 py-2.5 rounded-md text-sm shadow-[0_2px_10px_rgba(235,98,0,0.30)] transition-all whitespace-nowrap">
             Order Now
           </button>
 
@@ -370,7 +370,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                 </div>
               ))}
               <div className="flex flex-col gap-3 pt-2">
-                <button onClick={onOpenOrder} className="bg-[#fea520] text-[#000a1e] font-bold py-3 rounded text-center w-full shadow-sm">Order Now</button>
+                <button onClick={onOpenOrder} className="bg-[#eb6200] hover:bg-[#d45600] text-white font-bold py-3 rounded-md text-center w-full shadow-[0_2px_10px_rgba(235,98,0,0.30)]">Order Now</button>
                 {writerSignedIn && (
                   <Link to="/writer/dashboard" onClick={() => setMobileMenuOpen(false)} className="border border-[#002147]/20 text-[#002147] font-bold py-3 rounded text-center w-full">Writer Dashboard</Link>
                 )}

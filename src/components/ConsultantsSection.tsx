@@ -88,14 +88,10 @@ export const ConsultantsSection: React.FC<ConsultantsSectionProps> = ({ onConsul
       <div className="max-w-[1280px] mx-auto px-4 md:px-6 relative flex flex-col items-center">
 
         {/* Title */}
-        <h2 className="text-[26px] md:text-[34px] font-bold text-[#2d2d2d] mb-4 text-center tracking-tight">
-          Choose from the Most Qualified Academic Writers!
+        <h2 className="text-[26px] md:text-[34px] font-bold text-[#1a1a2e] mb-2 text-center tracking-tight">
+          Meet our Top-rated Assignment Writers
         </h2>
-
-        {/* Decorative Divider */}
-        <div className="relative w-72 h-[1px] bg-[#fea520]/30 flex justify-center mb-16">
-          <div className="absolute top-1/2 -translate-y-1/2 w-12 h-1 bg-[#fea520]"></div>
-        </div>
+        <p className="text-[14px] text-[#4b5563] max-w-2xl mx-auto mb-10">Our writers provide customized, plagiarism-free papers to gain high scores. They have been specially selected for their academic excellence and expertise.</p>
 
         {/* Carousel Container */}
         <div className="relative w-full max-w-[1100px] flex items-center justify-center min-h-[380px]">
@@ -115,7 +111,7 @@ export const ConsultantsSection: React.FC<ConsultantsSectionProps> = ({ onConsul
               return (
                 <div
                   key={`${writer.id}-${idx}`}
-                  className={`transition-all duration-500 ease-in-out transform flex-shrink-0 bg-white rounded-xl shadow-[0_10px_35px_rgba(0,0,0,0.06)] border border-white p-6 flex flex-col w-[280px] md:w-[310px] ${isCenter ? 'scale-110 z-20 shadow-lg flex' : 'scale-95 z-10 opacity-70 hover:opacity-100 hidden md:flex'}`}
+                  className={`transition-all duration-500 ease-in-out transform flex-shrink-0 bg-white rounded-xl shadow-[0_4px_20px_rgba(30,58,95,0.07)] border border-[#e5e7eb] p-6 flex flex-col w-[280px] md:w-[310px] ${isCenter ? 'scale-[1.04] z-20 shadow-[0_8px_30px_rgba(30,58,95,0.12)] border-[#eb6200]/30 flex' : 'scale-95 z-10 opacity-70 hover:opacity-100 hidden md:flex'}`}
                 >
                   {/* Header: Image & Name */}
                   <div className="flex items-center gap-4 mb-4 text-left">
@@ -125,7 +121,7 @@ export const ConsultantsSection: React.FC<ConsultantsSectionProps> = ({ onConsul
                       className="w-14 h-14 rounded-full object-cover shadow-sm border border-gray-100"
                     />
                     <div>
-                      <h4 className="font-semibold text-[#fea520] text-[17px] mb-1">{writer.name}</h4>
+                      <h4 className="font-semibold text-[#1a1a2e] text-[17px] mb-1">{writer.name}</h4>
                       <div className="flex items-center gap-1 bg-[#e4fae9] text-[#2ebd59] px-2.5 py-0.5 rounded-full text-xs font-bold w-max">
                         <Check className="w-3 h-3" />
                         Verified
@@ -162,11 +158,11 @@ export const ConsultantsSection: React.FC<ConsultantsSectionProps> = ({ onConsul
 
                   {/* Action Buttons */}
                   <div className="flex gap-2 mt-auto">
-                    <button onClick={() => onConsult({ id: writer.id.toString(), name: writer.name, field: 'Academic Writer', university: '', rating: writer.rating, ordersCompleted: parseInt(writer.orders), bio: writer.bio, degrees: [], status: 'Available', image: writer.image })} className="flex-1 border border-gray-200 text-[#444] text-[13px] font-semibold py-2 rounded-md hover:bg-gray-50 transition-colors">
+                    <button onClick={() => onConsult({ id: writer.id.toString(), name: writer.name, field: 'Academic Writer', university: '', rating: writer.rating, ordersCompleted: parseInt(writer.orders), bio: writer.bio, degrees: [], status: 'Available', image: writer.image })} className="flex-1 border border-[#e5e7eb] text-[#374151] text-[13px] font-medium py-2 rounded-md hover:bg-[#f4f7fc] transition-colors">
                       About Writer
                     </button>
-                    <button onClick={() => onConsult({ id: writer.id.toString(), name: writer.name, field: 'Academic Writer', university: '', rating: writer.rating, ordersCompleted: parseInt(writer.orders), bio: writer.bio, degrees: [], status: 'Available', image: writer.image })} className="flex-1 bg-[#ffcb05] hover:bg-[#ffb600] text-[#000a1e] text-[13px] font-bold py-2 rounded-md transition-colors">
-                      Hire Writer
+                    <button onClick={() => onConsult({ id: writer.id.toString(), name: writer.name, field: 'Academic Writer', university: '', rating: writer.rating, ordersCompleted: parseInt(writer.orders), bio: writer.bio, degrees: [], status: 'Available', image: writer.image })} className="flex-1 border border-[#eb6200] text-[#eb6200] hover:bg-[#eb6200] hover:text-white text-[13px] font-semibold py-2 rounded-md transition-colors">
+                      Hire Me
                     </button>
                   </div>
 

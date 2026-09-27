@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -87,15 +87,15 @@ export const WhyChooseUs: React.FC = () => {
 
                 {/* Yellow Top CTA */}
                 <div className="flex justify-center mb-10 text-center">
-                    <button className="bg-[#ffcb05] text-[#2d2d2d] font-bold text-[15px] px-8 py-2.5 shadow-sm transition-colors cursor-pointer rounded-[12px] hover:bg-[#eebc04]">
+                    <button className="btn-am-primary cursor-pointer">
                         Get your Assignments Done!
                     </button>
                 </div>
 
                 {/* Header Titles */}
                 <div className="text-center mb-12 flex flex-col items-center">
-                    <h2 className="text-[24px] md:text-[28px] lg:text-[32px] font-bold text-[#2d2d2d] mb-4 tracking-tight">
-                        We Guarantee the Best Online Assignment Help UK Service
+                    <h2 className="text-[24px] md:text-[28px] lg:text-[32px] font-bold text-[#1a1a2e] mb-4 tracking-tight">
+                        Why Students Choose Our University Assignment Help
                     </h2>
 
                     <div className="max-w-4xl mx-auto mb-2 text-[#666] text-[13px] md:text-[14px] leading-relaxed relative">
@@ -133,8 +133,8 @@ export const WhyChooseUs: React.FC = () => {
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: isCenter ? 1.05 : 1 }}
                                     transition={{ duration: 0.3 }}
-                                    className={`bg-white rounded-[10px] sm:min-h-[300px] flex flex-col pt-6 pb-8 px-6 shadow-sm transition-all duration-300 mx-auto w-full max-w-[360px]
-                                        ${isCenter ? 'border-[1.5px] border-[#fea520] z-20 shadow-md transform scale-105' : 'border border-gray-100 opacity-90 z-10'}
+                                    className={`bg-white rounded-[10px] sm:min-h-[300px] flex flex-col pt-6 pb-8 px-6 shadow-[0_2px_12px_rgba(30,58,95,0.06)] transition-all duration-300 mx-auto w-full max-w-[360px]
+                                        ${isCenter ? 'border-[1.5px] border-[#eb6200]/40 z-20 shadow-[0_8px_28px_rgba(30,58,95,0.10)] transform scale-105' : 'border border-[#e5e7eb] opacity-90 z-10'}
                                     `}
                                 >
                                     {/* Illustration Area */}
@@ -143,7 +143,7 @@ export const WhyChooseUs: React.FC = () => {
                                     </div>
 
                                     {/* Text Content */}
-                                    <h3 className={`text-[15px] font-bold mb-3 ${isCenter ? 'text-[#fea520]' : 'text-[#fea520]'}`}>
+                                    <h3 className={`text-[15px] font-bold mb-3 ${isCenter ? 'text-[#eb6200]' : 'text-[#eb6200]'}`}>
                                         {item.title}
                                     </h3>
                                     <p className="text-[12.5px] text-[#555] leading-relaxed">
@@ -169,3 +169,4 @@ export const WhyChooseUs: React.FC = () => {
         </section>
     );
 };
+

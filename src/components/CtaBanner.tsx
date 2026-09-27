@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -25,16 +25,15 @@ export const CtaBanner: React.FC<CtaBannerProps> = ({ onOrderClick }) => {
 
             {/* Center Content */}
             <div className="relative z-20 text-center px-4 flex flex-col items-center justify-center min-h-[160px]">
-                <h2 className="text-[26px] md:text-[34px] font-extrabold text-[#2d2d2d] leading-snug tracking-tight mb-5">
-                    Join <span className="text-[#fea520]">10,000+</span> students<br />
-                    who trust us
+                <h2 className="text-[26px] md:text-[34px] font-extrabold text-[#1a1a2e] leading-snug tracking-tight mb-5">
+                    Unlock our Cheap Assignment Help <br />to get high scores
                 </h2>
 
                 <button
                     onClick={onOrderClick}
-                    className="bg-[#ffcb05] hover:bg-[#eebc04] text-[#2d2d2d] font-bold text-[15px] px-8 py-2.5 shadow-sm transition-colors cursor-pointer rounded-sm"
+                    className="btn-am-primary"
                 >
-                    Order Now
+                    GET HELP NOW
                 </button>
             </div>
 
@@ -98,3 +97,4 @@ export const CtaBanner: React.FC<CtaBannerProps> = ({ onOrderClick }) => {
         </section>
     );
 };
+

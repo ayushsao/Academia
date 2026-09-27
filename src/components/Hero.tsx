@@ -43,7 +43,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
   const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState<boolean>(true);
-  const [currency, setCurrency] = useState<'£' | '$' | '€' | 'A$' | 'C$' | '₹'>('£');
+  const [currency, setCurrency] = useState<'₹' | '£' | '$' | '€' | 'A$' | 'C$'>('₹');
   const [showDetailsSection, setShowDetailsSection] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -196,18 +196,19 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
   };
 
   return (
-    <section className="relative pt-12 md:pt-16 pb-24 overflow-hidden bg-white">
-      {/* Faint Background Letters matching screenshot */}
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] text-[180px] font-black leading-none overflow-hidden flex flex-col justify-between whitespace-nowrap text-[#fea520]">
-        <div className="flex justify-between w-full"><span>FINANCIAL</span><span>MATHS</span></div>
-        <div className="flex justify-between w-full"><span>ACCOUNTING</span><span>MEDICAL</span></div>
-        <div className="flex justify-between w-full"><span>ASSIGNMENT</span><span>HISTORY</span></div>
+    <section className="relative pt-10 md:pt-14 pb-20 overflow-hidden bg-[#f4f7fc] bg-arc-hero">
+      {/* AM-style subtle concentric arc background decoration */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-180px] right-[-180px] w-[700px] h-[700px] rounded-full border border-[rgba(180,205,240,0.12)]"
+          style={{ boxShadow: '0 0 0 60px rgba(180,205,240,0.06), 0 0 0 130px rgba(180,205,240,0.04), 0 0 0 220px rgba(180,205,240,0.02)' }} />
+        <div className="absolute bottom-[-100px] left-[-100px] w-[500px] h-[500px] rounded-full border border-[rgba(180,205,240,0.10)]"
+          style={{ boxShadow: '0 0 0 50px rgba(180,205,240,0.05), 0 0 0 110px rgba(180,205,240,0.03)' }} />
       </div>
 
       <div className="max-w-[1280px] 2xl:max-w-[1440px] mx-auto px-4 sm:px-6 relative z-10 flex flex-col lg:flex-row items-stretch justify-between gap-6 lg:gap-8 2xl:gap-10">
 
         {/* LEFT: Dynamic Carousel Container */}
-        <div className="flex-1 w-full min-w-0 relative overflow-hidden rounded-[26px] shadow-[0_10px_35px_rgba(213,56,103,0.07)] bg-white min-h-[560px] lg:min-h-[560px]">
+        <div className="flex-1 w-full min-w-0 relative overflow-hidden rounded-[16px] shadow-[0_4px_24px_rgba(30,58,95,0.08)] bg-white min-h-[560px] lg:min-h-[560px]">
           <AnimatePresence mode="wait">
             {/* SLIDE 0: Path to Academic Excellence */}
             {currentSlide === 0 && (
@@ -217,7 +218,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 50 }}
                 transition={{ duration: 0.5, ease: 'easeOut' }}
-                className="absolute inset-0 bg-gradient-to-br from-[#fffbfa] via-[#fff5f6] to-[#feeef1] p-5 sm:p-6 md:p-7 w-full h-full border border-white flex flex-col justify-between overflow-y-auto"
+                className="absolute inset-0 bg-white p-5 sm:p-6 md:p-7 w-full h-full border border-[#f0f2f5] flex flex-col justify-between overflow-y-auto"
               >
                 {/* 1. Top Bar & Live Status */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-pink-100/70 shrink-0">
@@ -233,10 +234,10 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
 
                 {/* 2. Main Headline & Subtitle */}
                 <div className="my-1 shrink-0">
-                  <h1 className="text-xl sm:text-2xl md:text-[27px] lg:text-[29px] font-black text-[#111827] leading-[1.2] tracking-tight">
-                    Your Path to <span className="bg-gradient-to-r from-[#ea580c] via-[#fea520] to-[#e11d48] bg-clip-text text-transparent">Academic Excellence</span> Starts from Here
+                  <h1 className="text-xl sm:text-2xl md:text-[27px] lg:text-[29px] font-black leading-[1.2] tracking-tight">
+                    <span className="text-[#eb6200]">Your Path to</span> <span className="text-[#1e3a5f]">Academic Excellence</span> <span className="text-[#eb6200]">Starts from Here</span>
                   </h1>
-                  <p className="text-[13px] sm:text-[15px] text-gray-600 font-medium mt-1 leading-snug">
+                  <p className="text-[13px] sm:text-[15px] text-[#4b5563] font-normal mt-1 leading-relaxed">
                     Bespoke dissertations, essays, research coursework & data modeling tailored to UK university grading rubrics by verified Oxford & Russell Group scholars.
                   </p>
                 </div>
@@ -277,55 +278,55 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
 
                   {/* 3 Guarantee Cards (7 cols) */}
                   <div className="sm:col-span-7 flex flex-col justify-between gap-2">
-                    <div className="bg-white/95 backdrop-blur-sm rounded-xl p-2.5 border border-pink-100 shadow-xs flex items-center gap-2.5 hover:border-[#d2d2d7] transition-colors">
-                      <div className="w-8 h-8 rounded-lg bg-[#f5f5f7] text-[#1d1d1f] flex items-center justify-center shrink-0">
+                    <div className="bg-white rounded-xl p-2.5 border border-[#e5e7eb] shadow-[0_1px_4px_rgba(30,58,95,0.06)] flex items-center gap-2.5 hover:border-[#eb6200]/30 transition-colors">
+                      <div className="w-8 h-8 rounded-lg bg-[#f4f7fc] text-[#1e3a5f] flex items-center justify-center shrink-0">
                         <Award className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-[13px] sm:text-[15px] font-bold text-gray-900">Guaranteed A+ Standard</span>
-                          <span className="text-[11px] font-medium text-[#6e6e73] bg-[#f5f5f7] px-1.5 py-0.5 rounded border border-[#e5e5ea]">Top 5% Ph.D.</span>
+                          <span className="text-[13px] sm:text-[15px] font-bold text-[#1a1a2e]">Guaranteed A+ Standard</span>
+                          <span className="text-[11px] font-medium text-[#6b7280] bg-[#f4f7fc] px-1.5 py-0.5 rounded border border-[#e5e7eb]">Top 5% Ph.D.</span>
                         </div>
-                        <p className="text-xs sm:text-[13px] text-gray-500 leading-tight mt-0.5">Strict adherence to UK university grading rubrics & marking criteria.</p>
+                        <p className="text-xs sm:text-[13px] text-[#6b7280] leading-tight mt-0.5">Strict adherence to UK university grading rubrics & marking criteria.</p>
                       </div>
                     </div>
 
-                    <div className="bg-white/95 backdrop-blur-sm rounded-xl p-2.5 border border-pink-100 shadow-xs flex items-center gap-2.5 hover:border-[#d2d2d7] transition-colors">
-                      <div className="w-8 h-8 rounded-lg bg-[#f5f5f7] text-[#1d1d1f] flex items-center justify-center shrink-0">
+                    <div className="bg-white rounded-xl p-2.5 border border-[#e5e7eb] shadow-[0_1px_4px_rgba(30,58,95,0.06)] flex items-center gap-2.5 hover:border-[#eb6200]/30 transition-colors">
+                      <div className="w-8 h-8 rounded-lg bg-[#f4f7fc] text-[#1e3a5f] flex items-center justify-center shrink-0">
                         <ShieldCheck className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-[13px] sm:text-[15px] font-bold text-gray-900">Turnitin Authenticity</span>
+                          <span className="text-[13px] sm:text-[15px] font-bold text-[#1a1a2e]">Turnitin Authenticity</span>
                         </div>
-                        <p className="text-xs sm:text-[13px] text-gray-500 leading-tight mt-0.5">Custom-written from scratch with official plagiarism certificate.</p>
+                        <p className="text-xs sm:text-[13px] text-[#6b7280] leading-tight mt-0.5">Custom-written from scratch with official plagiarism certificate.</p>
                       </div>
                     </div>
 
-                    <div className="bg-white/95 backdrop-blur-sm rounded-xl p-2.5 border border-pink-100 shadow-xs flex items-center gap-2.5 hover:border-[#d2d2d7] transition-colors">
-                      <div className="w-8 h-8 rounded-lg bg-[#f5f5f7] text-[#1d1d1f] flex items-center justify-center shrink-0">
+                    <div className="bg-white rounded-xl p-2.5 border border-[#e5e7eb] shadow-[0_1px_4px_rgba(30,58,95,0.06)] flex items-center gap-2.5 hover:border-[#eb6200]/30 transition-colors">
+                      <div className="w-8 h-8 rounded-lg bg-[#f4f7fc] text-[#1e3a5f] flex items-center justify-center shrink-0">
                         <Zap className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-[13px] sm:text-[15px] font-bold text-gray-900">Urgent 3-Hour Delivery</span>
-                          <span className="text-[11px] font-medium text-[#6e6e73] bg-[#f5f5f7] px-1.5 py-0.5 rounded border border-[#e5e5ea]">24/7 Live</span>
+                          <span className="text-[13px] sm:text-[15px] font-bold text-[#1a1a2e]">Urgent 3-Hour Delivery</span>
+                          <span className="text-[11px] font-medium text-[#6b7280] bg-[#f4f7fc] px-1.5 py-0.5 rounded border border-[#e5e7eb]">24/7 Live</span>
                         </div>
-                        <p className="text-xs sm:text-[13px] text-gray-500 leading-tight mt-0.5">Direct scholar assignment with guaranteed on-time delivery.</p>
+                        <p className="text-xs sm:text-[13px] text-[#6b7280] leading-tight mt-0.5">Direct scholar assignment with guaranteed on-time delivery.</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* 4. Popular Subject Disciplines Chips */}
-                <div className="bg-white/75 backdrop-blur-sm rounded-xl p-2 border border-pink-100/80 shrink-0">
+                <div className="bg-[#f9fafb] rounded-xl p-2 border border-[#e5e7eb] shrink-0">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[12.5px] font-bold text-gray-700 uppercase tracking-wider">Specialized Disciplines</span>
-                    <span className="text-xs font-medium text-[#6e6e73]">85+ Subjects Covered</span>
+                    <span className="text-[12.5px] font-semibold text-[#1a1a2e] uppercase tracking-wider">Specialized Disciplines</span>
+                    <span className="text-xs font-medium text-[#6b7280]">85+ Subjects Covered</span>
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {['Business & Mgt', 'Law & OSCOLA', 'Nursing & Health', 'Computer Science & AI', 'Finance & SPSS', 'Engineering'].map((sub, i) => (
-                      <span key={i} className="text-[11.5px] sm:text-[12.5px] font-semibold px-2 py-0.5 rounded-md bg-white border border-pink-100 text-gray-700 shadow-2xs">
+                      <span key={i} className="text-[11.5px] sm:text-[12.5px] font-medium px-2 py-0.5 rounded-md bg-white border border-[#e5e7eb] text-[#374151]">
                         {sub}
                       </span>
                     ))}
@@ -333,43 +334,43 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 </div>
 
                 {/* 5. Russell Group Institutional Trust Strip */}
-                <div className="grid grid-cols-4 gap-1.5 py-1.5 px-2 bg-white/85 backdrop-blur-sm rounded-xl border border-pink-100 text-center shadow-xs shrink-0">
+                <div className="grid grid-cols-4 gap-1.5 py-1.5 px-2 bg-white rounded-xl border border-[#e5e7eb] text-center shadow-[0_1px_4px_rgba(30,58,95,0.05)] shrink-0">
                   <div>
-                    <div className="text-[13px] font-black text-gray-900">25,000+</div>
-                    <div className="text-[11px] text-gray-500 font-medium">Papers Delivered</div>
+                    <div className="text-[13px] font-bold text-[#1a1a2e]">25,000+</div>
+                    <div className="text-[11px] text-[#6b7280] font-medium">Papers Delivered</div>
                   </div>
-                  <div className="border-x border-pink-100">
-                    <div className="text-[13px] font-black text-gray-900">1,200+</div>
-                    <div className="text-[11px] text-gray-500 font-medium">Ph.D. Writers</div>
+                  <div className="border-x border-[#e5e7eb]">
+                    <div className="text-[13px] font-bold text-[#1a1a2e]">1,200+</div>
+                    <div className="text-[11px] text-[#6b7280] font-medium">Ph.D. Writers</div>
                   </div>
-                  <div className="border-r border-pink-100">
-                    <div className="text-[13px] font-black text-[#1d1d1f]">0.0%</div>
-                    <div className="text-[11px] text-gray-500 font-medium">Plagiarism</div>
+                  <div className="border-r border-[#e5e7eb]">
+                    <div className="text-[13px] font-bold text-[#eb6200]">0.0%</div>
+                    <div className="text-[11px] text-[#6b7280] font-medium">Plagiarism</div>
                   </div>
                   <div>
-                    <div className="text-[13px] font-black text-[#1d1d1f]">4.9 / 5.0</div>
-                    <div className="text-[11px] text-gray-500 font-medium">18k+ Reviews</div>
+                    <div className="text-[13px] font-bold text-[#1a1a2e]">4.9 / 5.0</div>
+                    <div className="text-[11px] text-[#6b7280] font-medium">18k+ Reviews</div>
                   </div>
                 </div>
 
                 {/* 6. Verified Student Social Proof Testimonial */}
-                <div className="bg-[#f5f5f7] rounded-xl p-2 border border-[#e5e5ea] flex items-center justify-between gap-2 shrink-0">
+                <div className="bg-[#f9fafb] rounded-xl p-2 border border-[#e5e7eb] flex items-center justify-between gap-2 shrink-0">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-[#eb6200] text-white flex items-center justify-center text-xs font-bold shrink-0">
                       S
                     </div>
-                    <p className="text-[12.5px] text-gray-700 font-medium truncate">
-                      <strong className="text-gray-900 font-bold">"Scored 78% Distinction in UCL Master's Thesis!</strong> Flawless research and methodology."
+                    <p className="text-[12.5px] text-[#374151] font-medium truncate">
+                      <strong className="text-[#1a1a2e] font-bold">"Scored 78% Distinction in UCL Master's Thesis!</strong> Flawless research and methodology."
                     </p>
                   </div>
-                  <span className="text-[11.5px] font-medium text-[#6e6e73] bg-white px-2 py-0.5 rounded-full border border-[#e5e5ea] shrink-0">
+                  <span className="text-[11.5px] font-medium text-[#6b7280] bg-white px-2 py-0.5 rounded-full border border-[#e5e7eb] shrink-0 text-[#eb6200]">
                     ★★★★★ Verified Student
                   </span>
                 </div>
 
                 {/* 7. Bottom Luxury A+ Distinction Banner */}
                 <div className="relative z-20 shrink-0">
-                  <div className="bg-gradient-to-r from-[#fea520] via-[#f59e0b] to-[#ea580c] text-white p-2.5 sm:p-3 rounded-xl shadow-md border-2 border-white flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3">
+                  <div className="bg-[#eb6200] text-white p-2.5 sm:p-3 rounded-xl shadow-[0_4px_14px_rgba(235,98,0,0.35)] flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3">
                     <div className="flex items-center gap-2 text-center sm:text-left">
                       <div className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
                         <GraduationCap className="w-4 h-4 text-white" />
@@ -400,10 +401,10 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                       key={idx}
                       type="button"
                       onClick={() => setCurrentSlide(idx)}
-                      className={`px-2.5 py-0.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                         currentSlide === idx
-                          ? 'bg-[#fea520] text-white shadow-xs scale-105'
-                          : 'bg-white/80 hover:bg-white text-gray-600 border border-gray-200'
+                          ? 'bg-[#eb6200] text-white shadow-sm scale-105'
+                          : 'bg-white hover:bg-[#f4f7fc] text-[#4b5563] border border-[#e5e7eb]'
                       }`}
                     >
                       {s.label}
@@ -421,7 +422,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 50 }}
                 transition={{ duration: 0.5, ease: 'easeOut' }}
-                className="absolute inset-0 bg-gradient-to-br from-[#f8fafc] via-[#f1f5f9] to-[#e2e8f0] p-5 sm:p-6 md:p-7 w-full h-full border border-gray-100 flex flex-col justify-between overflow-y-auto"
+                className="absolute inset-0 bg-white p-5 sm:p-6 md:p-7 w-full h-full border border-[#f0f2f5] flex flex-col justify-between overflow-y-auto"
               >
                 {/* 1. Top Bar */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200/80 shrink-0">
@@ -437,10 +438,10 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
 
                 {/* 2. Main Headline */}
                 <div className="text-center my-1 shrink-0">
-                  <h1 className="text-xl sm:text-2xl md:text-[27px] lg:text-[29px] font-black text-[#0f172a] leading-[1.2] tracking-tight">
-                    Guaranteed <strong className="text-[#fea520] font-black">Original</strong> Work, with <strong className="font-black text-[#000a1e]">Free Turnitin</strong> Report
+                  <h1 className="text-xl sm:text-2xl md:text-[27px] lg:text-[29px] font-black leading-[1.2] tracking-tight">
+                    <span className="text-[#1e3a5f]">Guaranteed</span> <strong className="text-[#eb6200] font-black">Original</strong> <span className="text-[#1e3a5f]">Work, with</span> <strong className="font-black text-[#1e3a5f]">Free Turnitin</strong> <span className="text-[#eb6200]">Report</span>
                   </h1>
-                  <p className="text-[13px] sm:text-[15px] text-gray-500 mt-1 max-w-[92%] mx-auto">
+                  <p className="text-[13px] sm:text-[15px] text-[#4b5563] mt-1 max-w-[92%] mx-auto">
                     Authenticity verified with an official Turnitin Originality report. Every paper is custom-crafted from scratch by verified subject scholars.
                   </p>
                 </div>
@@ -553,7 +554,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                   <button
                     type="button"
                     onClick={() => onOpenOrder()}
-                    className="text-[13px] font-bold text-blue-600 hover:text-blue-800 underline cursor-pointer whitespace-nowrap"
+                    className="text-[13px] font-bold text-[#eb6200] hover:text-[#c45200] underline cursor-pointer whitespace-nowrap"
                   >
                     Order Original Work →
                   </button>
@@ -570,10 +571,10 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                       key={idx}
                       type="button"
                       onClick={() => setCurrentSlide(idx)}
-                      className={`px-2.5 py-0.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                         currentSlide === idx
-                          ? 'bg-[#fea520] text-white shadow-xs scale-105'
-                          : 'bg-white/80 hover:bg-white text-gray-600 border border-gray-200'
+                          ? 'bg-[#eb6200] text-white shadow-sm scale-105'
+                          : 'bg-white hover:bg-[#f4f7fc] text-[#4b5563] border border-[#e5e7eb]'
                       }`}
                     >
                       {s.label}
@@ -591,7 +592,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 50 }}
                 transition={{ duration: 0.5, ease: 'easeOut' }}
-                className="absolute inset-0 bg-gradient-to-br from-[#7c1134] via-[#991740] to-[#b01c4a] p-5 sm:p-6 md:p-7 w-full h-full flex flex-col justify-between text-white overflow-y-auto"
+                className="absolute inset-0 bg-gradient-to-br from-[#831843] via-[#9d174d] to-[#be185d] p-5 sm:p-6 md:p-7 w-full h-full flex flex-col justify-between text-white overflow-y-auto"
               >
                 {/* 1. Top Bar */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-white/20 shrink-0">
@@ -608,9 +609,9 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 {/* 2. Main Headline */}
                 <div className="my-1 shrink-0">
                   <h1 className="text-xl sm:text-2xl md:text-[27px] lg:text-[29px] font-black leading-[1.2] tracking-tight">
-                    Best Assignment Help in <span className="text-[#ffcb05] font-black underline decoration-wavy">UK</span> for Students
+                    Best Assignment Help in <span className="text-[#eb6200] font-black">UK</span> for Students
                   </h1>
-                  <p className="text-[13px] sm:text-[15px] text-white/90 font-medium mt-1">
+                  <p className="text-[13px] sm:text-[15px] text-white/85 font-normal mt-1">
                     High-quality academic assistance by verified subject helpers, Ph.D. mentors, and former Russell Group university academics.
                   </p>
                 </div>
@@ -692,7 +693,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                   <button
                     type="button"
                     onClick={() => onOpenOrder()}
-                    className="bg-white text-[#9f1239] hover:bg-[#ffcb05] hover:text-[#9f1239] font-bold text-[13px] sm:text-[15px] px-5 py-2 rounded-full flex items-center gap-2 shadow-lg transition-all cursor-pointer"
+                    className="bg-[#eb6200] hover:bg-[#d45600] text-white font-bold text-[13px] sm:text-[15px] px-5 py-2 rounded-md flex items-center gap-2 shadow-[0_4px_14px_rgba(235,98,0,0.4)] transition-all cursor-pointer"
                   >
                     <span>Claim 51% Discount</span>
                     <ArrowRight className="w-4 h-4" />
@@ -710,10 +711,10 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                       key={idx}
                       type="button"
                       onClick={() => setCurrentSlide(idx)}
-                      className={`px-2.5 py-0.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                         currentSlide === idx
-                          ? 'bg-[#ffcb05] text-[#9f1239] shadow-xs scale-105'
-                          : 'bg-white/20 hover:bg-white/30 text-white border border-white/20'
+                          ? 'bg-[#eb6200] text-white shadow-sm scale-105'
+                          : 'bg-white/15 hover:bg-white/25 text-white/90 border border-white/20'
                       }`}
                     >
                       {s.label}
@@ -742,98 +743,98 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
           </div>
         </div>
 
-        {/* Right Form Column (Cost Calculator) */}
+        {/* Right Form Column (Cost Calculator) — AM golden-frame card */}
         <div className="w-full lg:w-[480px] xl:w-[500px] shrink-0 relative z-10 flex justify-center lg:justify-end">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[115%] h-[115%] bg-gradient-radial from-[#dbe9ff]/70 to-transparent blur-[80px] -z-10 rounded-full pointer-events-none" />
 
+          {/* AM golden outer frame */}
+          <div className="am-form-frame w-full">
           <div
             id="cost-calculator-card"
-            className="bg-white rounded-[1.5rem] shadow-[0_15px_40px_rgba(0,0,0,0.06)] p-5 sm:p-7 border border-white/80 w-full relative transition-shadow hover:shadow-lg overflow-hidden"
+            className="am-form-inner w-full relative overflow-hidden"
           >
-            {/* 51% OFF Ribbon (From Pic 2) */}
-            <div className="absolute top-5 -right-12 bg-[#fea520] text-white py-1 px-12 transform rotate-45 flex flex-col items-center justify-center shadow-md z-20 pointer-events-none">
-              <span className="text-[11px] font-bold tracking-widest uppercase opacity-90 leading-none mb-0.5">Up to</span>
-              <span className="text-[15px] font-black leading-none">51% OFF</span>
+            {/* UP TO 51% OFF Ribbon - diagonal top-right */}
+            <div className="absolute top-[18px] -right-[46px] bg-[#eb6200] text-white py-[5px] px-14 transform rotate-45 flex flex-col items-center justify-center shadow-md z-20 pointer-events-none">
+              <span className="text-[9px] font-bold tracking-[0.12em] uppercase leading-none mb-0.5">UP TO</span>
+              <span className="text-[13px] font-black leading-none tracking-tight">51% OFF</span>
             </div>
 
-            {/* Header */}
-            <div className="flex justify-between items-start mb-3 pr-8">
+            {/* Header - Calculate Cost */}
+            <div className="flex justify-between items-center mb-4 pr-10">
               <div>
-                <h2 className="text-[24px] sm:text-[26px] font-black text-[#000a1e] tracking-tight leading-none mb-1">Calculate Cost</h2>
-                <p className="text-sm sm:text-[15px] font-medium text-[#708ab5]">Transparent institutional pricing</p>
+                <h2 className="text-[22px] sm:text-[24px] font-extrabold text-[#1a1a2e] tracking-tight leading-tight mb-0.5">Calculate Cost</h2>
+                <p className="text-[13px] font-normal text-[#6b8db8]">Transparent institutional pricing</p>
               </div>
-              <div className="w-[44px] h-[44px] rounded-2xl bg-[#e4efff] flex items-center justify-center text-[#002147] shadow-[inset_0_2px_4px_rgba(255,255,255,1)] shrink-0">
-                <Calculator className="w-5 h-5 stroke-[1.5]" />
+              <div className="w-[46px] h-[46px] rounded-xl bg-[#dbeafe] flex items-center justify-center text-[#3b82f6] shrink-0">
+                <Calculator className="w-5 h-5 stroke-[1.75]" />
               </div>
             </div>
 
-            {/* 1. Trust Guarantees Bar (From Pic 1) */}
-            <div className="flex flex-wrap items-center justify-center sm:justify-between gap-x-3 gap-y-1 text-xs 2xl:text-[13px] font-bold text-gray-700 bg-gray-50/90 rounded-xl px-3 py-2 border border-gray-100 mb-4">
-              <span className="flex items-center gap-1.5 text-[#1d1d1f] whitespace-nowrap">
-                <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
+            {/* 1. Trust Guarantees Bar — MAH style */}
+            <div className="flex flex-wrap items-center justify-center sm:justify-between gap-x-3 gap-y-1 text-xs font-medium text-[#374151] bg-[#f9fafb] rounded-lg px-3 py-2 border border-[#e5e7eb] mb-4">
+              <span className="flex items-center gap-1.5 whitespace-nowrap">
+                <CheckCircle2 className="w-3.5 h-3.5 stroke-[2] text-[#eb6200]" />
                 <span>Guaranteed Grade or Refund</span>
               </span>
-              <span className="hidden sm:inline text-gray-300">•</span>
-              <span className="flex items-center gap-1 text-[#000a1e] whitespace-nowrap">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#fea520]" />
-                <span>100% Original</span>
+              <span className="hidden sm:inline text-[#d1d5db]">•</span>
+              <span className="flex items-center gap-1 whitespace-nowrap">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#eb6200]" />
+                <span>No AI</span>
               </span>
-              <span className="hidden sm:inline text-gray-300">•</span>
-              <span className="flex items-center gap-1 text-[#1d1d1f] whitespace-nowrap">
-                <Clock className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline text-[#d1d5db]">•</span>
+              <span className="flex items-center gap-1 whitespace-nowrap">
+                <Clock className="w-3.5 h-3.5 text-[#1e3a5f]" />
                 <span>24/7 Support</span>
               </span>
             </div>
 
             <form onSubmit={handleSubmitQuote} className="space-y-4">
-              {/* 2. Track Category Radio Pills (From Pic 1) */}
+              {/* 2. Track Category Radio Pills — MAH style */}
               <div>
-                <div className="flex items-center justify-between gap-2 p-1 bg-gray-100/70 rounded-full border border-gray-200/60">
+                <div className="flex items-center justify-between gap-2 p-1 bg-[#f4f7fc] rounded-lg border border-[#e5e7eb]">
                   {(['Writing', 'Technical', 'Online Class'] as const).map((track) => {
                     const isSelected = selectedTrack === track;
                     return (
-                      <button
+                      <label
                         key={track}
-                        type="button"
-                        onClick={() => handleTrackChange(track)}
-                        className={`flex-1 py-1.5 px-2 rounded-full text-xs sm:text-[13px] font-bold whitespace-nowrap transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer ${
+                        className={`flex-1 py-2 px-2 rounded-md text-xs sm:text-[13px] font-medium whitespace-nowrap transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                           isSelected
-                            ? 'bg-[#000a1e] text-white shadow-sm'
-                            : 'text-gray-600 hover:text-[#000a1e]'
+                            ? 'bg-white text-[#1a1a2e] shadow-sm border border-[#e5e7eb] font-semibold'
+                            : 'text-[#6b7280] hover:text-[#1a1a2e]'
                         }`}
                       >
-                        <span className={`w-2.5 h-2.5 rounded-full border flex items-center justify-center ${isSelected ? 'border-[#fea520] bg-[#fea520]' : 'border-gray-400 bg-white'}`}>
-                          {isSelected && <span className="w-1 h-1 rounded-full bg-[#000a1e]" />}
+                        <input type="radio" name="track" value={track} checked={isSelected} onChange={() => handleTrackChange(track)} className="sr-only" />
+                        <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-[#eb6200]' : 'border-[#d1d5db]'}`}>
+                          {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#eb6200]" />}
                         </span>
                         <span>{track}</span>
-                        <span title={getTrackTooltip(track)} className="hidden sm:inline opacity-60 text-xs">ⓘ</span>
-                      </button>
+                        <span title={getTrackTooltip(track)} className="hidden sm:inline opacity-50 text-xs">ⓘ</span>
+                      </label>
                     );
                   })}
                 </div>
               </div>
 
-              {/* 3. Academic Level Segmented Controls */}
+              {/* 3. Academic Level Segmented Controls — MAH style */}
               <div>
                 <div className="flex justify-between items-center mb-1.5">
-                  <label className="text-xs font-black text-[#000a1e] uppercase tracking-wider">
-                    ACADEMIC LEVEL
+                  <label className="text-[11px] font-semibold text-[#6b7280] uppercase tracking-widest">
+                    Academic Level
                   </label>
                 </div>
-                <div className="grid grid-cols-3 gap-1.5 bg-gray-50 p-1 rounded-xl border border-gray-100">
+                <div className="grid grid-cols-3 gap-1.5 bg-[#f4f7fc] p-1 rounded-lg border border-[#e5e7eb]">
                   {[
                     { label: 'Undergrad', value: 'Undergraduate' },
-                    { label: 'Master’s', value: "Master's" },
+                    { label: "Master's", value: "Master's" },
                     { label: 'PhD / Doc', value: 'PhD / Doctoral' }
                   ].map((lvl) => (
                     <button
                       key={lvl.value}
                       type="button"
                       onClick={() => setAcademicLevel(lvl.value as any)}
-                      className={`py-1.5 text-[13px] font-bold rounded-lg transition-all cursor-pointer ${
+                      className={`py-2 text-[13px] font-medium rounded-md transition-all cursor-pointer ${
                         academicLevel === lvl.value
-                          ? 'bg-white text-[#000a1e] shadow-sm border border-gray-200/80 font-black'
-                          : 'text-gray-500 hover:text-gray-900'
+                          ? 'bg-white text-[#1a1a2e] shadow-sm border border-[#e5e7eb] font-semibold'
+                          : 'text-[#6b7280] hover:text-[#374151]'
                       }`}
                     >
                       {lvl.label}
@@ -842,38 +843,32 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 </div>
               </div>
 
-              {/* 4. Dropdowns Row: Service & Subject */}
+              {/* 4. Dropdowns Row: Service & Subject — MAH style */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-black text-[#000a1e] mb-1.5 uppercase tracking-wide">
-                    SELECT SERVICE
-                  </label>
                   <div className="relative">
                     <select
                       value={service}
                       onChange={(e) => setService(e.target.value as ServiceType)}
-                      className="w-full appearance-none border-0 rounded-full px-3.5 py-[11px] text-[#333] bg-gray-50 hover:bg-gray-100/50 focus:ring-2 focus:ring-[#002147]/20 transition-all outline-none text-[15px] font-bold shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] cursor-pointer"
+                      className="am-input appearance-none cursor-pointer pr-9"
                     >
                       <option value="" disabled>Select a Service</option>
                       {getServicesForTrack().map((srv) => (
                         <option key={srv} value={srv}>{srv}</option>
                       ))}
                     </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-gray-500">
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#6b7280]">
                       <ChevronDown className="w-4 h-4" />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black text-[#000a1e] mb-1.5 uppercase tracking-wide">
-                    SELECT SUBJECT
-                  </label>
                   <div className="relative">
                     <select
                       value={subject}
                       onChange={(e) => setSubject(e.target.value as SubjectType)}
-                      className="w-full appearance-none border-0 rounded-full px-3.5 py-[11px] text-[#333] bg-gray-50 hover:bg-gray-100/50 focus:ring-2 focus:ring-[#002147]/20 transition-all outline-none text-[15px] font-bold shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] cursor-pointer"
+                      className="am-input appearance-none cursor-pointer pr-9"
                     >
                       <option value="" disabled>Select a Subject</option>
                       <option value="Business & Mgt">Business & Mgt</option>
@@ -885,37 +880,31 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                       <option value="Engineering & STEM">Engineering</option>
                       <option value="Psychology & Sociology">Psychology</option>
                     </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-gray-500">
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#6b7280]">
                       <ChevronDown className="w-4 h-4" />
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* 5. Contact Row (Email & Phone with Country code - from Pic 1) */}
+              {/* 5. Contact Row — MAH style */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-black text-[#000a1e] mb-1.5 uppercase tracking-wide">
-                    EMAIL
-                  </label>
                   <input
                     type="email"
-                    placeholder="Email address"
+                    placeholder="Email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full border-0 rounded-full px-3.5 py-[11px] bg-gray-50 text-[#000a1e] placeholder:text-gray-400 focus:ring-2 focus:ring-[#002147]/20 transition-all outline-none text-[15px] font-medium shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                    className="am-input"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black text-[#000a1e] mb-1.5 uppercase tracking-wide">
-                    PHONE NO.
-                  </label>
-                  <div className="flex rounded-full overflow-hidden bg-gray-50 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] border-0 focus-within:ring-2 focus-within:ring-[#002147]/20">
+                  <div className="flex rounded-[6px] overflow-hidden border border-[#d1d5db] bg-white focus-within:border-[#eb6200] focus-within:shadow-[0_0_0_3px_rgba(235,98,0,0.10)] transition-all">
                     <select
                       value={countryCode}
                       onChange={(e) => setCountryCode(e.target.value)}
-                      className="bg-transparent px-2.5 py-[11px] text-sm font-bold text-gray-700 outline-none border-r border-gray-200 cursor-pointer"
+                      className="bg-transparent px-2 py-[10px] text-sm font-medium text-[#374151] outline-none border-r border-[#d1d5db] cursor-pointer"
                     >
                       <option value="IN(+91)">IN(+91)</option>
                       <option value="US(+1)">US(+1)</option>
@@ -929,7 +918,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                       placeholder="Phone no."
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="w-full px-3 py-[11px] bg-transparent text-[#000a1e] placeholder:text-gray-400 outline-none text-[15px] font-medium"
+                      className="w-full px-3 py-[10px] bg-transparent text-[#374151] placeholder:text-[#9ca3af] outline-none text-sm font-normal"
                     />
                   </div>
                 </div>
@@ -1096,7 +1085,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          className="inline-flex items-center gap-1.5 text-[13px] font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-colors cursor-pointer shadow-sm"
+                          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#374151] bg-white border border-[#d1d5db] hover:bg-[#f4f7fc] px-3 py-1.5 rounded-md transition-colors cursor-pointer"
                         >
                           <Paperclip className="w-3.5 h-3.5 text-[#fea520]" />
                           <span>Attach file</span>
@@ -1124,7 +1113,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                   id="calc-terms"
                   checked={acceptedTerms}
                   onChange={(e) => setAcceptedTerms(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#fea520] focus:ring-[#fea520] accent-[#000a1e] cursor-pointer"
+                  className="w-4 h-4 rounded text-[#eb6200] focus:ring-[#eb6200] accent-[#eb6200] cursor-pointer"
                 />
                 <label htmlFor="calc-terms" className="text-[13px] text-gray-600 font-medium cursor-pointer select-none">
                   I accept the T&C, agree to receive offers & updates
@@ -1137,12 +1126,12 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-black text-[#000a1e] uppercase tracking-wide">ESTIMATED COST</span>
                   <div className="flex items-center gap-1 bg-gray-100/70 p-0.5 rounded-full text-[13px] font-bold text-gray-600">
-                    {(['£', '$', '€', 'A$', 'C$', '₹'] as const).map((curr) => (
+                    {(['₹', '£', '$', '€', 'A$', 'C$'] as const).map((curr) => (
                       <button
                         key={curr}
                         type="button"
                         onClick={() => setCurrency(curr)}
-                        className={`px-2 py-0.5 rounded-full transition-all cursor-pointer ${currency === curr ? 'bg-[#000a1e] text-white shadow-xs' : 'hover:text-[#000a1e]'}`}
+                        className={`px-2 py-0.5 rounded-full transition-all cursor-pointer ${currency === curr ? 'bg-[#eb6200] text-white shadow-sm' : 'hover:text-[#eb6200]'}`}
                       >
                         {curr}
                       </button>
@@ -1168,7 +1157,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     </span>
                     )}
                   </div>
-                  <div className="flex items-start text-[#000a1e]">
+                  <div className="flex items-start text-[#1a1a2e]">
                     <span className="text-[24px] font-black mt-1 mr-1">{currency}</span>
                     <span className="text-[46px] font-black tracking-tighter leading-none">
                       {animatedPrice}
@@ -1178,7 +1167,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
 
                 <button
                   type="submit"
-                  className="bg-[#000a1e] hover:bg-[#00173d] text-white font-semibold text-[17px] px-6 py-3.5 rounded-full transition-all w-full flex items-center justify-center gap-2 group cursor-pointer shadow-md hover:shadow-lg"
+                  className="bg-[#000a1e] hover:bg-[#00173d] text-white font-bold text-[17px] px-6 py-3.5 rounded-full transition-all w-full flex items-center justify-center gap-2.5 group cursor-pointer shadow-md hover:shadow-lg"
                 >
                   <span>Get Detailed Quote</span>
                   <ArrowRight className="w-[18px] h-[18px] group-hover:translate-x-1 transition-transform" />
@@ -1186,8 +1175,10 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
               </div>
             </form>
           </div>
+          </div>
         </div>
       </div>
     </section>
   );
 };
+
