@@ -48,6 +48,7 @@ export const SamplesShowcase: React.FC<SamplesShowcaseProps> = ({ onOpenAction }
 
     return (
         <section
+            id="samples"
             className="py-20 md:py-24 bg-[#f7f6f3] relative overflow-hidden"
             onMouseEnter={() => setIsAutoPlaying(false)}
             onMouseLeave={() => setIsAutoPlaying(true)}

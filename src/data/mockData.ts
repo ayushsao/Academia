@@ -292,3 +292,9 @@ export const REVIEWS: Review[] = [
     platform: 'TRUSTPILOT'
   }
 ];
+
+// Average rating and count of the reviews above, shown in the footer and on /reviews.
+export const REVIEW_STATS = {
+  count: REVIEWS.length,
+  average: REVIEWS.length ? Math.round((REVIEWS.reduce((sum, r) => sum + r.rating, 0) / REVIEWS.length) * 10) / 10 : 0,
+};

@@ -19,6 +19,7 @@ const BlogPostPage = named(() => import('./pages/BlogPages'), 'BlogPostPage');
 const SubjectsPage = named(() => import('./pages/SubjectsPage'), 'SubjectsPage');
 const ResourcesPage = named(() => import('./pages/ResourcesPage'), 'ResourcesPage');
 const ReviewsPage = named(() => import('./pages/ReviewsPage'), 'ReviewsPage');
+const PolicyPage = lazyPage(() => import('./pages/PolicyPages'));
 const ChatWidget = named(() => import('./components/ChatWidget'), 'ChatWidget');
 
 // Writer Pages
@@ -110,6 +111,12 @@ export default function App() {
                     <Route path="/subjects/:subject/:service/:project" element={<CatalogPage />} />
                     <Route path="/resources" element={<ResourcesPage />} />
                     <Route path="/reviews" element={<ReviewsPage />} />
+                    <Route path="/about" element={<PolicyPage />} />
+                    <Route path="/refund-policy" element={<PolicyPage />} />
+                    <Route path="/cancellation-policy" element={<PolicyPage />} />
+                    <Route path="/terms" element={<PolicyPage />} />
+                    <Route path="/privacy-policy" element={<PolicyPage />} />
+                    <Route path="/usage-policy" element={<PolicyPage />} />
                     <Route
                         path="/dashboard/receipt/:orderId"
                         element={<ProtectedRoute area="customer"><ReceiptPage /></ProtectedRoute>}

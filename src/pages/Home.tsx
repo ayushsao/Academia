@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { lazyPage } from '../lib/lazyPage';
 import { Calculator } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
@@ -94,6 +95,22 @@ export default function App() {
     }
     setOrderModalOpen(true);
   };
+
+  // Links like /#contact-us (e.g. from the footer on another page) scroll to
+  // that section once it has rendered; lazy sections can take a moment.
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (!hash) return;
+    let tries = 0;
+    const timer = setInterval(() => {
+      const el = document.getElementById(decodeURIComponent(hash.slice(1)));
+      if (el || ++tries > 20) {
+        clearInterval(timer);
+        el?.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 150);
+    return () => clearInterval(timer);
+  }, [hash]);
 
   const handleScrollToTimeline = () => {
     const el = document.getElementById('how-it-works-section');

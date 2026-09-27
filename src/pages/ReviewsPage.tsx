@@ -3,7 +3,7 @@ import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { OrderModal } from '../components/OrderModal';
 import { SignInModal } from '../components/SignInModal';
-import { REVIEWS } from '../data/mockData';
+import { REVIEWS, REVIEW_STATS } from '../data/mockData';
 import type { Review } from '../types';
 import {
   Star, ShieldCheck, CheckCircle2, Search, Filter, ThumbsUp, MessageSquarePlus, Award, GraduationCap, MapPin, Calendar, FileText, Check, X, ChevronDown, ArrowRight
@@ -161,8 +161,8 @@ export const ReviewsPage: React.FC = () => {
                                     <Star key={i} className="w-5 h-5 fill-current" />
                                 ))}
                             </div>
-                            <div className="text-3xl font-extrabold text-white">4.9 / 5.0</div>
-                            <div className="text-xs text-slate-400 font-medium mt-1">Based on 4,850+ ratings</div>
+                            <div className="text-3xl font-extrabold text-white">{REVIEW_STATS.average.toFixed(1)} / 5.0</div>
+                            <div className="text-xs text-slate-400 font-medium mt-1">Based on {REVIEW_STATS.count} {REVIEW_STATS.count === 1 ? 'rating' : 'ratings'}</div>
                         </div>
 
                         <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 text-center">

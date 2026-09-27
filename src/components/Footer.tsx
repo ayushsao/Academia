@@ -1,12 +1,78 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Phone, Mail, MessageCircle, ArrowUp } from 'lucide-react';
+import { Phone, Mail, MessageCircle } from 'lucide-react';
+import { REVIEW_STATS } from '../data/mockData';
 
 interface FooterProps {
   onOpenOrder?: () => void;
   onOpenSignIn?: () => void;
   onNavigate?: (sectionId: string) => void;
 }
+
+const PHONE_DISPLAY = '+91 92636 06941';
+const PHONE_TEL = 'tel:+919263606941';
+const WHATSAPP_URL = 'https://wa.me/919263606941';
+const SUPPORT_EMAIL = 'support@assignmentminds.com';
+
+// Paste each profile URL here; icons without a URL stay visible but do nothing.
+const SOCIAL_LINKS = {
+  facebook: '',
+  x: '',
+  instagram: '',
+  pinterest: '',
+  youtube: '',
+  linkedin: '',
+};
+
+const SERVICE_LINKS = [
+  { label: 'Do My Assignment', to: '/p/do-my-assignment' },
+  { label: 'Essay Writing Services', to: '/p/essay-help' },
+  { label: 'University Assignment', to: '/p/university-assignment-help' },
+  { label: 'Do My Homework', to: '/p/homework-help' },
+  { label: 'Dissertation Writing Services', to: '/p/dissertation-help' },
+  { label: 'Write My Assignment', to: '/p/write-my-assignment' },
+  { label: 'Coursework Help', to: '/p/coursework-help' },
+  { label: 'Thesis Help', to: '/p/thesis-help' },
+];
+
+const COMPANY_LINKS = [
+  { label: 'About Us', to: '/about' },
+  { label: 'Reviews', to: '/reviews' },
+  { label: 'Contact Us', to: '/#contact-us' },
+  { label: 'Blogs', to: '/blog' },
+  { label: 'Experts', to: '/hire-writers' },
+  { label: 'Samples', to: '/#samples' },
+  { label: 'Find a Writer', to: '/hire-writers' },
+];
+
+const COUNTRY_LINKS = [
+  { label: 'United States', to: '/p/assignment-help-usa' },
+  { label: 'Malaysia', to: '/p/assignment-help-malaysia' },
+  { label: 'Canada', to: '/p/assignment-help-canada' },
+  { label: 'New Zealand', to: '/p/assignment-help-new-zealand' },
+  { label: 'United Arab Emirates', to: '/p/assignment-help-uae' },
+];
+
+const POLICY_LINKS = [
+  { label: 'Refund Policy', to: '/refund-policy' },
+  { label: 'Cancellation Policy', to: '/cancellation-policy' },
+  { label: 'Terms & Conditions', to: '/terms' },
+  { label: 'Privacy Policy', to: '/privacy-policy' },
+  { label: 'Usage Policy', to: '/usage-policy' },
+];
+
+const linkClass = 'hover:text-white transition-colors';
+
+const SocialIcon: React.FC<{ href: string; label: string; className: string; children: React.ReactNode }> = ({ href, label, className, children }) => {
+  const base = `w-7 h-7 text-white flex items-center justify-center rounded-[3px] ${className}`;
+  return href
+    ? <a href={href} target="_blank" rel="noreferrer" aria-label={label} className={`${base} hover:opacity-90`}>{children}</a>
+    : <span aria-label={label} className={base}>{children}</span>;
+};
+
+const PaymentBadge: React.FC<{ className?: string; children: React.ReactNode }> = ({ className = '', children }) => (
+  <div className={`bg-white h-[22px] px-2 rounded-[2px] flex items-center justify-center font-bold text-[10px] ${className}`}>{children}</div>
+);
 
 export const Footer: React.FC<FooterProps> = () => {
   return (
@@ -21,14 +87,7 @@ export const Footer: React.FC<FooterProps> = () => {
           <div>
             <h4 className="font-bold text-white text-[15px] uppercase tracking-wide mb-6">Top Assignment Searches</h4>
             <ul className="flex flex-col gap-3.5 text-[13.5px] font-medium">
-              <li><a className="hover:text-white transition-colors" href="#">Do My Assignment</a></li>
-              <li><a className="hover:text-white transition-colors" href="#">Essay Writing Services</a></li>
-              <li><a className="hover:text-white transition-colors" href="#">University Assignment</a></li>
-              <li><a className="hover:text-white transition-colors" href="#">Do My Homework</a></li>
-              <li><a className="hover:text-white transition-colors" href="#">Dissertation Writing Services</a></li>
-              <li><a className="hover:text-white transition-colors" href="#">Write My Assignment</a></li>
-              <li><a className="hover:text-white transition-colors" href="#">Coursework Help</a></li>
-              <li><a className="hover:text-white transition-colors" href="#">Thesis Help</a></li>
+              {SERVICE_LINKS.map(l => <li key={l.to}><Link className={linkClass} to={l.to}>{l.label}</Link></li>)}
             </ul>
           </div>
 
@@ -36,14 +95,8 @@ export const Footer: React.FC<FooterProps> = () => {
           <div>
             <h4 className="font-bold text-white text-[15px] uppercase tracking-wide mb-6">Our Company</h4>
             <ul className="flex flex-col gap-3.5 text-[13.5px] font-medium">
-              <li><a className="hover:text-white transition-colors" href="#">About Us</a></li>
-              <li><Link className="hover:text-white transition-colors" to="/reviews">Reviews</Link></li>
-              <li><a className="hover:text-white transition-colors" href="#">Contact Us</a></li>
-              <li><a className="hover:text-white transition-colors" href="/blog">Blogs</a></li>
-              <li><a className="hover:text-white transition-colors" href="#">Experts</a></li>
-              <li><a className="hover:text-white transition-colors" href="#">Samples</a></li>
-              <li><a className="hover:text-white transition-colors" href="/hire-writers">Find a Writer</a></li>
-              <li><a className="hover:text-white transition-colors text-[#fea520]" href="/become-a-writer">Become a Writer</a></li>
+              {COMPANY_LINKS.map(l => <li key={l.label}><Link className={linkClass} to={l.to}>{l.label}</Link></li>)}
+              <li><Link className={`${linkClass} text-[#fea520]`} to="/become-a-writer">Become a Writer</Link></li>
             </ul>
           </div>
 
@@ -51,11 +104,7 @@ export const Footer: React.FC<FooterProps> = () => {
           <div>
             <h4 className="font-bold text-white text-[15px] uppercase tracking-wide mb-6">Assignment by Countries</h4>
             <ul className="flex flex-col gap-3.5 text-[13.5px] font-medium">
-              <li><a className="hover:text-white transition-colors" href="#">United States</a></li>
-              <li><a className="hover:text-white transition-colors" href="#">Malaysia</a></li>
-              <li><a className="hover:text-white transition-colors" href="#">Canada</a></li>
-              <li><a className="hover:text-white transition-colors" href="#">New Zealand</a></li>
-              <li><a className="hover:text-white transition-colors" href="#">United Arab Emirates</a></li>
+              {COUNTRY_LINKS.map(l => <li key={l.to}><Link className={linkClass} to={l.to}>{l.label}</Link></li>)}
             </ul>
           </div>
 
@@ -64,35 +113,31 @@ export const Footer: React.FC<FooterProps> = () => {
             <h4 className="font-bold text-white text-[15px] uppercase tracking-wide mb-6">Contact Us</h4>
 
             <ul className="flex flex-col gap-3.5 text-[13.5px] mb-6">
-              <li className="flex items-center gap-3">
-                <Phone className="w-4 h-4 shrink-0 text-white" />
-                <span className="hover:text-white cursor-pointer">+91 92636 06941</span>
+              <li>
+                <a href={PHONE_TEL} className={`flex items-center gap-3 ${linkClass}`}>
+                  <Phone className="w-4 h-4 shrink-0 text-white" /> {PHONE_DISPLAY}
+                </a>
               </li>
-              <li className="flex items-center gap-3">
-                <MessageCircle className="w-4 h-4 shrink-0 text-white" />
-                <span className="hover:text-white cursor-pointer">+91 92636 06941</span>
+              <li>
+                <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" className={`flex items-center gap-3 ${linkClass}`}>
+                  <MessageCircle className="w-4 h-4 shrink-0 text-white" /> {PHONE_DISPLAY}
+                </a>
               </li>
-              <li className="flex items-center gap-3">
-                <Mail className="w-4 h-4 shrink-0 text-white" />
-                <span className="hover:text-white cursor-pointer">support@assignmentminds.com</span>
+              <li>
+                <a href={`mailto:${SUPPORT_EMAIL}`} className={`flex items-center gap-3 ${linkClass}`}>
+                  <Mail className="w-4 h-4 shrink-0 text-white" /> {SUPPORT_EMAIL}
+                </a>
               </li>
             </ul>
 
             {/* Social Block */}
-            <div className="flex gap-2 mb-8">
-              <a href="#" className="w-7 h-7 bg-[#1877F2] text-white flex items-center justify-center rounded-[3px] hover:opacity-90">f</a>
-              <a href="#" className="w-7 h-7 bg-black text-white flex items-center justify-center rounded-[3px] hover:opacity-90 text-[12px] font-bold">X</a>
-              <a href="#" className="w-7 h-7 bg-gradient-to-tr from-[#fbc2eb] via-[#a18cd1] to-[#e44d26] text-white flex items-center justify-center rounded-[3px] hover:opacity-90 leading-none">ig</a>
-              <a href="#" className="w-7 h-7 bg-[#E60023] text-white flex items-center justify-center rounded-[3px] hover:opacity-90 text-[13px] font-semibold">P</a>
-              <a href="#" className="w-7 h-7 bg-[#FF0000] text-white flex items-center justify-center rounded-[3px] hover:opacity-90 text-[15px]">▶</a>
-              <a href="#" className="w-7 h-7 bg-[#0A66C2] text-white flex items-center justify-center rounded-[3px] hover:opacity-90 text-[12px] font-bold">in</a>
-            </div>
-
-            {/* App Block */}
-            <h5 className="font-bold text-white text-[14px] mb-3">Download App</h5>
-            <div className="flex gap-3">
-              <img loading="lazy" decoding="async" src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Google Play" className="h-[30px] border border-gray-600 rounded bg-black cursor-pointer" />
-              <img loading="lazy" decoding="async" src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" alt="App Store" className="h-[30px] rounded cursor-pointer border border-[#888]" />
+            <div className="flex gap-2">
+              <SocialIcon href={SOCIAL_LINKS.facebook} label="Facebook" className="bg-[#1877F2]">f</SocialIcon>
+              <SocialIcon href={SOCIAL_LINKS.x} label="X" className="bg-black text-[12px] font-bold">X</SocialIcon>
+              <SocialIcon href={SOCIAL_LINKS.instagram} label="Instagram" className="bg-gradient-to-tr from-[#fbc2eb] via-[#a18cd1] to-[#e44d26] leading-none">ig</SocialIcon>
+              <SocialIcon href={SOCIAL_LINKS.pinterest} label="Pinterest" className="bg-[#E60023] text-[13px] font-semibold">P</SocialIcon>
+              <SocialIcon href={SOCIAL_LINKS.youtube} label="YouTube" className="bg-[#FF0000] text-[15px]">▶</SocialIcon>
+              <SocialIcon href={SOCIAL_LINKS.linkedin} label="LinkedIn" className="bg-[#0A66C2] text-[12px] font-bold">in</SocialIcon>
             </div>
           </div>
 
@@ -104,52 +149,43 @@ export const Footer: React.FC<FooterProps> = () => {
         {/* Bottom Part 1: Links & Payments */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
           <div className="text-[13px] text-white font-medium flex flex-wrap gap-2.5">
-            <a href="#" className="hover:text-gray-300 transition-colors">Refund Policy</a>
-            <span className="text-gray-600">|</span>
-            <a href="#" className="hover:text-gray-300 transition-colors">Cancellation Policy</a>
-            <span className="text-gray-600">|</span>
-            <a href="#" className="hover:text-gray-300 transition-colors">Terms & Conditions</a>
-            <span className="text-gray-600">|</span>
-            <a href="#" className="hover:text-gray-300 transition-colors">Privacy Policy</a>
-            <span className="text-gray-600">|</span>
-            <a href="#" className="hover:text-gray-300 transition-colors">Usage Policy</a>
-            <span className="text-gray-600">|</span>
-            <a href="#" className="hover:text-gray-300 transition-colors">Sitemap</a>
+            {POLICY_LINKS.map(l => (
+              <React.Fragment key={l.to}>
+                <Link to={l.to} className="hover:text-gray-300 transition-colors">{l.label}</Link>
+                <span className="text-gray-600">|</span>
+              </React.Fragment>
+            ))}
+            <a href="/sitemap.xml" className="hover:text-gray-300 transition-colors">Sitemap</a>
           </div>
 
-          {/* Payment & Trust Badges */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {/* Simulated DMCA */}
-            <div className="flex mr-2">
-              <div className="bg-[#8ec252] text-white text-[10px] font-bold px-1.5 py-1 rounded-l border border-[#8ec252]">DMCA</div>
-              <div className="bg-[#222222] text-white text-[10px] font-bold px-1.5 py-1 rounded-r border border-l-0 border-[#222]">PROTECTED</div>
-            </div>
-            {/* Emulated Payment Icons */}
-            <div className="bg-white h-[22px] px-2 rounded-[2px] flex items-center justify-center font-bold text-[#003087] text-[10px] italic">PayPal</div>
-            <div className="bg-white h-[22px] px-2 rounded-[2px] flex items-center justify-center font-bold text-[#1a1f71] text-[10px] italic">VISA</div>
-            <div className="bg-white h-[22px] px-1.5 rounded-[2px] flex items-center justify-center">
-              <div className="flex relative items-center justify-center w-6 overflow-hidden">
-                <div className="w-3 h-3 bg-red-600 rounded-full opacity-90 absolute left-0"></div>
-                <div className="w-3 h-3 bg-yellow-400 rounded-full opacity-90 absolute left-2"></div>
-              </div>
-            </div>
-            <div className="bg-white h-[22px] px-2 rounded-[2px] flex items-center justify-center font-bold text-[#231f20] tracking-tighter text-[10px]">Maestro</div>
-            <div className="bg-white h-[22px] px-2 rounded-[2px] flex flex-col items-center justify-center font-bold text-[#006fcf] text-[6px] leading-[7px]"><span>AMERICAN</span><span>EXPRESS</span></div>
+          {/* Payment methods accepted through Razorpay */}
+          <div className="flex items-center gap-1.5 flex-wrap" aria-label="Accepted payment methods">
+            <PaymentBadge className="text-[#097939]">UPI</PaymentBadge>
+            <PaymentBadge className="text-[#1a1f71] italic">VISA</PaymentBadge>
+            <PaymentBadge className="px-1.5" >
+              <span className="flex relative items-center justify-center w-6 h-3 overflow-hidden" aria-label="Mastercard">
+                <span className="w-3 h-3 bg-[#eb001b] rounded-full opacity-90 absolute left-0.5" />
+                <span className="w-3 h-3 bg-[#f79e1b] rounded-full opacity-90 absolute left-2.5" />
+              </span>
+            </PaymentBadge>
+            <PaymentBadge className="text-[#1b3281] italic">RuPay</PaymentBadge>
           </div>
         </div>
 
         {/* Bottom Part 2: Disclaimer & Copyright */}
         <div className="flex flex-col gap-4 text-[#888] text-[12px] pr-0 xl:pr-32">
           <p className="leading-relaxed">
-            Disclaimer : Instant Assignment help offers custom assignment writing help to the students along with proofreading and editing services. We provide references of reliable resources which are for knowledge purpose only and cannot be used for direct submission in university.
+            Disclaimer: AssignmentMinds offers custom assignment writing help to students along with proofreading and editing services. We provide references of reliable resources which are for knowledge purposes only and cannot be used for direct submission in university.
           </p>
           <div className="flex flex-col md:flex-row justify-between pt-2 items-start md:items-center">
             <p className="text-white">
-              © Copyright 2026 @ AssignmentMinds. All Rights Reserved
+              © Copyright {new Date().getFullYear()} @ AssignmentMinds. All Rights Reserved
             </p>
-            <p className="text-white font-medium mt-2 md:mt-0">
-              Assignment Help Rated <span className="font-bold">4.8/5</span> based on <Link to="/reviews" className="underline decoration-yellow-500 underline-offset-2 hover:text-[#fea520] transition-colors">5768 Reviews</Link>
-            </p>
+            {REVIEW_STATS.count > 0 && (
+              <p className="text-white font-medium mt-2 md:mt-0">
+                Assignment Help Rated <span className="font-bold">{REVIEW_STATS.average.toFixed(1)}/5</span> based on <Link to="/reviews" className="underline decoration-yellow-500 underline-offset-2 hover:text-[#fea520] transition-colors">{REVIEW_STATS.count} {REVIEW_STATS.count === 1 ? 'Review' : 'Reviews'}</Link>
+              </p>
+            )}
           </div>
         </div>
 
