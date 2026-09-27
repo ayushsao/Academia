@@ -210,21 +210,32 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
 
           {user ? (
             <div className="relative group cursor-pointer">
-              <button onClick={() => navigate('/dashboard')} className="bg-[#000a1e] hover:bg-[#002147] text-white font-bold px-4 py-2.5 rounded text-sm shadow-sm transition-colors flex items-center gap-2">
-                <User className="w-4 h-4" />
-                <span className="max-w-[80px] truncate">{user.name.split(' ')[0]}</span>
+              <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-white/70 backdrop-blur-xl border border-black/[0.08] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.04)] hover:bg-white hover:shadow-[0_2px_6px_rgba(0,0,0,0.06),0_8px_24px_rgba(0,0,0,0.06)] active:scale-[0.97] transition-all duration-300 ease-out">
+                <span className="w-8 h-8 rounded-full bg-gradient-to-b from-[#1d2b45] to-[#000a1e] text-white text-[13px] font-semibold flex items-center justify-center ring-2 ring-white shadow-inner">
+                  {user.name.trim().charAt(0).toUpperCase()}
+                </span>
+                <span className="max-w-[90px] truncate text-[14px] font-medium tracking-[-0.01em] text-[#1d1d1f]">{user.name.split(' ')[0]}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-[#86868b] transition-transform duration-300 group-hover:rotate-180" />
               </button>
 
-              <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
-                  <p className="text-xs text-gray-500 font-semibold mb-0.5">Signed in as</p>
-                  <p className="text-sm font-bold text-[#000a1e] truncate">{user.email}</p>
-                </div>
-                <div onClick={() => navigate('/dashboard')} className="px-4 py-3 text-sm font-medium hover:bg-[#fea520]/10 hover:text-[#e36100] transition-colors cursor-pointer border-b border-gray-100">
-                  My Dashboard
-                </div>
-                <div onClick={() => { logout(); navigate('/'); }} className="px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors cursor-pointer flex items-center gap-2">
-                  <LogOut className="w-4 h-4" /> Log out
+              <div className="absolute top-full right-0 pt-2.5 w-64 opacity-0 invisible translate-y-1 scale-[0.98] origin-top-right group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:scale-100 transition-all duration-300 ease-out z-50">
+                <div className="bg-white/80 backdrop-blur-2xl backdrop-saturate-150 rounded-2xl border border-black/[0.06] shadow-[0_12px_48px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden p-1.5">
+                  <div className="flex items-center gap-3 px-3 py-3">
+                    <span className="w-10 h-10 shrink-0 rounded-full bg-gradient-to-b from-[#1d2b45] to-[#000a1e] text-white text-[15px] font-semibold flex items-center justify-center">
+                      {user.name.trim().charAt(0).toUpperCase()}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[14px] font-semibold tracking-[-0.01em] text-[#1d1d1f] truncate">{user.name}</p>
+                      <p className="text-[12px] text-[#86868b] truncate">{user.email}</p>
+                    </div>
+                  </div>
+                  <div className="h-px bg-black/[0.06] mx-2 my-1" />
+                  <div onClick={() => navigate('/dashboard')} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[14px] text-[#1d1d1f] hover:bg-black/[0.04] transition-colors cursor-pointer">
+                    <User className="w-4 h-4 text-[#86868b]" /> My Dashboard
+                  </div>
+                  <div onClick={() => { logout(); navigate('/'); }} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[14px] text-[#ff3b30] hover:bg-[#ff3b30]/[0.06] transition-colors cursor-pointer">
+                    <LogOut className="w-4 h-4" /> Log out
+                  </div>
                 </div>
               </div>
             </div>
