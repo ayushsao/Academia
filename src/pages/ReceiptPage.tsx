@@ -36,7 +36,7 @@ export function ReceiptPage() {
     }, [receipt]);
 
     return (
-        <div className="min-h-screen bg-[#f6f6fa] px-4 py-8 font-sans print:bg-white print:p-0 sm:py-12">
+        <div className="min-h-screen bg-[#f7f6f3] px-4 py-8 font-sans print:bg-white print:p-0 sm:py-12">
             {/* Print only the receipt sheet (no chat button or other floating widgets). */}
             <style>{'@page { size: A4; margin: 14mm; } @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } body * { visibility: hidden !important; } .receipt-sheet, .receipt-sheet * { visibility: visible !important; } .receipt-sheet { position: absolute; left: 0; top: 0; width: 100%; } }'}</style>
             <div className="mx-auto max-w-[820px]">
@@ -85,7 +85,7 @@ export function ReceiptPage() {
                             </section>
 
                             {/* Order */}
-                            <section className="mt-7 rounded-xl bg-[#f6f6fa] p-5 print:bg-[#f6f6fa]">
+                            <section className="mt-7 rounded-xl bg-[#f7f6f3] p-5 print:bg-[#f7f6f3]">
                                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6e6e73]">Order {receipt.order.orderId}</p>
                                 <p className="mt-1.5 text-lg font-semibold text-[#1d1d1f]">{receipt.order.topicTitle}</p>
                                 <p className="mt-1 text-sm text-[#6e6e73]">

@@ -15,7 +15,7 @@
   --color-secondary: #865300;
   --color-secondary-container: #fea520;
   --color-on-secondary-container: #694000;
-  --color-surface: #f6f6fa;
+  --color-surface: #f7f6f3;
   --color-surface-container-lowest: #ffffff;
   --color-surface-container-low: #eef4ff;
   --color-surface-container: #e4efff;
@@ -30,7 +30,7 @@
 
 body {
   font-family: var(--font-sans);
-  color: #2c2c2c;           /* dark grey text, softer than pure black */
+  color: #222222;           /* near-black text, softer than pure black */
   background-color: #ffffff;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -50,8 +50,15 @@ body {
 }
 
 .bg-dots {
-  background-image: radial-gradient(#d1e4ff 1.5px, transparent 1.5px);
+  background-image: radial-gradient(#f3dcc6 1.5px, transparent 1.5px);
   background-size: 24px 24px;
+}
+
+/* Warm brand-tinted section with a faint dot grid. */
+.section-tint {
+  background-color: #fff7f0;
+  background-image: radial-gradient(rgba(227, 97, 0, 0.09) 1.2px, transparent 1.2px);
+  background-size: 22px 22px;
 }
 
 .bg-mesh {

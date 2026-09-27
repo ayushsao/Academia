@@ -104,7 +104,7 @@ export function BlogIndexPage() {
     return (
         <Shell>{() => (
             <>
-                <section className="bg-[#f6f6fa] py-14 md:py-20">
+                <section className="bg-[#f7f6f3] py-14 md:py-20">
                     <div className="mx-auto max-w-6xl px-4 text-center">
                         <h1 className="text-[32px] font-bold tracking-tight text-[#1d1d1f] md:text-5xl">Blog</h1>
                         <p className="mx-auto mt-3 max-w-2xl text-[15px] text-[#6e6e73] md:text-lg">Study guides, writing tips and topic ideas from our academic experts.</p>
@@ -203,7 +203,7 @@ export function BlogPostPage() {
                                     {post.tags.map(t => <span key={t} className="rounded-full bg-[#f5f5f7] px-3 py-1 text-xs font-medium text-[#6e6e73]">{t}</span>)}
                                 </div>
                             )}
-                            <div className="mt-12 flex flex-col items-start gap-4 rounded-2xl bg-[#f6f6fa] p-6 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="mt-12 flex flex-col items-start gap-4 rounded-2xl bg-[#f7f6f3] p-6 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
                                     <p className="font-bold text-[#1d1d1f]">Need help with your assignment?</p>
                                     <p className="mt-1 text-sm text-[#6e6e73]">Get it written by a subject expert, on time.</p>
@@ -212,7 +212,7 @@ export function BlogPostPage() {
                             </div>
                         </div>
                         {related.length > 0 && (
-                            <section className="bg-[#f6f6fa] py-12 md:py-16">
+                            <section className="bg-[#f7f6f3] py-12 md:py-16">
                                 <div className="mx-auto max-w-6xl px-4">
                                     <div className="mb-6 flex items-center justify-between">
                                         <h2 className="text-2xl font-bold text-[#1d1d1f]">Related articles</h2>
