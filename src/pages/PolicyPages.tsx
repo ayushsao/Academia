@@ -118,7 +118,7 @@ export default function PolicyPage() {
     const { pathname } = useLocation();
     const doc = POLICIES[pathname];
     useEffect(() => { if (doc) document.title = `${doc.title} | AssignmentMinds`; }, [doc]);
-    useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+    useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, [pathname]);
     if (!doc) return null;
     const isAbout = pathname === '/about';
 

@@ -163,7 +163,7 @@ export function BlogPostPage() {
         const ctrl = new AbortController();
         setState('loading');
         api<{ post: BlogPostData; related: BlogCard[] }>(`/blog/${encodeURIComponent(slug.toLowerCase())}`, { signal: ctrl.signal })
-            .then(r => { setPost(r.post); setRelated(r.related); setState('ready'); window.scrollTo(0, 0); })
+            .then(r => { setPost(r.post); setRelated(r.related); setState('ready'); window.scrollTo({ top: 0, behavior: 'instant' }); })
             .catch(e => { if (e?.name === 'AbortError') return; setState(e instanceof ApiError && e.status === 404 ? 'missing' : 'error'); });
         return () => ctrl.abort();
     }, [slug]);

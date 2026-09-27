@@ -31,7 +31,7 @@ export function CatalogPage() {
             : service ? `/catalog/pages/service/${seg(subject)}/${seg(service)}` : `/catalog/pages/subject/${seg(subject)}`;
         setState('loading');
         api<{ page: CatalogPageData }>(path, { signal: ctrl.signal })
-            .then(r => { setPage(r.page); setState('ready'); window.scrollTo(0, 0); })
+            .then(r => { setPage(r.page); setState('ready'); window.scrollTo({ top: 0, behavior: 'instant' }); })
             .catch(e => { if (e?.name === 'AbortError') return; setPage(null); setState(e instanceof ApiError && e.status === 404 ? 'missing' : 'error'); });
         return () => ctrl.abort();
     }, [subject, service, project, attempt]);

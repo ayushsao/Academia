@@ -1,5 +1,5 @@
-import React, { Suspense, useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { Suspense, useEffect, useLayoutEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigationType } from 'react-router-dom';
 import Home from './pages/Home';
 import { useStore } from './store/useStore';
 import { lazyPage, PageErrorBoundary } from './lib/lazyPage';
@@ -94,10 +94,24 @@ function SearchIndexing() {
     return null;
 }
 
+// A new page opens at the top straight away, without the smooth scroll animation
+// back up from where the last page was. Back/forward keeps the browser's position,
+// and links to a section (/#contact-us) are scrolled by that page.
+function ScrollToTop() {
+    const { pathname, hash } = useLocation();
+    const navigationType = useNavigationType();
+    useLayoutEffect(() => {
+        if (navigationType === 'POP' || hash) return;
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }, [pathname]);
+    return null;
+}
+
 export default function App() {
     return (
         <BrowserRouter>
             <SearchIndexing />
+            <ScrollToTop />
             <PageErrorBoundary>
             <Suspense fallback={<PageLoader />}>
                 <Routes>

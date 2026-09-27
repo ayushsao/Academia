@@ -297,7 +297,7 @@ export const DynamicPage: React.FC = () => {
         };
 
     useEffect(() => {
-        window.scrollTo(0, 0);
+        window.scrollTo({ top: 0, behavior: 'instant' });
         setToolInput('');
         setToolOutput('');
         setToolError('');
