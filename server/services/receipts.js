@@ -78,7 +78,7 @@ export async function receiptView(order) {
         total: paid,
         currency,
         method: provider === 'RAZORPAY' ? 'Online payment (card / UPI via Razorpay)'
-            : provider === 'WHATSAPP' ? 'Arranged on WhatsApp (confirmed by our team)'
+            : provider === 'WHATSAPP' ? 'Paid via WhatsApp (reference verified by our team)'
             : 'Manual payment (UPI / PayPal / bank transfer)',
         reference: order.payment?.providerPaymentId || order.transactionId || '',
     };

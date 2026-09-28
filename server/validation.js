@@ -81,6 +81,11 @@ export const orderSchema = z.object({
 // POST /api/orders/checkout — same order details, paid online (no manual reference).
 export const orderCheckoutSchema = orderSchema.omit({ transactionId: true });
 
+// POST /api/orders/:id/payment-reference — the customer's reference for a payment made on WhatsApp.
+export const paymentReferenceSchema = z.object({
+    reference: z.string().trim().min(4, 'Enter the payment reference / UTR / transaction ID').max(120),
+}).strict();
+
 // POST /api/orders/coupon — check a coupon code before ordering.
 export const couponCheckSchema = z.object({ code: z.string().trim().min(1, 'Enter a coupon code').max(40) }).strict();
 

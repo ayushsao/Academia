@@ -453,7 +453,9 @@ const OrderDetailDrawer = ({
                     {order.payment?.status !== 'PAID' && (
                         <div className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
                             <p className="text-xs text-gray-500">{order.payment?.provider === 'WHATSAPP'
-                                ? 'Customer is paying on WhatsApp. Confirm once the money has arrived; this issues their receipt.'
+                                ? (order.transactionId
+                                    ? `Customer paid on WhatsApp and sent reference ${order.transactionId}. Check it against your UPI/bank statement, then confirm; this issues their receipt.`
+                                    : 'Customer is paying on WhatsApp and hasn’t sent a payment reference yet. Confirm once the money has arrived; this issues their receipt.')
                                 : `Checked the payment reference${order.transactionId ? ` (${order.transactionId})` : ''}? Confirming it issues the customer's receipt.`}</p>
                             <div className="flex shrink-0 gap-2">
                                 {order.payment?.status !== 'FAILED' && (

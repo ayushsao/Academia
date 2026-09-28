@@ -23,6 +23,7 @@ import type { CatalogOrderContext, PublicPricing, PublicQuote } from '../lib/cat
 import { openRazorpayCheckout } from '../lib/razorpay';
 import { useOrderQuote, SPACING_OPTIONS, DEFAULT_SPACING, pagesFor, deadlineAtFrom, type OrderQuote, type Spacing, localDateString } from '../lib/orderQuote';
 import { computeCharges, chargeRows, toMinor, TAX_PERCENT, type Charges, type Coupon, type PayChannel } from '../lib/charges';
+import { WhatsAppPaymentReference } from './WhatsAppPaymentReference';
 
 // Orders arranged on WhatsApp go to this number (no tax; the team confirms payment there).
 const WHATSAPP_NUMBER = '919263606941';
@@ -1305,6 +1306,12 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1ebe5b] text-white px-6 py-3 rounded-xl font-bold text-sm transition-colors">
                   <MessageCircle className="w-4 h-4" /> Open WhatsApp
                 </a>
+              )}
+
+              {payChannel === 'WHATSAPP' && placedCharges && orderNumber && (
+                <div className="max-w-md mx-auto">
+                  <WhatsAppPaymentReference orderId={orderNumber} />
+                </div>
               )}
 
               <div className="pt-4 flex flex-col sm:flex-row justify-center gap-3">

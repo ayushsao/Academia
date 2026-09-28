@@ -3,6 +3,7 @@ import { useStore } from '../store/useStore';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogOut, LayoutDashboard, List, Coins, Layers, Plus, Bookmark, Wallet, Bell, MessageCircle, ChevronRight, User, FileText, CheckCircle, Clock, Home, Paperclip, Download, Star, Send, ArrowDown, Eye, Package } from 'lucide-react';
 import { OrderModal } from '../components/OrderModal';
+import { WhatsAppPaymentReference } from '../components/WhatsAppPaymentReference';
 import { AcademiaLogo } from '../components/AcademiaLogo';
 
 import { API } from '../lib/api';
@@ -470,7 +471,15 @@ export const Dashboard: React.FC = () => {
                                                                 ) : (order as any).payment?.status === 'FAILED' ? (
                                                                     <span className="text-[10px] sm:text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded border border-red-100" title="We couldn’t confirm this payment. Contact support.">FAILED</span>
                                                                 ) : order.totalAmount > 0 ? (
-                                                                    <span className="text-[10px] sm:text-xs font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-100" title={(order as any).payment?.provider === 'WHATSAPP' ? 'Confirm your payment with our team on WhatsApp' : 'We’re checking your payment'}>PENDING</span>
+                                                                    <div className="flex flex-col items-start gap-1.5">
+                                                                        <span className="text-[10px] sm:text-xs font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-100" title={(order as any).payment?.provider === 'WHATSAPP' ? 'Confirm your payment with our team on WhatsApp' : 'We’re checking your payment'}>PENDING</span>
+                                                                        {(order as any).payment?.provider === 'WHATSAPP' && (
+                                                                            <div className="w-56" onClick={(e) => e.stopPropagation()}>
+                                                                                <WhatsAppPaymentReference compact orderId={oid} initialReference={(order as any).transactionId || ''}
+                                                                                    onSaved={(updated) => setOrders(orders.map(o => (o as any).orderId === oid ? { ...o, ...updated } : o))} />
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
                                                                 ) : (
                                                                     <span className="text-[10px] sm:text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">FREE</span>
                                                                 )}

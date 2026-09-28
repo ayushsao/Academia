@@ -4,7 +4,7 @@ import { issueReceipt, receiptView, isPaid } from '../services/receipts.js';
 import { Order, CatalogSubject, CatalogService, CatalogProject } from '../db.js';
 import { authenticateUser } from '../middleware.js';
 import { rateLimit } from 'express-rate-limit';
-import { validateInput, orderSchema, orderQuoteSchema, orderCheckoutSchema, razorpayVerifySchema, couponCheckSchema, checkoutFailedSchema } from '../validation.js';
+import { validateInput, orderSchema, orderQuoteSchema, orderCheckoutSchema, razorpayVerifySchema, couponCheckSchema, checkoutFailedSchema, paymentReferenceSchema } from '../validation.js';
 import { findCoupon, computeCharges, CouponError, TAX_PERCENT } from '../services/charges.js';
 import { quoteByWords, publicQuote, publicWordPricing, WordPricingError, SPACING } from '../services/wordPricing.js';
 import { ownedFileNames, streamOrderFile, customerCanAccess, receiveOrderFiles, storeOrderUploads } from '../services/orderFiles.js';
@@ -197,6 +197,28 @@ router.post('/whatsapp', authenticateUser, validateInput(orderCheckoutSchema), a
         const order = await createOrderRecord({ ...fields, payment: { provider: 'WHATSAPP', status: 'PENDING_VERIFICATION' } });
         res.status(201).json({ order: clientOrderView(order) });
     } catch (err) { orderError(res, err, 'Failed to create order.'); }
+});
+
+// POST /api/orders/:id/payment-reference — the customer paid on WhatsApp and
+// sends the payment reference. It is checked by an admin, who then confirms the
+// payment (Mark payment received), which issues the receipt.
+const referenceLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { error: 'Too many attempts. Please try again later.' } });
+router.post('/:id/payment-reference', referenceLimiter, authenticateUser, validateInput(paymentReferenceSchema), async (req, res) => {
+    try {
+        const order = await Order.findOne({ orderId: req.params.id, userId: req.user.id });
+        if (!order) return res.status(404).json({ error: 'Order not found.' });
+        if (order.payment?.status === 'PAID') return res.status(409).json({ error: 'This payment is already confirmed.' });
+        if (order.payment?.provider !== 'WHATSAPP') return res.status(400).json({ error: 'Payment references are only needed for orders paid on WhatsApp.' });
+        const reference = req.body.reference;
+        const escaped = reference.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        if (await Order.exists({ _id: { $ne: order._id }, transactionId: new RegExp(`^${escaped}$`, 'i') }))
+            return res.status(409).json({ error: 'This reference is already used for another order. Check it and try again.' });
+        order.transactionId = reference;
+        order.payment = { ...(order.payment?.toObject?.() || {}), provider: 'WHATSAPP', status: 'PENDING_VERIFICATION', failedAt: undefined, failureReason: undefined };
+        order.paymentStatus = 'pending';
+        await order.save();
+        res.json({ order: clientOrderView(order) });
+    } catch (err) { orderError(res, err, 'Could not save the payment reference.'); }
 });
 
 // ── Online payment (Razorpay) ──────────────────────────────────────────────────
