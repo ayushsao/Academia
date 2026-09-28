@@ -19,8 +19,8 @@ export function formatMoney(minor: number, currency: string, opts: { compact?: b
 
 // Order totals are stored in major units; orders without a currency are legacy GBP orders.
 export function formatOrderTotal(amount: number, currency?: string) {
-    if (!currency || currency === 'GBP') return `£${amount}`;
-    try { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(amount); } catch { return `${amount} ${currency}`; }
+    const code = currency || 'GBP';
+    try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: code }).format(amount); } catch { return `${amount} ${code}`; }
 }
 
 export const currencyName = (code: string) => {

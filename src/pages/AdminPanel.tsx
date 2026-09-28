@@ -28,7 +28,20 @@ import AdminPasswordDialog from './marketplace/admin/AdminPasswordDialog';
 import { AdminLogin, AdminSecurityDialog, restoreAdminSession, signOutAdmin } from './marketplace/admin/AdminAuth';
 
 import { API } from '../lib/api';
-import { formatOrderTotal } from '../lib/money';
+import { formatOrderTotal, formatMoney } from '../lib/money';
+import { chargeRows, paymentState, type Charges } from '../lib/charges';
+
+// Payment status for admins: Paid, Failed or Pending.
+const PAYMENT_BADGE = {
+    PAID: { label: 'Paid', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+    FAILED: { label: 'Failed', className: 'bg-red-50 text-red-600 border-red-200' },
+    PENDING: { label: 'Pending', className: 'bg-amber-50 text-amber-700 border-amber-200' },
+} as const;
+const PaymentBadge = ({ payment }: { payment?: { status?: string } | null }) => {
+    const b = PAYMENT_BADGE[paymentState(payment)];
+    return <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold ${b.className}`}>{b.label}</span>;
+};
+const PROVIDER_LABEL: Record<string, string> = { RAZORPAY: 'Razorpay', MANUAL: 'Manual (UPI / PayPal)', WHATSAPP: 'WhatsApp' };
 
 // ─── API helpers ─────────────────────────────────────────────────────────────
 async function apiFetch(path: string, opts: RequestInit = {}, token?: string) {
@@ -72,7 +85,8 @@ interface Order {
     adminApproved?: boolean; adminApprovedAt?: string;
     adminNotes?: string; revisionNote?: string; transactionId?: string; writerId?: string | null;
     deliveryFiles?: { _id: string; originalName: string; mimeType?: string; size: number; uploadedAt: string; version: number }[];
-    submittedAt?: string; completedAt?: string; feedback?: { rating: number; comment?: string; createdAt: string }; payment?: { provider: 'RAZORPAY' | 'MANUAL'; status: 'PAID' | 'PENDING_VERIFICATION'; providerPaymentId?: string; amountMinor?: number; currency?: string }; createdAt: string; updatedAt: string;
+    submittedAt?: string; completedAt?: string; feedback?: { rating: number; comment?: string; createdAt: string }; payment?: { provider: 'RAZORPAY' | 'MANUAL' | 'WHATSAPP'; status: 'PAID' | 'PENDING_VERIFICATION' | 'FAILED'; providerPaymentId?: string; amountMinor?: number; currency?: string; failureReason?: string }; createdAt: string; updatedAt: string;
+    charges?: Charges;
 }
 interface User { _id: string; name: string; email: string; role: string; createdAt: string; lastLogin?: string; order_count: number; total_spent: number; }
 interface Contact { _id: string; name: string; email: string; phone?: string; subject: string; message: string; status: string; createdAt: string; }
@@ -276,6 +290,16 @@ const OrderDetailDrawer = ({
         } catch (e: any) { alert(e.message || 'Could not confirm the payment.'); }
         finally { setConfirmingPayment(false); }
     };
+    const markPaymentFailed = async () => {
+        const reason = prompt(`Mark the payment for ${order.orderId} as failed? Add a short reason (optional):`, '');
+        if (reason === null) return;
+        setConfirmingPayment(true);
+        try {
+            const data = await apiFetch(`/order-workflow/admin/payment/${order.orderId}/failed`, { method: 'POST', body: JSON.stringify({ reason }) }, token);
+            onUpdate({ ...order, payment: data.payment } as any);
+        } catch (e: any) { alert(e.message || 'Could not update the payment.'); }
+        finally { setConfirmingPayment(false); }
+    };
 
     const handleReleaseToWriters = async () => {
         if (!confirm(`Approve order ${order.orderId}? Writers with an active plan can then bid on it.`)) return;
@@ -413,7 +437,7 @@ const OrderDetailDrawer = ({
                                 ['Word Count', order.wordCount ? `${order.wordCount.toLocaleString()} words` : 'Not recorded'],
                                 ['Deadline', order.deadline],
                                 ['Total Amount', formatOrderTotal(order.totalAmount, order.currency)],
-                                ['Payment', order.payment?.status === 'PAID' ? (order.payment.provider === 'RAZORPAY' ? 'Paid online · Razorpay (verified by server)' : 'Paid · manual payment confirmed') : 'Manual — verify the reference before starting work'],
+                                ['Payment', `${PAYMENT_BADGE[paymentState(order.payment)].label} · ${PROVIDER_LABEL[order.payment?.provider || 'MANUAL']}${order.payment?.status === 'PAID' && order.payment.provider === 'RAZORPAY' ? ' (verified by server)' : ''}${order.payment?.status === 'FAILED' && order.payment.failureReason ? ` — ${order.payment.failureReason}` : ''}`],
                                 ...(order.receipt?.number ? [['Receipt', order.receipt.number]] : []),
                                 ['Transaction ID', order.transactionId || 'Not Provided'],
                                 ...(order.writerPayout ? [['Writer Payout', `${order.writerPayout.currency} ${order.writerPayout.amount}`]] : []),
@@ -428,11 +452,36 @@ const OrderDetailDrawer = ({
 
                     {order.payment?.status !== 'PAID' && (
                         <div className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
-                            <p className="text-xs text-gray-500">Checked the payment reference{order.transactionId ? ` (${order.transactionId})` : ''}? Confirming it issues the customer's receipt.</p>
-                            <button type="button" disabled={confirmingPayment} onClick={confirmPayment}
-                                className="shrink-0 rounded-xl bg-[#000a1e] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#002147] disabled:opacity-50">
-                                {confirmingPayment ? 'Confirming…' : 'Mark payment received'}
-                            </button>
+                            <p className="text-xs text-gray-500">{order.payment?.provider === 'WHATSAPP'
+                                ? 'Customer is paying on WhatsApp. Confirm once the money has arrived; this issues their receipt.'
+                                : `Checked the payment reference${order.transactionId ? ` (${order.transactionId})` : ''}? Confirming it issues the customer's receipt.`}</p>
+                            <div className="flex shrink-0 gap-2">
+                                {order.payment?.status !== 'FAILED' && (
+                                    <button type="button" disabled={confirmingPayment} onClick={markPaymentFailed}
+                                        className="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-50">
+                                        Mark failed
+                                    </button>
+                                )}
+                                <button type="button" disabled={confirmingPayment} onClick={confirmPayment}
+                                    className="rounded-xl bg-[#000a1e] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#002147] disabled:opacity-50">
+                                    {confirmingPayment ? 'Saving…' : 'Mark payment received'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* What the customer pays: Subtotal → Coupon Discount → Tax → Final Total */}
+                    {order.charges?.totalMinor != null && (
+                        <div className="bg-white rounded-2xl border border-gray-100 p-4" data-testid="order-charges">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Price Breakdown · {order.charges.channel === 'WHATSAPP' ? 'WhatsApp order' : 'Normal payment'}</p>
+                            <dl className="space-y-1.5 text-sm">
+                                {chargeRows(order.charges).map(r => (
+                                    <div key={r.key} className={`flex justify-between ${r.key === 'total' ? 'border-t border-gray-100 pt-1.5' : ''}`}>
+                                        <dt className={r.key === 'total' ? 'font-semibold text-[#000a1e]' : 'text-gray-500'}>{r.label}</dt>
+                                        <dd className={r.key === 'total' ? 'font-bold text-[#000a1e]' : 'font-semibold text-[#000a1e]'}>{r.minor < 0 ? '−' : ''}{formatMoney(Math.abs(r.minor), order.charges!.currency)}</dd>
+                                    </div>
+                                ))}
+                            </dl>
                         </div>
                     )}
 
@@ -792,7 +841,13 @@ const OrdersTab = ({ token }: { token: string }) => {
                                                 <div className="text-gray-400 text-xs">{order.service}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-gray-600 font-medium">{order.deadline}</td>
-                                            <td className="px-6 py-4 font-extrabold text-[#000a1e] whitespace-nowrap">{formatOrderTotal(order.totalAmount, order.currency)}</td>
+                                            <td className="px-6 py-4 font-extrabold text-[#000a1e] whitespace-nowrap">
+                                                {formatOrderTotal(order.totalAmount, order.currency)}
+                                                <div className="mt-1.5 flex items-center gap-1.5">
+                                                    <PaymentBadge payment={order.payment} />
+                                                    {order.payment?.provider === 'WHATSAPP' && <span className="text-[10px] font-semibold text-gray-400">WhatsApp</span>}
+                                                </div>
+                                            </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <StatusBadge status={order.status} />
                                                 {order.adminApproved ? (
@@ -831,10 +886,89 @@ const OrdersTab = ({ token }: { token: string }) => {
                     </div>
                 )}
             </div>
+            <PaymentAttempts token={token} />
             {selected && (
                 <OrderDetailDrawer order={selected} token={token} onClose={() => setSelected(null)}
                     onUpdate={(updated) => { setOrders(prev => prev.map(o => o.orderId === updated.orderId ? updated : o)); setSelected(updated); }} />
             )}
+        </div>
+    );
+};
+
+// ─── Online payment attempts (Razorpay checkout / UPI QR) ────────────────────
+// An order exists only once an online payment succeeds, so failed and unfinished
+// attempts are listed here with the customer, amount and reason.
+type PaymentAttempt = {
+    id: string; status: 'PAID' | 'FAILED' | 'PENDING'; method: string;
+    customer: { name: string; email: string }; amountMinor: number; currency: string;
+    topicTitle: string; service: string; couponCode: string;
+    failedAttempts: number; lastFailure: { reason: string; at: string } | null;
+    orderId: string | null; createdAt: string; updatedAt: string;
+};
+const PaymentAttempts = ({ token }: { token: string }) => {
+    const [filter, setFilter] = useState<'FAILED' | 'PENDING' | 'PAID' | 'ALL'>('FAILED');
+    const [rows, setRows] = useState<PaymentAttempt[] | null>(null);
+    const [error, setError] = useState('');
+    useEffect(() => {
+        setRows(null); setError('');
+        apiFetch(`/order-workflow/admin/payment-attempts${filter === 'ALL' ? '' : `?status=${filter}`}`, {}, token)
+            .then(d => setRows(d.attempts))
+            .catch(e => setError(e.message || 'Could not load payment attempts.'));
+    }, [filter, token]);
+    return (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex flex-col gap-3 px-6 py-4 border-b border-gray-100 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h3 className="font-bold text-[#000a1e]">Online Payment Attempts</h3>
+                    <p className="text-xs text-gray-400">Razorpay and UPI QR payments. Unpaid attempts are kept for 7 days.</p>
+                </div>
+                <div className="flex gap-1.5">
+                    {(['FAILED', 'PENDING', 'PAID', 'ALL'] as const).map(f => (
+                        <button key={f} type="button" onClick={() => setFilter(f)}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${filter === f ? 'bg-[#000a1e] text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
+                            {f === 'ALL' ? 'All' : PAYMENT_BADGE[f].label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+            {error ? <p className="px-6 py-8 text-center text-sm text-red-600">{error}</p>
+                : !rows ? <div className="flex justify-center py-10"><div className="w-7 h-7 border-4 border-gray-200 border-t-[#fea520] rounded-full animate-spin" /></div>
+                : rows.length === 0 ? <p className="px-6 py-8 text-center text-sm text-gray-400">No payment attempts here.</p>
+                : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="bg-gray-50 border-b border-gray-100">
+                                    {['Customer', 'Order', 'Amount', 'Status', 'Updated'].map(h => (
+                                        <th key={h} className="text-left px-6 py-3 text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {rows.map(r => (
+                                    <tr key={r.id}>
+                                        <td className="px-6 py-4">
+                                            <div className="font-semibold text-[#000a1e] truncate max-w-[160px]">{r.customer.name || '—'}</div>
+                                            {r.customer.email && <a href={`mailto:${r.customer.email}`} className="text-gray-400 text-xs truncate max-w-[160px] block hover:text-[#002147]">{r.customer.email}</a>}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="font-semibold text-[#000a1e] truncate max-w-[180px]">{r.topicTitle || r.service || '—'}</div>
+                                            <div className="text-gray-400 text-xs">{r.orderId ? r.orderId : r.method}{r.couponCode ? ` · ${r.couponCode}` : ''}</div>
+                                        </td>
+                                        <td className="px-6 py-4 font-extrabold text-[#000a1e] whitespace-nowrap">{formatMoney(r.amountMinor, r.currency)}</td>
+                                        <td className="px-6 py-4">
+                                            <PaymentBadge payment={{ status: r.status === 'PENDING' ? 'PENDING_VERIFICATION' : r.status }} />
+                                            {r.status === 'FAILED' && r.lastFailure && (
+                                                <div className="mt-1 text-[11px] text-gray-500 max-w-[220px]">{r.lastFailure.reason}{r.failedAttempts > 1 ? ` (${r.failedAttempts} tries)` : ''}</div>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">{new Date(r.updatedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
         </div>
     );
 };

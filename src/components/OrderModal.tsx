@@ -10,7 +10,8 @@ import {
   Award,
   CreditCard,
   AlertCircle,
-  Loader2
+  Loader2,
+  MessageCircle,
 } from 'lucide-react';
 import { ServiceType, SubjectType } from '../types';
 import { useStore } from '../store/useStore';
@@ -21,6 +22,10 @@ import { formatMoney, fromMinor } from '../lib/money';
 import type { CatalogOrderContext, PublicPricing, PublicQuote } from '../lib/catalogContent';
 import { openRazorpayCheckout } from '../lib/razorpay';
 import { useOrderQuote, SPACING_OPTIONS, DEFAULT_SPACING, pagesFor, deadlineAtFrom, type OrderQuote, type Spacing, localDateString } from '../lib/orderQuote';
+import { computeCharges, chargeRows, toMinor, TAX_PERCENT, type Charges, type Coupon, type PayChannel } from '../lib/charges';
+
+// Orders arranged on WhatsApp go to this number (no tax; the team confirms payment there).
+const WHATSAPP_NUMBER = '919263606941';
 
 // UPI (rupee orders) is paid with a Razorpay QR made for the order: its amount is
 // fixed, so it can't be changed in the UPI app, and the order is confirmed
@@ -104,6 +109,18 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [razorpayError, setRazorpayError] = useState<string>('');
   const [isPaymentVerified, setIsPaymentVerified] = useState(false);
 
+  // Coupon (checked by the server, applied again when the order is placed) and
+  // how the customer pays: normal payment (with tax) or on WhatsApp (no tax).
+  const [couponInput, setCouponInput] = useState('');
+  const [coupon, setCoupon] = useState<Coupon | null>(null);
+  const [couponMsg, setCouponMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [couponBusy, setCouponBusy] = useState(false);
+  const [payChannel, setPayChannel] = useState<PayChannel>('STANDARD');
+  const [whatsappUrl, setWhatsappUrl] = useState('');
+  const [isWhatsappSubmitting, setIsWhatsappSubmitting] = useState(false);
+  // The breakdown the server saved with the placed order (shown on the confirmation).
+  const [placedCharges, setPlacedCharges] = useState<Charges | null>(null);
+
   // UPI QR for this order (locked amount).
   const [upiQr, setUpiQr] = useState<{ qrId: string; imageUrl: string; amount: number; expiresAt: number; status: 'waiting' | 'expired' } | null>(null);
   const [upiQrBusy, setUpiQrBusy] = useState(false);
@@ -151,6 +168,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       setIsPaymentVerified(false);
       setRazorpayError('');
       setIsRazorpayLoading(false);
+      setCouponInput(''); setCoupon(null); setCouponMsg(null);
+      setPayChannel('STANDARD'); setWhatsappUrl(''); setPlacedCharges(null);
       if (initialConfig?.fileObjects && initialConfig.fileObjects.length > 0) {
         setActualFileObjects(initialConfig.fileObjects);
         setFiles(initialConfig.fileObjects.map(f => f.name));
@@ -232,21 +251,26 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   // The quote shown on this form: the current one, or the last one while a changed input is re-quoted.
   const stdQuote = std.quote;
   const shownStd = std.quote || (words >= 1 ? std.lastQuote : null);
-  const sym = shownStd?.symbol || '£';
   const grandTotal = shownStd?.total ?? 0;
   // Pricing is by words only: these extras are included at no charge.
   const addOnLabel = (_key: string) => 'Included';
-  // What the customer sees and pays (catalogue: the server quote in its own currency).
-  const catTotal = catQuote ? fromMinor(catQuote.totalMinor, catQuote.currency) : 0;
-  const totalLabel = catMode ? (catQuote ? formatMoney(catQuote.totalMinor, catQuote.currency) : '—') : `${sym} ${grandTotal}`;
+  // What the customer pays: the quoted price (catalogue: the server quote in its
+  // own currency) is the subtotal; the coupon and tax for the chosen way of
+  // paying are applied on top. The server works this out again for the order.
+  const priceCurrency = catMode ? (catQuote?.currency || catCurrency || 'GBP') : (shownStd?.currency || quoteCurrency);
+  const hasPrice = catMode ? !!catQuote : !!shownStd;
+  const charges = computeCharges(catMode ? (catQuote?.totalMinor ?? 0) : toMinor(grandTotal, priceCurrency), priceCurrency, coupon, payChannel);
+  const money = (minor: number) => formatMoney(minor, priceCurrency);
+  const totalLabel = hasPrice ? money(charges.totalMinor) : '—';
+  const finalMajor = fromMinor(charges.totalMinor, priceCurrency);
   // UPI takes rupees: offered for rupee prices; other currencies pay by card or PayPal.
   const showUpi = catMode ? catQuote?.currency === 'INR' : quoteCurrency === 'INR';
   const showPaypal = catMode ? (!!catQuote && catQuote.currency !== 'INR') : quoteCurrency !== 'INR';
-  const upiAmount = catMode ? catTotal : grandTotal;
+  const upiAmount = finalMajor;
   // Rupee orders pay by the order's own UPI QR (no reference needed) unless it isn't available.
   const upiQrMode = showUpi && !upiQrUnavailable;
   const upiSecondsLeft = upiQr ? Math.max(0, Math.round((upiQr.expiresAt - nowTick) / 1000)) : 0;
-  const paypalAmount = catMode ? `${catTotal}${catQuote?.currency || ''}` : `${grandTotal}${shownStd?.currency || 'GBP'}`;
+  const paypalAmount = `${finalMajor}${priceCurrency}`;
   // Ready to order only when the price shown is the quote for exactly these inputs.
   const quoteReady = catMode ? !!catQuote : !!stdQuote;
   const orderSubject = catMode ? catalog!.subjectName : subject;
@@ -356,7 +380,33 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     // The accepted quote: the server re-prices and refuses (409) if it no longer matches.
     ...(!catMode && stdQuote && { quote: { currency: stdQuote.currency, total: stdQuote.total, words: stdQuote.words } }),
     ...(catMode && catIds && catQuote && { catalog: { ...catIds, words: catWords, spacing: catSpacing, currency: catCurrency, quotedTotalMinor: catQuote.totalMinor } }),
+    ...(coupon && { couponCode: coupon.code }),
   });
+
+  // Coupon: the server says whether the code is valid; the discount is shown
+  // here and applied again by the server when the order is placed.
+  const applyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) { setCouponMsg({ ok: false, text: 'Enter a coupon code.' }); return; }
+    setCouponBusy(true);
+    setCouponMsg(null);
+    try {
+      const { coupon: found } = await api<{ coupon: Coupon }>('/orders/coupon', { method: 'POST', body: { code } });
+      setCoupon(found);
+      setCouponInput(found.code);
+      setCouponMsg({ ok: true, text: `Coupon applied: ${found.percent}% off the subtotal.` });
+    } catch (e: any) {
+      setCoupon(null);
+      setCouponMsg({ ok: false, text: e?.message || 'This coupon code is not valid.' });
+    } finally {
+      setCouponBusy(false);
+    }
+  };
+  const removeCoupon = () => { setCoupon(null); setCouponInput(''); setCouponMsg(null); };
+
+  // The breakdown as text, for the order email and the WhatsApp message.
+  const chargesText = (c: Charges = charges) =>
+    chargeRows(c).map(r => `${r.label}: ${r.minor < 0 ? '−' : ''}${formatMoney(Math.abs(r.minor), c.currency)}`).join('\n');
 
   const postJson = async (path: string, body: unknown) => {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -398,6 +448,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
   const orderPlaced = async (order: any, paymentReference: string) => {
     setOrderNumber(order?.orderId || 'Order Placed');
+    const saved: Charges = order?.charges?.totalMinor != null ? order.charges : charges;
+    setPlacedCharges(saved);
     addOrder(order);
     setStep(3);
 
@@ -416,7 +468,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
           name: user!.name,
           email: user!.email,
           subject: `New Order Placed: ${order?.orderId}`,
-          message: `User ${user!.name} placed a new order for ${orderService} (${orderSubject}). Topic: ${topicTitle}. Total: ${totalLabel}\n\nPayment: ${paymentReference}`
+          message: `User ${user!.name} placed a new order for ${orderService} (${orderSubject}). Topic: ${topicTitle}.\n\n${chargesText(saved)}\n\nPayment: ${paymentReference}`
         },
         EmailJSConfig.publicKey as string
       );
@@ -460,6 +512,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
         onError: (errMsg) => {
           setIsRazorpayLoading(false);
           setRazorpayError(errMsg);
+          // Recorded for the admin as a failed payment; the customer can try again.
+          postJson('/orders/checkout/failed', { razorpay_order_id: data.orderId, reason: String(errMsg || '').slice(0, 300) }).catch(() => {});
         },
         onDismiss: () => setIsRazorpayLoading(false),
       });
@@ -536,6 +590,40 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       console.error("Order completion failed:", e);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // WhatsApp: the order is saved without tax and the payment stays pending; the
+  // customer continues on WhatsApp with the order ID and price breakdown.
+  const handleWhatsAppOrder = async () => {
+    if (!canPlaceOrder()) return;
+    // Opened now (while the click still counts) so pop-up blockers allow it.
+    const waWindow = window.open('', '_blank');
+    setIsWhatsappSubmitting(true);
+    try {
+      const files = await uploadAttachments();
+      const { res, data } = await postJson('/orders/whatsapp', orderDetails(files));
+      if (!res.ok) {
+        waWindow?.close();
+        if (!handleOrderApiError(res.status, data)) throw new Error(data.error || 'Failed to place order');
+        return;
+      }
+      const orderId = data.order?.orderId || '';
+      const text = [
+        `Hi AssignmentMinds, I'd like to confirm my order ${orderId}.`,
+        `${orderService || 'Academic paper'}${orderSubject ? ` (${orderSubject})` : ''}: ${topicTitle}`,
+        '',
+        chargesText(data.order?.charges?.totalMinor != null ? data.order.charges : charges),
+      ].join('\n');
+      const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+      setWhatsappUrl(url);
+      if (waWindow) waWindow.location.href = url;
+      await orderPlaced(data.order, `WhatsApp (payment pending)`);
+    } catch (e: any) {
+      waWindow?.close();
+      alert(`We couldn't place your order: ${e?.message || 'please try again'}.`);
+    } finally {
+      setIsWhatsappSubmitting(false);
     }
   };
 
@@ -746,6 +834,40 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 </div>
               </div>
 
+              {/* Coupon */}
+              <div>
+                <label htmlFor="order-coupon" className="block text-xs font-bold text-[#44474e] uppercase mb-1.5">Coupon Code</label>
+                <div className="flex gap-2">
+                  <input
+                    id="order-coupon"
+                    type="text"
+                    value={couponInput}
+                    maxLength={40}
+                    disabled={!!coupon}
+                    onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); if (couponMsg) setCouponMsg(null); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyCoupon(); } }}
+                    placeholder="Enter coupon code"
+                    className="flex-1 min-w-0 bg-[#eef4ff] border border-[#d1e4ff] rounded-xl p-3 text-sm font-semibold text-[#000a1e] uppercase tracking-wider disabled:opacity-70"
+                  />
+                  {coupon ? (
+                    <button type="button" onClick={removeCoupon}
+                      className="shrink-0 px-5 rounded-xl border border-[#d1e4ff] bg-white text-sm font-bold text-[#44474e] hover:bg-[#eef4ff] transition-colors">
+                      Remove
+                    </button>
+                  ) : (
+                    <button type="button" onClick={applyCoupon} disabled={couponBusy || !couponInput.trim()}
+                      className="shrink-0 px-5 rounded-xl bg-[#000a1e] text-sm font-bold text-white hover:bg-[#002147] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                      {couponBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
+                    </button>
+                  )}
+                </div>
+                {couponMsg && (
+                  <p role={couponMsg.ok ? 'status' : 'alert'} className={`mt-1.5 text-xs font-semibold ${couponMsg.ok ? 'text-emerald-700' : 'text-red-500'}`}>
+                    {couponMsg.text}
+                  </p>
+                )}
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-[#44474e] uppercase mb-1.5">Topic</label>
                 <input
@@ -884,6 +1006,68 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
               {/* Payment Section */}
               <div className="space-y-4">
+                {/* How to pay: normal payment (with tax) or on WhatsApp (no tax) */}
+                <div>
+                  <label className="block text-xs font-bold text-[#44474e] uppercase mb-2">Payment Option</label>
+                  <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Payment option">
+                    {([['STANDARD', 'Normal Payment', `Card, UPI or PayPal · ${TAX_PERCENT}% Tax`], ['WHATSAPP', 'Get into WhatsApp', 'Pay with our team · 0% Tax']] as const).map(([key, label, hint]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        role="radio"
+                        aria-checked={payChannel === key}
+                        onClick={() => setPayChannel(key)}
+                        className={`p-3 rounded-xl border text-left transition-all ${payChannel === key
+                          ? 'bg-[#000a1e] text-white border-[#000a1e] shadow-sm'
+                          : 'bg-[#eef4ff] text-[#44474e] border-[#d1e4ff] hover:bg-white'
+                          }`}
+                      >
+                        <span className="flex items-center gap-1.5 text-xs font-bold">
+                          {key === 'STANDARD' ? <CreditCard className="w-3.5 h-3.5" /> : <MessageCircle className="w-3.5 h-3.5" />} {label}
+                        </span>
+                        <span className={`block text-[11px] mt-0.5 ${payChannel === key ? 'text-white/70' : 'text-[#708ab5]'}`}>{hint}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Subtotal → Coupon Discount → Tax → Final Total */}
+                <div className="bg-[#f8f9ff] rounded-xl p-4 border border-[#d1e4ff]" data-testid="order-charges">
+                  <dl className="space-y-1.5 text-xs">
+                    {chargeRows(charges).map(r => (
+                      <div key={r.key} className={`flex justify-between ${r.key === 'total' ? 'pt-2 mt-1 border-t border-[#d1e4ff] text-sm' : ''}`}>
+                        <dt className={r.key === 'total' ? 'font-bold text-[#000a1e]' : 'text-[#708ab5] font-semibold'}>{r.label}</dt>
+                        <dd className={`tabular-nums ${r.key === 'total' ? 'font-extrabold text-[#000a1e]' : r.key === 'discount' && r.minor < 0 ? 'font-bold text-emerald-700' : 'font-bold text-[#000a1e]'}`}>
+                          {hasPrice ? (r.key === 'discount' && r.minor < 0 ? `−${money(-r.minor)}` : money(r.minor)) : '—'}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+
+                {payChannel === 'WHATSAPP' ? (
+                  <div className="bg-white rounded-xl p-5 border border-[#d1e4ff] space-y-3">
+                    <div className="flex items-start gap-3">
+                      <span className="w-10 h-10 rounded-xl bg-[#25D366] flex items-center justify-center shrink-0" aria-hidden="true">
+                        <MessageCircle className="w-5 h-5 text-white" />
+                      </span>
+                      <div className="text-xs text-[#002147] leading-relaxed">
+                        <strong className="block text-sm text-[#000a1e]">Order on WhatsApp · no Tax</strong>
+                        We save your order and open WhatsApp with your order ID and price. Our team confirms the payment with you there, then your order starts.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleWhatsAppOrder}
+                      disabled={isWhatsappSubmitting || !quoteReady}
+                      className="w-full bg-[#25D366] hover:bg-[#1ebe5b] text-white font-bold py-3.5 px-4 rounded-xl text-sm transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.99]"
+                    >
+                      {isWhatsappSubmitting
+                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Placing your order…</>
+                        : <><MessageCircle className="w-4 h-4" /> Get into WhatsApp · {totalLabel}</>}
+                    </button>
+                  </div>
+                ) : (<>
                 {/* 1. Instant Online Payment via Razorpay */}
                 <div className="bg-gradient-to-br from-[#000a1e] via-[#001738] to-[#002147] text-white p-5 rounded-2xl shadow-lg border border-[#fea520]/40 space-y-4">
                   <div className="flex items-center justify-between">
@@ -1042,6 +1226,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   />
                 </div>}
               </div>
+                </>)}
             </div>
           </div>
         )}
@@ -1073,11 +1258,33 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   <span className="text-[#708ab5]">Target Delivery:</span>
                   <strong className="text-[#000a1e]">{catMode ? deadline : `${deadline} (${deadlineTime})${stdQuote ? ` · ${stdQuote.deliveryLabel}` : ''}`}</strong>
                 </div>
-                <div className="flex justify-between text-xs pt-2 border-t border-[#d1e4ff]">
-                  <span className="text-[#000a1e] font-bold">Total Escrow Amount:</span>
-                  <strong className="text-lg font-extrabold text-[#000a1e]">{totalLabel}</strong>
+                {chargeRows(placedCharges || charges).map(r => {
+                  const c = placedCharges || charges;
+                  const amount = r.minor < 0 ? `−${formatMoney(-r.minor, c.currency)}` : formatMoney(r.minor, c.currency);
+                  return r.key === 'total' ? (
+                    <div key={r.key} className="flex justify-between text-xs pt-2 border-t border-[#d1e4ff]">
+                      <span className="text-[#000a1e] font-bold">{r.label}:</span>
+                      <strong className="text-lg font-extrabold text-[#000a1e]">{amount}</strong>
+                    </div>
+                  ) : (
+                    <div key={r.key} className="flex justify-between text-xs">
+                      <span className="text-[#708ab5]">{r.label}:</span>
+                      <strong className="text-[#000a1e]">{amount}</strong>
+                    </div>
+                  );
+                })}
+                <div className="flex justify-between text-xs">
+                  <span className="text-[#708ab5]">Payment:</span>
+                  <strong className="text-[#000a1e]">{payChannel === 'WHATSAPP' ? 'Pending · confirm on WhatsApp' : isPaymentVerified ? 'Paid' : 'Pending verification'}</strong>
                 </div>
               </div>
+
+              {whatsappUrl && (
+                <a href={whatsappUrl} target="_blank" rel="noreferrer"
+                  className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1ebe5b] text-white px-6 py-3 rounded-xl font-bold text-sm transition-colors">
+                  <MessageCircle className="w-4 h-4" /> Open WhatsApp
+                </a>
+              )}
 
               <div className="pt-4 flex flex-col sm:flex-row justify-center gap-3">
                 <button
@@ -1117,7 +1324,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   <span>Continue</span>
                   <ArrowRight className="w-4 h-4 text-[#fea520]" />
                 </button>
-              ) : upiQrMode ? null : (
+              ) : (upiQrMode || payChannel === 'WHATSAPP') ? null : (
                 <button
                   onClick={() => handleCompleteOrder()}
                   disabled={isSubmitting || !quoteReady}

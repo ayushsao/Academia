@@ -77,7 +77,7 @@ const orderSchema = new mongoose.Schema({
   },
   adminApproved: { type: Boolean, default: false },
   adminApprovedAt: { type: Date },
-  paymentStatus: { type: String, default: 'pending', enum: ['pending', 'paid', 'refunded'] },
+  paymentStatus: { type: String, default: 'pending', enum: ['pending', 'paid', 'failed', 'refunded'] },
   assignedTo: { type: String, default: '' },
   adminNotes: { type: String, default: '' },
   // What the admin asked the writer to change (shown to the writer; adminNotes stay internal).
@@ -110,13 +110,24 @@ const orderSchema = new mongoose.Schema({
   // Client feedback on completed work
   feedback: { type: orderFeedbackSchema, default: undefined },
   // How the order was paid. RAZORPAY + PAID only after the server confirmed the
-  // payment with Razorpay; MANUAL references (UPI/PayPal/UTR) need admin checks.
+  // payment with Razorpay; MANUAL references (UPI/PayPal/UTR) and WHATSAPP orders
+  // need an admin to confirm (PAID) or reject (FAILED) the payment.
   payment: {
     type: new mongoose.Schema({
-      provider: { type: String, enum: ['RAZORPAY', 'MANUAL'], default: 'MANUAL' },
-      status: { type: String, enum: ['PAID', 'PENDING_VERIFICATION'], default: 'PENDING_VERIFICATION' },
+      provider: { type: String, enum: ['RAZORPAY', 'MANUAL', 'WHATSAPP'], default: 'MANUAL' },
+      status: { type: String, enum: ['PAID', 'PENDING_VERIFICATION', 'FAILED'], default: 'PENDING_VERIFICATION' },
       providerOrderId: String, providerPaymentId: String,
-      amountMinor: Number, currency: String, paidAt: Date,
+      amountMinor: Number, currency: String, paidAt: Date, failedAt: Date, failureReason: String,
+    }, { _id: false }),
+    default: undefined,
+  },
+  // What the customer pays (services/charges.js): subtotal → coupon discount → tax → total.
+  // Minor units; totalAmount is totalMinor in major units.
+  charges: {
+    type: new mongoose.Schema({
+      channel: { type: String, enum: ['STANDARD', 'WHATSAPP'] }, currency: String,
+      subtotalMinor: Number, couponCode: String, discountPercent: Number, discountMinor: Number,
+      taxPercent: Number, taxMinor: Number, totalMinor: Number,
     }, { _id: false }),
     default: undefined,
   },
@@ -224,6 +235,10 @@ const orderCheckoutSchema = new mongoose.Schema({
   status: { type: String, enum: ['CREATED', 'CONFIRMING', 'PAID'], default: 'CREATED', index: true },
   orderRef: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
   needsAttention: String,
+  // Failed payment attempts (Razorpay reported, or the checkout window said so).
+  // The checkout stays open so the customer can try again.
+  failedAttempts: { type: Number, default: 0 },
+  lastFailure: { type: new mongoose.Schema({ reason: String, at: Date }, { _id: false }), default: undefined },
 }, { timestamps: true });
 // Abandoned checkouts are cleaned up after a week (completed ones are kept).
 orderCheckoutSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7 * 24 * 3600, partialFilterExpression: { status: 'CREATED' } });

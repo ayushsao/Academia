@@ -130,6 +130,18 @@ export async function settleUpiQrFromWebhook(qrId, payment) {
     return true;
 }
 
+/**
+ * Notes a failed payment attempt on an unpaid checkout (from the Razorpay
+ * window or the payment.failed webhook). The checkout stays open, so a later
+ * successful attempt still creates the order.
+ */
+export async function recordCheckoutFailure({ providerOrderId, userId, reason }) {
+    await OrderCheckout.updateOne(
+        { providerOrderId, ...(userId && { userId }), status: 'CREATED' },
+        { $inc: { failedAttempts: 1 }, $set: { lastFailure: { reason: String(reason || 'Payment failed').slice(0, 300), at: new Date() } } },
+    );
+}
+
 // Webhook path: a captured payment for a customer-order checkout. Returns true
 // when the event belonged to an order checkout.
 export async function settleCheckoutFromWebhook(entity) {

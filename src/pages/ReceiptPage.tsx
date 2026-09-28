@@ -13,6 +13,8 @@ type Receipt = {
     billedTo: { name: string; email: string };
     order: { orderId: string; topicTitle: string; service: string; subject: string; academicLevel: string; pages: number; wordCount: number | null; deadline: string; placedAt: string };
     lines: { label: string; amount: number }[];
+    // Orders with coupon/tax: Subtotal → Coupon Discount → Tax → Final Total (major units).
+    breakdown: { subtotal: number; couponCode: string; discountPercent: number; discount: number; taxPercent: number; tax: number; total: number } | null;
     total: number; currency: string; method: string; reference: string;
 };
 
@@ -112,8 +114,22 @@ export function ReceiptPage() {
                             </table>
                             <div className="mt-5 flex justify-end">
                                 <div className="w-full max-w-xs rounded-xl border border-[#e5e5ea] p-4">
+                                    {receipt.breakdown && (
+                                        <dl className="mb-3 space-y-1.5 border-b border-[#f0f0f3] pb-3 text-sm">
+                                            {([
+                                                ['Subtotal', formatOrderTotal(receipt.breakdown.subtotal, receipt.currency)],
+                                                [`Coupon Discount${receipt.breakdown.couponCode ? ` (${receipt.breakdown.couponCode} · ${receipt.breakdown.discountPercent}%)` : ''}`, `−${formatOrderTotal(receipt.breakdown.discount, receipt.currency)}`],
+                                                [`Tax (${receipt.breakdown.taxPercent}%)`, formatOrderTotal(receipt.breakdown.tax, receipt.currency)],
+                                            ] as const).map(([k, v]) => (
+                                                <div key={k} className="flex justify-between gap-3">
+                                                    <dt className="text-[#6e6e73]">{k}</dt>
+                                                    <dd className="tabular-nums text-[#1d1d1f]">{v}</dd>
+                                                </div>
+                                            ))}
+                                        </dl>
+                                    )}
                                     <div className="flex items-baseline justify-between">
-                                        <span className="text-sm font-semibold text-[#1d1d1f]">Total paid</span>
+                                        <span className="text-sm font-semibold text-[#1d1d1f]">{receipt.breakdown ? 'Final Total' : 'Total paid'}</span>
                                         <span className="text-2xl font-bold tabular-nums text-[#1d1d1f]">{formatOrderTotal(receipt.total, receipt.currency)}</span>
                                     </div>
                                     <p className="mt-1 text-right text-xs text-[#6e6e73]">{receipt.currency}</p>

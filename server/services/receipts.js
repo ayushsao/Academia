@@ -1,4 +1,5 @@
 import { Order, SiteSettings, User } from '../db.js';
+import { fromMinor } from './money.js';
 
 // Payment receipts. A receipt is issued only for a confirmed payment: an online
 // payment verified with Razorpay, or a manual payment an admin has marked as
@@ -52,7 +53,15 @@ export async function receiptView(order) {
     } else {
         lines.push({ label: `${order.service} — ${order.pages} page${order.pages === 1 ? '' : 's'}`, amount: money(order.totalAmount) });
     }
-    const online = order.payment?.provider === 'RAZORPAY';
+    const provider = order.payment?.provider;
+    // Orders placed with coupon/tax support: Subtotal → Coupon Discount → Tax → Final Total.
+    const c = order.charges;
+    const breakdown = c?.totalMinor != null ? {
+        subtotal: fromMinor(c.subtotalMinor, currency),
+        couponCode: c.couponCode || '', discountPercent: c.discountPercent || 0, discount: fromMinor(c.discountMinor || 0, currency),
+        taxPercent: c.taxPercent || 0, tax: fromMinor(c.taxMinor || 0, currency),
+        total: fromMinor(c.totalMinor, currency),
+    } : null;
     return {
         number: order.receipt.number,
         issuedAt: order.receipt.issuedAt,
@@ -65,9 +74,12 @@ export async function receiptView(order) {
             academicLevel: order.academicLevel, pages: order.pages, wordCount: words || null, deadline: order.deadline, placedAt: order.createdAt,
         },
         lines,
+        breakdown,
         total: paid,
         currency,
-        method: online ? 'Online payment (card / UPI via Razorpay)' : 'Manual payment (UPI / PayPal / bank transfer)',
+        method: provider === 'RAZORPAY' ? 'Online payment (card / UPI via Razorpay)'
+            : provider === 'WHATSAPP' ? 'Arranged on WhatsApp (confirmed by our team)'
+            : 'Manual payment (UPI / PayPal / bank transfer)',
         reference: order.payment?.providerPaymentId || order.transactionId || '',
     };
 }

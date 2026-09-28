@@ -730,10 +730,11 @@ router.get('/settings', authenticateAdmin, async (req, res) => {
         const settings = await SiteSettings.find({ key: { $in: Object.keys(SITE_SETTING_VALIDATORS) } });
         const obj = {};
         settings.forEach(s => { obj[s.key] = s.value; });
-        // defaults
-        if (!obj.discount_code) obj.discount_code = 'INSTANT25';
-        if (!obj.discount_percent) obj.discount_percent = 25;
-        if (!obj.discount_active) obj.discount_active = true;
+        // Defaults for settings never saved. The coupon is off until an admin sets
+        // a code and switches it on (it is applied at checkout: services/charges.js).
+        if (!obj.discount_code) obj.discount_code = '';
+        if (!obj.discount_percent) obj.discount_percent = 0;
+        if (typeof obj.discount_active !== 'boolean') obj.discount_active = false;
         if (!obj.site_announcement) obj.site_announcement = '';
         if (!obj.whatsapp_number) obj.whatsapp_number = '+447700900000';
         res.json(obj);

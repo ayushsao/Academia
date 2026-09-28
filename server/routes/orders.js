@@ -4,13 +4,14 @@ import { issueReceipt, receiptView, isPaid } from '../services/receipts.js';
 import { Order, CatalogSubject, CatalogService, CatalogProject } from '../db.js';
 import { authenticateUser } from '../middleware.js';
 import { rateLimit } from 'express-rate-limit';
-import { validateInput, orderSchema, orderQuoteSchema, orderCheckoutSchema, razorpayVerifySchema } from '../validation.js';
+import { validateInput, orderSchema, orderQuoteSchema, orderCheckoutSchema, razorpayVerifySchema, couponCheckSchema, checkoutFailedSchema } from '../validation.js';
+import { findCoupon, computeCharges, CouponError, TAX_PERCENT } from '../services/charges.js';
 import { quoteByWords, publicQuote, publicWordPricing, WordPricingError, SPACING } from '../services/wordPricing.js';
 import { ownedFileNames, streamOrderFile, customerCanAccess, receiveOrderFiles, storeOrderUploads } from '../services/orderFiles.js';
 import { quote, isLiveSelection, PricingError } from '../services/pricing.js';
 import { fromMinor, toMinor } from '../services/money.js';
 import { razorpayEnabled, razorpayKeyId, verifyRazorpaySignature, PaymentProviderError } from '../services/paymentProviders.js';
-import { createOrderRecord, startCheckout, completeCheckout, startUpiQr, settleUpiQr } from '../services/orderCheckout.js';
+import { createOrderRecord, startCheckout, completeCheckout, startUpiQr, settleUpiQr, recordCheckoutFailure } from '../services/orderCheckout.js';
 
 const router = Router();
 
@@ -87,9 +88,11 @@ async function priceCatalogOrder(sel, pages) {
  * Everything an order stores, built on the server from the request: names,
  * billable pages and the price are computed here, never taken from the client.
  * Throws a 409 (with the current quote) when the customer's quote is stale.
- * Returns { fields, currency, totalMinor }.
+ * The quoted price is the subtotal; the coupon and tax for `channel` are
+ * applied on top (services/charges.js). Returns { fields, currency, totalMinor }
+ * where totalMinor is the final amount to pay.
  */
-async function prepareOrder(body, userId) {
+async function prepareOrder(body, userId, channel = 'STANDARD') {
     const {
         service, subject, academicLevel, pages, deadline,
         topicTitle, instructions, description, wordCount, files,
@@ -145,12 +148,15 @@ async function prepareOrder(body, userId) {
             ...(catalogPrice && { ...catalogPrice, topExpert: false, abstractPage: false }),
     };
     const currency = fields.currency || 'GBP';
-    const totalMinor = catalogPrice ? catalogPrice.catalog.totalMinor : toMinor(serverComputedAmount, currency);
-    return { fields, currency, totalMinor };
+    const subtotalMinor = catalogPrice ? catalogPrice.catalog.totalMinor : toMinor(serverComputedAmount, currency);
+    const charges = computeCharges({ subtotalMinor, coupon: await findCoupon(body.couponCode), channel, currency });
+    fields.charges = charges;
+    fields.totalAmount = fromMinor(charges.totalMinor, currency);
+    return { fields, currency, totalMinor: charges.totalMinor };
 }
 
 const orderError = (res, err, fallback) => {
-    if (err instanceof PricingError || err instanceof WordPricingError || err instanceof PaymentProviderError)
+    if (err instanceof PricingError || err instanceof WordPricingError || err instanceof PaymentProviderError || err instanceof CouponError)
         return res.status(err.status).json({ error: err.message, ...(err.quote && { quote: err.quote }) });
     console.error('[Orders]', err?.message);
     res.status(500).json({ error: fallback });
@@ -167,6 +173,28 @@ router.post('/', authenticateUser, validateInput(orderSchema), async (req, res) 
             transactionId: reference,
             payment: { provider: 'MANUAL', status: 'PENDING_VERIFICATION' },
         });
+        res.status(201).json({ order: clientOrderView(order) });
+    } catch (err) { orderError(res, err, 'Failed to create order.'); }
+});
+
+// ── Coupon codes ───────────────────────────────────────────────────────────────
+// POST /api/orders/coupon — is this code valid? The discount is applied again
+// on the server when the order is placed, so this is only for the form.
+const couponLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, message: { error: 'Too many coupon attempts. Please try again later.' } });
+router.post('/coupon', couponLimiter, validateInput(couponCheckSchema), async (req, res) => {
+    try {
+        const coupon = await findCoupon(req.body.code);
+        res.json({ coupon, taxPercent: TAX_PERCENT });
+    } catch (err) { orderError(res, err, 'Could not check the coupon.'); }
+});
+
+// ── Order on WhatsApp ──────────────────────────────────────────────────────────
+// POST /api/orders/whatsapp — the customer arranges payment with the team on
+// WhatsApp. No tax is charged; the payment stays pending until an admin confirms it.
+router.post('/whatsapp', authenticateUser, validateInput(orderCheckoutSchema), async (req, res) => {
+    try {
+        const { fields } = await prepareOrder(req.body, req.user.id, 'WHATSAPP');
+        const order = await createOrderRecord({ ...fields, payment: { provider: 'WHATSAPP', status: 'PENDING_VERIFICATION' } });
         res.status(201).json({ order: clientOrderView(order) });
     } catch (err) { orderError(res, err, 'Failed to create order.'); }
 });
@@ -196,6 +224,15 @@ router.post('/checkout/confirm', checkoutLimiter, authenticateUser, validateInpu
         const order = await completeCheckout({ providerOrderId: orderId, paymentId, userId: req.user.id });
         res.status(201).json({ order: clientOrderView(order) });
     } catch (err) { orderError(res, err, 'Could not confirm the payment. If you were charged, contact support with your payment ID.'); }
+});
+
+// POST /api/orders/checkout/failed — the Razorpay window reported a failed
+// payment. Recorded for the admin; the customer can still retry the same checkout.
+router.post('/checkout/failed', checkoutLimiter, authenticateUser, validateInput(checkoutFailedSchema), async (req, res) => {
+    try {
+        await recordCheckoutFailure({ providerOrderId: req.body.razorpay_order_id, userId: req.user.id, reason: req.body.reason });
+        res.json({ ok: true });
+    } catch (err) { orderError(res, err, 'Could not record the payment.'); }
 });
 
 // ── UPI QR with a locked amount ────────────────────────────────────────────────

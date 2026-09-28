@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { ServiceType, SubjectType } from '../types';
 import { useOrderQuote, fetchOrderQuote, CURRENCY_BY_SYMBOL, SPACING_OPTIONS, DEFAULT_SPACING, pagesFor, deadlineAtFrom, type OrderQuote, type Spacing, localDateString } from '../lib/orderQuote';
+import { DIAL_CODES, POPULAR_DIAL_CODES, dialLabel, countryName } from '../lib/countryCodes';
 
 interface HeroProps {
   onOpenOrder: (prefill?: {
@@ -906,12 +907,12 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                       onChange={(e) => setCountryCode(e.target.value)}
                       className="bg-transparent px-2 py-[10px] text-sm font-medium text-[#374151] outline-none border-r border-[#d1d5db] cursor-pointer"
                     >
-                      <option value="IN(+91)">IN(+91)</option>
-                      <option value="US(+1)">US(+1)</option>
-                      <option value="UK(+44)">UK(+44)</option>
-                      <option value="AU(+61)">AU(+61)</option>
-                      <option value="CA(+1)">CA(+1)</option>
-                      <option value="AE(+971)">AE(+971)</option>
+                      <optgroup label="Popular">
+                        {POPULAR_DIAL_CODES.map(c => <option key={`p-${c[0]}`} value={dialLabel(c)} title={countryName(c[0])}>{dialLabel(c)}</option>)}
+                      </optgroup>
+                      <optgroup label="All countries">
+                        {DIAL_CODES.filter(c => !POPULAR_DIAL_CODES.some(p => p[0] === c[0])).map(c => <option key={c[0]} value={dialLabel(c)} title={countryName(c[0])}>{dialLabel(c)}</option>)}
+                      </optgroup>
                     </select>
                     <input
                       type="tel"

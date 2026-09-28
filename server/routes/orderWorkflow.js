@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
-import { Order, User, Writer } from '../db.js';
+import { Order, OrderCheckout, User, Writer } from '../db.js';
 import { authenticateUser, authenticateAdmin } from '../middleware.js';
 import { requirePermission, noStore } from '../permissions.js';
 import { EXT_MIMES, sniffOrderFileKind, kindMatchesExtension } from '../services/orderFiles.js';
@@ -143,7 +143,7 @@ router.get('/writer/my-orders', authenticateUser, requireWriter, async (req, res
     try {
         // The client's name only — never their email or other contact details.
         const orders = await Order.find({ writerId: req.user.id })
-            .select('-transactionId -payment -pricing -catalog -adminNotes -deliveryFiles.filePath -totalAmount -paymentStatus -bidding')
+            .select('-transactionId -payment -pricing -charges -catalog -adminNotes -deliveryFiles.filePath -totalAmount -paymentStatus -bidding')
             .populate('userId', 'name')
             .sort({ createdAt: -1 })
             .lean();
@@ -163,7 +163,7 @@ router.get('/writer/orders/:orderId', authenticateUser, requireWriter, async (re
             orderId: req.params.orderId,
             $or: [{ writerId: req.user.id }, ...(canTakeOrders(writer) ? [OPEN_ORDER] : [])],
         })
-            .select('-transactionId -payment -pricing -catalog -adminNotes -deliveryFiles.filePath -totalAmount -paymentStatus -bidding')
+            .select('-transactionId -payment -pricing -charges -catalog -adminNotes -deliveryFiles.filePath -totalAmount -paymentStatus -bidding')
             .populate('userId', 'name')
             .lean();
 
@@ -374,17 +374,69 @@ router.post('/admin/payment/:orderId/received', authenticateAdmin, requirePermis
         const order = await Order.findOne({ orderId: req.params.orderId });
         if (!order) return res.status(404).json({ error: 'Order not found.' });
         if (order.payment?.status === 'PAID') return res.status(409).json({ error: 'This payment is already confirmed.' });
-        const currency = order.pricing?.currency || order.currency || 'GBP';
-        const amountMinor = order.catalog?.totalMinor ?? Math.round(Number(order.totalAmount || 0) * 100);
-        order.payment = { provider: 'MANUAL', status: 'PAID', amountMinor, currency, paidAt: new Date() };
+        // The final total (after coupon and tax) when the order has one.
+        const currency = order.charges?.currency || order.pricing?.currency || order.currency || 'GBP';
+        const amountMinor = order.charges?.totalMinor ?? order.catalog?.totalMinor ?? Math.round(Number(order.totalAmount || 0) * 100);
+        const provider = order.payment?.provider === 'WHATSAPP' ? 'WHATSAPP' : 'MANUAL';
+        order.payment = { provider, status: 'PAID', amountMinor, currency, paidAt: new Date() };
         order.paymentStatus = 'paid';
         await order.save();
         const withReceipt = await issueReceipt(order._id);
-        await recordAudit(req, 'ORDER_PAYMENT_CONFIRMED', { targetType: 'ORDER', targetId: order.orderId, reason: `manual ${currency} ${amountMinor / 100} · receipt ${withReceipt?.receipt?.number}` });
+        await recordAudit(req, 'ORDER_PAYMENT_CONFIRMED', { targetType: 'ORDER', targetId: order.orderId, reason: `${provider.toLowerCase()} ${currency} ${amountMinor / 100} · receipt ${withReceipt?.receipt?.number}` });
         res.json({ payment: withReceipt.payment, paymentStatus: withReceipt.paymentStatus, receipt: withReceipt.receipt });
     } catch (err) {
         console.error('[OrderWorkflow] confirm payment error:', err.message);
         res.status(500).json({ error: 'Could not confirm the payment.' });
+    }
+});
+
+// POST /api/order-workflow/admin/payment/:orderId/failed — the manual or WhatsApp
+// payment never arrived (or the reference was wrong). A later confirmation is still possible.
+router.post('/admin/payment/:orderId/failed', authenticateAdmin, requirePermission('orders.write'), async (req, res) => {
+    try {
+        const order = await Order.findOne({ orderId: req.params.orderId });
+        if (!order) return res.status(404).json({ error: 'Order not found.' });
+        if (order.payment?.status === 'PAID') return res.status(409).json({ error: 'This payment is already confirmed.' });
+        const reason = String(req.body?.reason || '').trim().slice(0, 300);
+        order.payment = { ...(order.payment?.toObject?.() || {}), provider: order.payment?.provider || 'MANUAL', status: 'FAILED', failedAt: new Date(), failureReason: reason };
+        order.paymentStatus = 'failed';
+        await order.save();
+        await recordAudit(req, 'ORDER_PAYMENT_FAILED', { targetType: 'ORDER', targetId: order.orderId, reason: reason || 'marked failed' });
+        res.json({ payment: order.payment, paymentStatus: order.paymentStatus });
+    } catch (err) {
+        console.error('[OrderWorkflow] fail payment error:', err.message);
+        res.status(500).json({ error: 'Could not update the payment.' });
+    }
+});
+
+// GET /api/order-workflow/admin/payment-attempts — online checkouts (Razorpay /
+// UPI QR) with the customer, amount and status: Paid, Failed or Pending.
+// Unpaid attempts are kept for a week.
+router.get('/admin/payment-attempts', noStore, authenticateAdmin, requirePermission('orders.read'), async (req, res) => {
+    try {
+        const filter = {};
+        if (req.query.status === 'PAID') filter.status = 'PAID';
+        else if (req.query.status === 'FAILED') Object.assign(filter, { status: { $ne: 'PAID' }, failedAttempts: { $gt: 0 } });
+        else if (req.query.status === 'PENDING') Object.assign(filter, { status: { $ne: 'PAID' }, failedAttempts: { $in: [0, null] } });
+        const rows = await OrderCheckout.find(filter).sort({ updatedAt: -1 }).limit(50)
+            .populate('userId', 'name email').populate('orderRef', 'orderId').lean();
+        res.json({
+            attempts: rows.map(c => ({
+                id: String(c._id),
+                status: c.status === 'PAID' ? 'PAID' : c.failedAttempts > 0 ? 'FAILED' : 'PENDING',
+                method: c.method === 'UPI_QR' ? 'UPI QR' : 'Razorpay checkout',
+                customer: { name: c.userId?.name || '', email: c.userId?.email || '' },
+                amountMinor: c.amountMinor, currency: c.currency,
+                topicTitle: c.fields?.topicTitle || '', service: c.fields?.service || '',
+                couponCode: c.fields?.charges?.couponCode || '',
+                failedAttempts: c.failedAttempts || 0, lastFailure: c.lastFailure || null,
+                orderId: c.orderRef?.orderId || null,
+                createdAt: c.createdAt, updatedAt: c.updatedAt,
+            })),
+        });
+    } catch (err) {
+        console.error('[OrderWorkflow] payment attempts error:', err.message);
+        res.status(500).json({ error: 'Could not load payment attempts.' });
     }
 });
 

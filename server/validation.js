@@ -52,6 +52,7 @@ export const orderSchema = z.object({
     abstractPage: z.boolean().optional(),
     totalAmount: z.number().min(0).optional(), // ignored: the server always prices the order
     transactionId: z.string().trim().max(120).optional(),   // manual payment reference (UPI / PayPal / UTR)
+    couponCode: z.string().trim().max(40).optional(),   // checked and applied on the server (services/charges.js)
     // Word-based pricing inputs (standard orders): total words, spacing (pages only), exact deadline.
     words: z.number().int().min(1).max(200000).optional(),
     spacing: z.enum(['DOUBLE', 'ONE_HALF', 'SINGLE']).optional(),
@@ -79,6 +80,15 @@ export const orderSchema = z.object({
 // POST /api/orders/quote — inputs that affect the price of a standard order.
 // POST /api/orders/checkout — same order details, paid online (no manual reference).
 export const orderCheckoutSchema = orderSchema.omit({ transactionId: true });
+
+// POST /api/orders/coupon — check a coupon code before ordering.
+export const couponCheckSchema = z.object({ code: z.string().trim().min(1, 'Enter a coupon code').max(40) }).strict();
+
+// POST /api/orders/checkout/failed — the Razorpay window reported a failed payment.
+export const checkoutFailedSchema = z.object({
+    razorpay_order_id: z.string().trim().regex(/^order_[A-Za-z0-9]{6,40}$/),
+    reason: z.string().trim().max(300).optional(),
+}).strict();
 
 export const orderQuoteSchema = z.object({
     service: z.string().trim().max(120).optional().default(''),

@@ -467,10 +467,10 @@ export const Dashboard: React.FC = () => {
                                                                         <span className="text-[10px] sm:text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">PAID</span>
                                                                         <Link to={`/dashboard/receipt/${encodeURIComponent(oid)}`} className="text-[11px] sm:text-xs font-semibold text-[#002147] underline underline-offset-2 hover:text-[#e37e25]">Receipt</Link>
                                                                     </div>
-                                                                ) : (order as any).payment?.status === 'PENDING_VERIFICATION' ? (
-                                                                    <span className="text-[10px] sm:text-xs font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-100" title="We’re checking your payment reference">VERIFYING</span>
+                                                                ) : (order as any).payment?.status === 'FAILED' ? (
+                                                                    <span className="text-[10px] sm:text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded border border-red-100" title="We couldn’t confirm this payment. Contact support.">FAILED</span>
                                                                 ) : order.totalAmount > 0 ? (
-                                                                    <span className="text-[10px] sm:text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded border border-red-100">UNPAID</span>
+                                                                    <span className="text-[10px] sm:text-xs font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-100" title={(order as any).payment?.provider === 'WHATSAPP' ? 'Confirm your payment with our team on WhatsApp' : 'We’re checking your payment'}>PENDING</span>
                                                                 ) : (
                                                                     <span className="text-[10px] sm:text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">FREE</span>
                                                                 )}

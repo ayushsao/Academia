@@ -39,7 +39,7 @@ export const OPEN_ORDER = { adminApproved: true, writerId: null, status: { $in: 
 
 // What a writer may see of an order: the brief. Never the client's contact
 // details, payment references, pricing breakdown or internal admin notes.
-export const WRITER_HIDDEN_FIELDS = '-userId -transactionId -payment -pricing -catalog -adminNotes -feedback -totalAmount -paymentStatus -bidding';
+export const WRITER_HIDDEN_FIELDS = '-userId -transactionId -payment -pricing -charges -catalog -adminNotes -feedback -totalAmount -paymentStatus -bidding';
 
 /**
  * A customer's view of their own order: everything about their order and the
