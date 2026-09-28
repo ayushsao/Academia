@@ -33,17 +33,17 @@ export const POLICIES: Record<string, PolicyDoc> = {
     },
     '/refund-policy': {
         title: 'Refund Policy',
-        intro: 'This policy explains when you can get your money back for an order placed on AssignmentMinds.',
+        intro: 'All payments made to AssignmentMinds are non-refundable. Please check your order details, deadline and price carefully before you pay.',
         sections: [
-            { heading: 'When a refund applies', body: [
-                'You can ask for a full refund if we cannot assign a writer to your order, or if you cancel before a writer has started work.',
-                'If the delivered work does not follow the instructions you gave when ordering, first ask for a free revision. If the revised work still does not meet those instructions, you can ask for a partial or full refund, and our team will review the order.',
+            { heading: 'Payments are non-refundable', body: [
+                'Once a payment is made, it is not refunded, whether it was paid online, by UPI QR, by manual transfer or on WhatsApp. Your payment receipt states this as well.',
             ] },
-            { heading: 'When a refund does not apply', body: [
-                'Refunds are not given for changes to the instructions after the order was placed, for missing information that the writer asked for and did not receive, or because of the grade the work was given.',
+            { heading: 'If something is wrong with your work', body: [
+                'If the delivered work does not follow the instructions you gave when ordering, ask for a free revision and we will correct it. Revisions are how we resolve problems with an order; they are not a refund.',
+                'Revisions do not cover changes to the instructions after the order was placed, information the writer asked for and did not receive, or the grade the work was given.',
             ] },
-            { heading: 'How to ask', body: [
-                `Email ${SUPPORT_EMAIL} with your order ID and the reason. We reply within 2 working days. Approved refunds go back to the original payment method; how long they take to show depends on your bank or UPI app.`,
+            { heading: 'Payment problems', body: [
+                `If you were charged twice for the same order, or charged without an order being created, email ${SUPPORT_EMAIL} with your order ID or payment reference. We will check it and correct any duplicate charge.`,
             ] },
         ],
     },
@@ -51,14 +51,14 @@ export const POLICIES: Record<string, PolicyDoc> = {
         title: 'Cancellation Policy',
         intro: 'To cancel an order, contact support on WhatsApp or by email with your order ID.',
         sections: [
-            { heading: 'Before a writer starts', body: [
-                'If no writer has started on your order, you can cancel it and get a full refund.',
+            { heading: 'Cancelling a paid order', body: [
+                'You can ask us to stop work on an order at any time, but payments are non-refundable, so cancelling a paid order does not return the payment. See our Refund Policy.',
             ] },
-            { heading: 'After work has started', body: [
-                'Once a writer has started, the refund depends on how much of the work is done. Our team reviews the order and tells you the amount before the cancellation is final.',
+            { heading: 'Orders not yet paid', body: [
+                'An order that has not been paid (for example, an order placed on WhatsApp while payment is still pending) can be cancelled at no cost.',
             ] },
             { heading: 'After delivery', body: [
-                'Delivered orders cannot be cancelled. If something is wrong with the work, ask for a revision or see the Refund Policy.',
+                'Delivered orders cannot be cancelled. If something is wrong with the work, ask for a free revision.',
             ] },
         ],
     },

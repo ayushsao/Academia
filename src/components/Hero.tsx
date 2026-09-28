@@ -812,7 +812,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
             <div className="flex flex-wrap items-center justify-center sm:justify-between gap-x-3 gap-y-1 text-xs font-medium text-[#374151] bg-[#f9fafb] rounded-lg px-3 py-2 border border-[#e5e7eb] mb-4">
               <span className="flex items-center gap-1.5 whitespace-nowrap">
                 <CheckCircle2 className="w-3.5 h-3.5 stroke-[2] text-[#eb6200]" />
-                <span>Guaranteed Grade or Refund</span>
+                <span>Free Revisions Included</span>
               </span>
               <span className="hidden sm:inline text-[#d1d5db]">•</span>
               <span className="flex items-center gap-1 whitespace-nowrap">

@@ -350,9 +350,9 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
             <div className="w-full text-center mt-10 text-[10px] sm:text-xs text-gray-400 font-medium leading-relaxed px-2 z-10">
               <ShieldCheck className="w-3.5 h-3.5 inline-block mr-1 text-gray-400 mb-0.5" />
               By continuing, you agree to our<br className="sm:hidden" />
-              {' '}<a href="#" className="text-[#002147] font-semibold hover:underline decoration-[#fea520] underline-offset-2">Terms of Service</a>,
-              {' '}<a href="#" className="text-[#002147] font-semibold hover:underline decoration-[#fea520] underline-offset-2">Privacy Policy</a>, and
-              {' '}<a href="#" className="text-[#002147] font-semibold hover:underline decoration-[#fea520] underline-offset-2">Refund Policy</a>.
+              {' '}<a href="/terms" target="_blank" rel="noreferrer" className="text-[#002147] font-semibold hover:underline decoration-[#fea520] underline-offset-2">Terms of Service</a>,
+              {' '}<a href="/privacy-policy" target="_blank" rel="noreferrer" className="text-[#002147] font-semibold hover:underline decoration-[#fea520] underline-offset-2">Privacy Policy</a>, and
+              {' '}<a href="/refund-policy" target="_blank" rel="noreferrer" className="text-[#002147] font-semibold hover:underline decoration-[#fea520] underline-offset-2">Refund Policy</a>.
             </div>
           </motion.div>
         </div>

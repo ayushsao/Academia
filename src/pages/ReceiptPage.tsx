@@ -63,7 +63,7 @@ export function ReceiptPage() {
     return (
         <div className="min-h-screen bg-[#f2f1ee] px-4 py-8 font-sans print:bg-white print:p-0 sm:py-12">
             {/* Print only the receipt sheet (no chat button or other floating widgets). */}
-            <style>{'@page { size: A4; margin: 12mm; } @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } body * { visibility: hidden !important; } .receipt-sheet, .receipt-sheet * { visibility: visible !important; } .receipt-sheet { position: absolute; left: 0; top: 0; width: 100%; } }'}</style>
+            <style>{'@page { size: A4; margin: 8mm; } @media print { html, body { height: auto !important; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } body * { visibility: hidden !important; } .receipt-sheet, .receipt-sheet * { visibility: visible !important; } .receipt-sheet { position: absolute; left: 0; top: 0; width: 100%; break-inside: avoid; page-break-after: avoid; } }'}</style>
             <div className="mx-auto max-w-[840px]">
                 <div className="mb-5 flex items-center justify-between gap-3 print:hidden">
                     <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#6e6e73] hover:text-[#1d1d1f]"><ArrowLeft className="h-4 w-4" /> Dashboard</Link>
@@ -85,16 +85,16 @@ export function ReceiptPage() {
                             <div className="absolute inset-y-0 left-0 w-32 bg-[#fea520]" />
                         </div>
 
-                        <div className="relative p-7 sm:p-11">
+                        <div className="relative p-7 sm:p-11 print:p-6">
                             {/* Header */}
-                            <header className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+                            <header className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between print:flex-row print:items-start print:justify-between">
                                 <div>
                                     <BrandLogo iconClassName="h-11" textClassName="text-[26px]" />
                                     <p className="mt-3 text-xs leading-relaxed text-[#6e6e73]">
                                         {receipt.business.email} · {receipt.business.phone}<br />{receipt.business.website.replace(/^https?:\/\//, '')}
                                     </p>
                                 </div>
-                                <div className="sm:text-right">
+                                <div className="sm:text-right print:text-right">
                                     <Label>Payment receipt</Label>
                                     <p className="mt-1.5 font-mono text-[22px] font-semibold tracking-tight text-[#1d1d1f]">{receipt.number}</p>
                                     <p className="mt-1 text-xs text-[#6e6e73]">Issued {date(receipt.issuedAt)}</p>
@@ -102,16 +102,16 @@ export function ReceiptPage() {
                             </header>
 
                             {/* Amount paid */}
-                            <section className="relative mt-9 overflow-hidden rounded-2xl bg-[#000a1e] px-6 py-7 text-white sm:px-8">
+                            <section className="relative mt-9 overflow-hidden rounded-2xl bg-[#000a1e] px-6 py-7 text-white sm:px-8 print:mt-5 print:py-4">
                                 <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-[#fea520]/15 blur-2xl" />
                                 <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
                                     <div>
                                         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">Amount paid</p>
-                                        <p className="mt-2 text-[40px] font-bold leading-none tracking-tight tabular-nums">{money(receipt.total)}</p>
+                                        <p className="mt-2 text-[40px] font-bold leading-none tracking-tight tabular-nums print:text-[32px]">{money(receipt.total)}</p>
                                         <p className="mt-2 text-xs text-white/60">Paid on {date(receipt.paidAt)} · {receipt.currency}</p>
                                     </div>
                                     {/* Stamp */}
-                                    <div className="flex h-[92px] w-[92px] shrink-0 rotate-[-12deg] flex-col items-center justify-center rounded-full border-2 border-[#fea520] text-[#fea520] sm:mr-2">
+                                    <div className="flex h-[92px] w-[92px] print:h-[76px] print:w-[76px] shrink-0 rotate-[-12deg] flex-col items-center justify-center rounded-full border-2 border-[#fea520] text-[#fea520] sm:mr-2">
                                         <CheckCircle2 className="h-5 w-5" />
                                         <span className="mt-0.5 text-[15px] font-extrabold uppercase tracking-[0.2em]">Paid</span>
                                     </div>
@@ -119,7 +119,7 @@ export function ReceiptPage() {
                             </section>
 
                             {/* Parties */}
-                            <section className="mt-8 grid gap-6 sm:grid-cols-3">
+                            <section className="mt-8 grid gap-6 sm:grid-cols-3 print:mt-5 print:grid-cols-3 print:gap-4">
                                 <div>
                                     <Label>Billed to</Label>
                                     <p className="mt-2 font-semibold text-[#1d1d1f]">{receipt.billedTo.name}</p>
@@ -138,9 +138,9 @@ export function ReceiptPage() {
                             </section>
 
                             {/* Order details */}
-                            <section className="mt-7 rounded-2xl border border-[#ececf0] bg-[#fafaf8]/80 p-5">
+                            <section className="mt-7 rounded-2xl border border-[#ececf0] bg-[#fafaf8]/80 p-5 print:mt-4 print:p-4">
                                 <p className="text-[17px] font-semibold text-[#1d1d1f]">{receipt.order.topicTitle}</p>
-                                <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+                                <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4 print:grid-cols-4">
                                     {([
                                         ['Service', receipt.order.service],
                                         ['Subject', receipt.order.subject],
@@ -157,7 +157,7 @@ export function ReceiptPage() {
                             </section>
 
                             {/* Lines */}
-                            <table className="mt-8 w-full text-sm">
+                            <table className="mt-8 w-full text-sm print:mt-5">
                                 <thead>
                                     <tr className="border-b border-[#1d1d1f] text-left">
                                         <th className="pb-2.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#1d1d1f]">Description</th>
@@ -167,8 +167,8 @@ export function ReceiptPage() {
                                 <tbody>
                                     {receipt.lines.map((l, i) => (
                                         <tr key={i} className="border-b border-[#ececf0]">
-                                            <td className="py-3.5 pr-4 text-[#1d1d1f]">{l.label}</td>
-                                            <td className="py-3.5 text-right tabular-nums text-[#1d1d1f]">{l.amount < 0 ? '−' : ''}{money(Math.abs(l.amount))}</td>
+                                            <td className="py-3.5 pr-4 text-[#1d1d1f] print:py-2">{l.label}</td>
+                                            <td className="py-3.5 text-right tabular-nums text-[#1d1d1f] print:py-2">{l.amount < 0 ? '−' : ''}{money(Math.abs(l.amount))}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -195,7 +195,7 @@ export function ReceiptPage() {
                             </div>
 
                             {/* Payment */}
-                            <section className="mt-9 grid gap-5 rounded-2xl border border-[#ececf0] p-5 text-sm sm:grid-cols-2">
+                            <section className="mt-9 grid gap-5 rounded-2xl border border-[#ececf0] p-5 text-sm sm:grid-cols-2 print:mt-5 print:grid-cols-2 print:p-4">
                                 <div>
                                     <Label>Payment method</Label>
                                     <p className="mt-1.5 text-[#1d1d1f]">{receipt.method}</p>
@@ -208,7 +208,16 @@ export function ReceiptPage() {
                                 )}
                             </section>
 
-                            <footer className="mt-10 flex flex-col items-center gap-2 border-t border-dashed border-[#d9d9de] pt-6 text-center">
+                            {/* Refund note */}
+                            <section className="mt-5 flex items-start gap-3 rounded-2xl border border-[#fea520]/40 bg-[#fff7ec] p-4 text-sm print:mt-4 print:p-3">
+                                <span className="mt-0.5 shrink-0 rounded-full bg-[#fea520] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#000a1e]">Note</span>
+                                <p className="text-[#1d1d1f]">
+                                    <strong className="font-semibold">This payment is non-refundable.</strong>{' '}
+                                    <span className="text-[#6e6e73]">Please keep this receipt for your records.</span>
+                                </p>
+                            </section>
+
+                            <footer className="mt-10 flex flex-col items-center gap-2 border-t border-dashed border-[#d9d9de] pt-6 text-center print:mt-5 print:pt-4">
                                 <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#1d1d1f]"><ShieldCheck className="h-4 w-4 text-[#fea520]" /> Thank you for choosing AssignmentMinds.</p>
                                 <p className="max-w-md text-xs leading-relaxed text-[#6e6e73]">
                                     This receipt confirms the payment above for order {receipt.order.orderId}. It is computer generated and needs no signature. Questions? {receipt.business.email}
