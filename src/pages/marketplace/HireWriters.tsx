@@ -18,12 +18,9 @@ function SampleWriterCard({ s, onOpen }: { s: SampleWriter; onOpen: () => void }
     return (
         <button type="button" onClick={onOpen} className="group flex flex-col rounded-3xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-[#002147]/30 hover:shadow-[0_20px_50px_-30px_rgba(0,33,71,0.45)] sm:p-6">
             <div className="flex items-start gap-4">
-                <img src={s.avatar} alt="" aria-hidden loading="lazy" decoding="async" className="h-[60px] w-[60px] shrink-0 rounded-full bg-slate-100" />
+                <img src={s.avatar} alt="" aria-hidden loading="lazy" decoding="async" className="h-[60px] w-[60px] shrink-0 rounded-full bg-white shadow-sm ring-2 ring-[#fea520]/30" />
                 <div className="min-w-0 flex-1">
-                    <h3 className="flex items-center gap-1.5 truncate text-lg font-bold text-[#0b1b33] group-hover:text-[#002147]">
-                        <span className="truncate">{s.name}</span>
-                        <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">Sample</span>
-                    </h3>
+                    <h3 className="truncate text-lg font-bold text-[#0b1b33] group-hover:text-[#002147]">{s.name}</h3>
                     <p className="line-clamp-1 text-sm text-slate-600">{s.headline}</p>
                     <p className="mt-1 flex items-center gap-1 text-xs text-slate-500"><MapPin className="h-3 w-3" />{s.country} · {s.yearsExperience} yrs · {s.qualification}</p>
                 </div>

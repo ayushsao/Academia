@@ -92,16 +92,21 @@ export function SampleWriterDialog({ s, onClose, onOrder }: { s: SampleWriter; o
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#000a1e]/50 p-4 backdrop-blur-sm" onClick={onClose}>
             <div role="dialog" aria-modal="true" aria-labelledby="sample-writer-name" onClick={e => e.stopPropagation()}
                 className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white shadow-2xl">
-                <div className="flex items-center justify-between gap-3 rounded-t-3xl bg-slate-50 px-6 py-3 text-xs text-slate-500">
-                    <span><span className="mr-1.5 rounded bg-slate-200 px-1.5 py-0.5 font-bold uppercase tracking-wide text-slate-600">Sample profile</span>An example of how writer profiles appear.</span>
-                    <button type="button" onClick={onClose} aria-label="Close" className="rounded-full p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700">✕</button>
+                {/* Cover with the avatar */}
+                <div className="relative h-28 rounded-t-3xl bg-gradient-to-br from-[#000a1e] via-[#002147] to-[#0b3a6e]">
+                    <div aria-hidden="true" className="absolute -right-8 -top-10 h-40 w-40 rounded-full bg-[#fea520]/20 blur-2xl" />
+                    <p className="absolute left-5 top-4 text-[11px] font-medium text-white/60">Sample profile · an example of how writer profiles appear</p>
+                    <button type="button" onClick={onClose} aria-label="Close" className="absolute right-4 top-3 rounded-full bg-white/10 px-2.5 py-1 text-white/80 hover:bg-white/20 hover:text-white">✕</button>
+                    <img src={s.avatar} alt={`${s.name} avatar`} className="absolute -bottom-12 left-6 h-24 w-24 rounded-full bg-white shadow-lg ring-4 ring-white" />
                 </div>
-                <div className="p-6">
-                    <div className="flex items-center gap-4">
-                        <img src={s.avatar} alt="" aria-hidden className="h-16 w-16 shrink-0 rounded-full bg-slate-100" />
-                        <div className="min-w-0">
-                            <h2 id="sample-writer-name" className="text-xl font-bold text-[#0b1b33]">{s.name}</h2>
-                            <p className="text-sm text-slate-600">{s.headline}</p>
+                <div className="px-6 pb-6 pt-14">
+                    <div className="min-w-0">
+                        <h2 id="sample-writer-name" className="text-2xl font-bold text-[#0b1b33]">{s.name}</h2>
+                        <p className="mt-0.5 text-sm text-slate-600">{s.headline}</p>
+                        <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+                            <span className="rounded-full bg-[#fea520]/15 px-3 py-1 text-[#b86e00]">{s.area}</span>
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">{s.country}</span>
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">{s.yearsExperience} yrs experience</span>
                         </div>
                     </div>
                     <p className="mt-5 text-sm leading-relaxed text-slate-700">{s.bio}</p>
@@ -129,13 +134,10 @@ export function SampleWriterItem({ s, compact, onClick }: { s: SampleWriter; com
     return (
         <button type="button" onClick={onClick} title="Sample profile"
             className={`flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors ${compact ? 'hover:bg-gray-100' : 'border border-transparent hover:border-gray-200 hover:bg-gray-50'}`}>
-            <img src={s.avatar} alt="" aria-hidden loading="lazy" decoding="async" className={`shrink-0 rounded-full bg-slate-100 object-cover ${compact ? 'h-8 w-8' : 'h-10 w-10'}`} />
+            <img src={s.avatar} alt="" aria-hidden loading="lazy" decoding="async" className={`shrink-0 rounded-full bg-white object-cover ring-2 ring-[#fea520]/25 ${compact ? 'h-8 w-8' : 'h-10 w-10'}`} />
             <span className="min-w-0 overflow-hidden">
                 <span className={`block truncate font-bold text-[#000a1e] ${compact ? 'text-xs' : 'text-[13px]'}`}>{s.name}</span>
-                <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase text-gray-400">
-                    <span className="shrink-0 rounded bg-gray-100 px-1.5 py-px text-[9px] tracking-wide text-gray-500">Sample</span>
-                    <span className="truncate">{s.area} · {s.country}</span>
-                </span>
+                <span className="block truncate text-[10px] font-bold uppercase text-gray-400">{s.area} · {s.country}</span>
             </span>
         </button>
     );
