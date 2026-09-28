@@ -669,10 +669,10 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-[#000a1e]/60 backdrop-blur-md overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-6 bg-[#000a1e]/60 backdrop-blur-md overflow-y-auto">
       <div className="bg-white rounded-[2rem] shadow-2xl border border-white/80 w-full max-w-3xl overflow-hidden my-auto animate-in zoom-in-95 duration-200">
         {/* Modal Header */}
-        <div className="bg-[#000a1e] text-white p-6 sm:p-8 flex justify-between items-center relative">
+        <div className="bg-[#000a1e] text-white p-5 sm:p-8 flex justify-between items-center relative">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#002147] flex items-center justify-center text-[#fea520]">
               <FileText className="w-5 h-5" />
@@ -692,14 +692,14 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
         {/* Step Indicator */}
         {step < 3 && (
-          <div className="bg-[#eef4ff] px-8 py-3.5 border-b border-[#d1e4ff] flex justify-between items-center text-xs font-semibold text-[#44474e]">
+          <div className="bg-[#eef4ff] px-4 sm:px-8 py-3.5 border-b border-[#d1e4ff] flex justify-between items-center gap-2 text-xs font-semibold text-[#44474e]">
             <div className={`flex items-center gap-2 ${step === 1 ? 'text-[#000a1e] font-bold' : 'text-emerald-700'}`}>
               <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 1 ? 'bg-[#000a1e] text-white' : 'bg-emerald-600 text-white'}`}>
                 {step > 1 ? '✓' : '1'}
               </span>
               <span>1. Order Details</span>
             </div>
-            <div className="h-0.5 w-12 bg-[#d1e4ff]" />
+            <div className="h-0.5 w-6 sm:w-12 shrink-0 bg-[#d1e4ff]" />
             <div className={`flex items-center gap-2 ${step === 2 ? 'text-[#000a1e] font-bold' : 'text-[#74777f]'}`}>
               <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 2 ? 'bg-[#000a1e] text-white' : 'bg-[#d1e4ff] text-[#000a1e]'}`}>
                 2
@@ -710,7 +710,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
         )}
 
         {/* Modal Body */}
-        <div className="p-6 sm:p-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
+        <div className="p-4 sm:p-8 max-h-[70vh] overflow-y-auto overflow-x-hidden custom-scrollbar">
           {step === 1 && (
             <div className="space-y-6">
               {catMode ? (
@@ -1107,21 +1107,21 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   </div>
                 ) : (<>
                 {/* 1. Instant Online Payment via Razorpay */}
-                <div className="bg-gradient-to-br from-[#000a1e] via-[#001738] to-[#002147] text-white p-5 rounded-2xl shadow-lg border border-[#fea520]/40 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#fea520]/20 flex items-center justify-center text-[#fea520] border border-[#fea520]/30 shadow-inner">
+                <div className="bg-gradient-to-br from-[#000a1e] via-[#001738] to-[#002147] text-white p-4 sm:p-5 rounded-2xl shadow-lg border border-[#fea520]/40 space-y-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start sm:items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 shrink-0 rounded-xl bg-[#fea520]/20 flex items-center justify-center text-[#fea520] border border-[#fea520]/30 shadow-inner">
                         <CreditCard className="w-5 h-5" />
                       </div>
-                      <div>
-                        <div className="text-sm font-bold flex items-center gap-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-bold flex flex-wrap items-center gap-x-2 gap-y-1">
                           <span>Instant Online Checkout</span>
                           <span className="bg-white/10 text-white/80 border border-white/15 text-[10px] px-2 py-0.5 rounded-full font-medium">Recommended</span>
                         </div>
                         <p className="text-xs text-white/70">Cards, UPI, Netbanking & Wallets via Razorpay Standard Checkout</p>
                       </div>
                     </div>
-                    <span className="text-xl font-extrabold text-[#fea520]">{totalLabel}</span>
+                    <span className="text-2xl sm:text-xl font-extrabold text-[#fea520] sm:shrink-0">{totalLabel}</span>
                   </div>
 
                   {isPaymentVerified ? (
@@ -1165,7 +1165,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 {/* Divider */}
                 <div className="relative flex py-1 items-center">
                   <div className="flex-grow border-t border-[#d1e4ff]"></div>
-                  <span className="flex-shrink mx-4 text-[11px] font-bold text-[#74777f] uppercase tracking-wider">{upiQrMode ? 'Or pay with a UPI QR' : 'Or Pay Manually via UPI / PayPal'}</span>
+                  <span className="flex-shrink mx-2 sm:mx-4 text-center text-[10px] sm:text-[11px] font-bold text-[#74777f] uppercase tracking-wider">{upiQrMode ? 'Or pay with a UPI QR' : 'Or Pay Manually via UPI / PayPal'}</span>
                   <div className="flex-grow border-t border-[#d1e4ff]"></div>
                 </div>
 
@@ -1344,17 +1344,17 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
         {/* Modal Footer / Navigation Actions */}
         {step < 3 && (
-          <div className="bg-[#f8f9ff] px-6 sm:px-8 py-4 border-t border-[#d1e4ff] flex justify-between items-center">
+          <div className="bg-[#f8f9ff] px-4 sm:px-8 py-3 sm:py-4 border-t border-[#d1e4ff] flex justify-between items-center gap-3">
             <div>
-              <span className="text-xs text-[#708ab5] block uppercase font-semibold">Total Price</span>
-              <span className="text-2xl font-extrabold text-[#000a1e]" data-testid="order-total">{totalLabel}</span>
+              <span className="text-[10px] sm:text-xs text-[#708ab5] block uppercase font-semibold whitespace-nowrap">Total Price</span>
+              <span className="text-xl sm:text-2xl font-extrabold text-[#000a1e] whitespace-nowrap" data-testid="order-total">{totalLabel}</span>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3">
               {step === 2 && (
                 <button
                   onClick={() => setStep(1)}
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-[#44474e] hover:bg-[#eef4ff] transition-colors"
+                  className="px-3 sm:px-5 py-2.5 rounded-xl text-xs font-bold text-[#44474e] hover:bg-[#eef4ff] transition-colors"
                 >
                   Back
                 </button>
@@ -1363,7 +1363,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 <button
                   onClick={handleNextStep}
                   disabled={!quoteReady && (catMode || (!!service && !!subject && words >= 1))}
-                  className="bg-[#000a1e] text-white hover:bg-[#002147] px-6 py-3 rounded-xl text-sm font-bold shadow-sm flex items-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-[#000a1e] text-white hover:bg-[#002147] px-5 sm:px-6 py-3 rounded-xl text-sm font-bold shadow-sm flex items-center gap-1.5 whitespace-nowrap transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span>Continue</span>
                   <ArrowRight className="w-4 h-4 text-[#fea520]" />
@@ -1372,7 +1372,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 <button
                   onClick={() => handleCompleteOrder()}
                   disabled={isSubmitting || !quoteReady}
-                  className="bg-[#fea520] hover:bg-[#e36100] text-[#000a1e] hover:text-white px-7 py-3 rounded-xl text-sm font-bold shadow-soft flex items-center gap-1.5 transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+                  className="bg-[#fea520] hover:bg-[#e36100] text-[#000a1e] hover:text-white px-4 sm:px-7 py-3 rounded-xl text-sm font-bold shadow-soft flex items-center gap-1.5 whitespace-nowrap transition-all disabled:opacity-75 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <><div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> Processing...</>

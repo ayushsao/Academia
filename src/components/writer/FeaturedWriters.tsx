@@ -120,7 +120,6 @@ export function SampleWriterDialog({ s, onClose, onOrder }: { s: SampleWriter; o
                         {row('Academic levels', s.levels.join(', '))}
                         {row('Languages', s.languages.join(', '))}
                     </dl>
-                    <p className="mt-5 rounded-xl bg-[#fff7ec] px-4 py-3 text-xs text-slate-600">Our real, reviewed writers will appear here as they join. You can already order in this subject and we will match you with a suitable expert.</p>
                     {onOrder && (
                         <button type="button" onClick={onOrder} className="mt-5 w-full rounded-xl bg-[#000a1e] py-3 text-sm font-bold text-white hover:bg-[#002147]">Order in {s.area}</button>
                     )}
