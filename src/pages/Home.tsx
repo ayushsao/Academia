@@ -35,6 +35,7 @@ import { PopupFunnel } from '../components/PopupFunnel';
 import { JoinAsWriterSection } from '../components/JoinAsWriterSection';
 import { Consultant, Discipline, ServiceType, SubjectType } from '../types';
 import type { OrderQuote } from '../lib/orderQuote';
+import type { Coupon } from '../lib/charges';
 
 // Modals are only downloaded when first opened (they render nothing while closed).
 const OrderModal = lazyPage(() => import('../components/OrderModal').then(m => ({ default: m.OrderModal })));
@@ -66,6 +67,7 @@ export default function App() {
     files?: string[];
     fileObjects?: File[];
     quote?: OrderQuote;
+    coupon?: Coupon;
   }>({});
 
   const [activeSection, setActiveSection] = useState<string>('academic-support');
@@ -87,6 +89,7 @@ export default function App() {
     files?: string[];
     fileObjects?: File[];
     quote?: OrderQuote;
+    coupon?: Coupon;
   }) => {
     if (prefill && Object.keys(prefill).length > 0) {
       setOrderPrefill(prefill);

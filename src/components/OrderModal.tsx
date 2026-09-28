@@ -62,6 +62,8 @@ interface OrderModalProps {
     fileObjects?: File[];
     /** The quotation calculated on the previous step; shown as-is while its inputs are unchanged. */
     quote?: OrderQuote;
+    /** A coupon already applied in the home calculator. */
+    coupon?: Coupon;
   };
 }
 
@@ -168,7 +170,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       setIsPaymentVerified(false);
       setRazorpayError('');
       setIsRazorpayLoading(false);
-      setCouponInput(''); setCoupon(null); setCouponMsg(null);
+      setCouponInput(initialConfig?.coupon?.code || ''); setCoupon(initialConfig?.coupon || null);
+      setCouponMsg(initialConfig?.coupon ? { ok: true, text: `Coupon applied: ${initialConfig.coupon.percent}% off the subtotal.` } : null);
       setPayChannel('STANDARD'); setWhatsappUrl(''); setPlacedCharges(null);
       if (initialConfig?.fileObjects && initialConfig.fileObjects.length > 0) {
         setActualFileObjects(initialConfig.fileObjects);
@@ -595,33 +598,46 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
   // WhatsApp: the order is saved without tax and the payment stays pending; the
   // customer continues on WhatsApp with the order ID and price breakdown.
+  const whatsappLink = (orderId: string, c: Charges) => {
+    const text = [
+      orderId ? `Hi AssignmentMinds, I'd like to confirm my order ${orderId}.` : `Hi AssignmentMinds, I'd like to place an order.`,
+      `${orderService || 'Academic paper'}${orderSubject ? ` (${orderSubject})` : ''}: ${topicTitle}`,
+      `Words: ${catMode && catQuote ? catQuote.words : words} · Deadline: ${catMode ? deadline : `${deadline} (${deadlineTime})`}`,
+      ...(user ? [`Name: ${user.name} · Email: ${user.email}`] : []),
+      '',
+      chargesText(c),
+    ].join('\n');
+    return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+  };
+
   const handleWhatsAppOrder = async () => {
     if (!canPlaceOrder()) return;
     // Opened now (while the click still counts) so pop-up blockers allow it.
     const waWindow = window.open('', '_blank');
+    const goToWhatsApp = (url: string) => {
+      setWhatsappUrl(url);
+      if (waWindow) waWindow.location.href = url; else window.location.href = url;
+    };
     setIsWhatsappSubmitting(true);
     try {
-      const files = await uploadAttachments();
+      const files = await uploadAttachments().catch(() => [] as string[]);
       const { res, data } = await postJson('/orders/whatsapp', orderDetails(files));
-      if (!res.ok) {
-        waWindow?.close();
-        if (!handleOrderApiError(res.status, data)) throw new Error(data.error || 'Failed to place order');
+      if (res.ok) {
+        const saved = data.order?.charges?.totalMinor != null ? data.order.charges : charges;
+        goToWhatsApp(whatsappLink(data.order?.orderId || '', saved));
+        await orderPlaced(data.order, `WhatsApp (payment pending)`);
         return;
       }
-      const orderId = data.order?.orderId || '';
-      const text = [
-        `Hi AssignmentMinds, I'd like to confirm my order ${orderId}.`,
-        `${orderService || 'Academic paper'}${orderSubject ? ` (${orderSubject})` : ''}: ${topicTitle}`,
-        '',
-        chargesText(data.order?.charges?.totalMinor != null ? data.order.charges : charges),
-      ].join('\n');
-      const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
-      setWhatsappUrl(url);
-      if (waWindow) waWindow.location.href = url;
-      await orderPlaced(data.order, `WhatsApp (payment pending)`);
-    } catch (e: any) {
-      waWindow?.close();
-      alert(`We couldn't place your order: ${e?.message || 'please try again'}.`);
+      // Signed out, or the price changed: the customer needs to act here first.
+      if (res.status === 401 || (res.status === 409 && data?.quote)) {
+        waWindow?.close();
+        handleOrderApiError(res.status, data);
+        return;
+      }
+      // The order couldn't be saved: still send the customer to WhatsApp with the details.
+      goToWhatsApp(whatsappLink('', charges));
+    } catch {
+      goToWhatsApp(whatsappLink('', charges));
     } finally {
       setIsWhatsappSubmitting(false);
     }
@@ -1066,6 +1082,11 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                         ? <><Loader2 className="w-4 h-4 animate-spin" /> Placing your order…</>
                         : <><MessageCircle className="w-4 h-4" /> Get into WhatsApp · {totalLabel}</>}
                     </button>
+                    {whatsappUrl && (
+                      <p role="status" className="text-center text-xs text-[#44474e]">
+                        WhatsApp didn’t open? <a href={whatsappUrl} target="_blank" rel="noreferrer" className="font-bold text-[#128C4A] underline underline-offset-2">Open WhatsApp</a> and send the message to confirm your order.
+                      </p>
+                    )}
                   </div>
                 ) : (<>
                 {/* 1. Instant Online Payment via Razorpay */}

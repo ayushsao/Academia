@@ -7,6 +7,8 @@ import {
 import { ServiceType, SubjectType } from '../types';
 import { useOrderQuote, fetchOrderQuote, CURRENCY_BY_SYMBOL, SPACING_OPTIONS, DEFAULT_SPACING, pagesFor, deadlineAtFrom, type OrderQuote, type Spacing, localDateString } from '../lib/orderQuote';
 import { DIAL_CODES, POPULAR_DIAL_CODES, dialLabel, countryName } from '../lib/countryCodes';
+import { api } from '../lib/api';
+import type { Coupon } from '../lib/charges';
 
 interface HeroProps {
   onOpenOrder: (prefill?: {
@@ -22,6 +24,7 @@ interface HeroProps {
     instructions?: string;
     files?: string[];
     fileObjects?: File[];
+    coupon?: Coupon;
   }) => void;
   onScrollToTimeline: () => void;
 }
@@ -122,11 +125,37 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
   const calculatedPrice = words === 0 ? 0 : shownQuote?.total ?? 0;
   const originalCatalogPrice = Math.round(calculatedPrice * 2.04);
 
+  // Coupon: checked by the server here and again when the order is placed.
+  // The price shown is after the discount; tax is added at checkout.
+  const [couponInput, setCouponInput] = useState('');
+  const [coupon, setCoupon] = useState<Coupon | null>(null);
+  const [couponMsg, setCouponMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [couponBusy, setCouponBusy] = useState(false);
+  const applyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) { setCouponMsg({ ok: false, text: 'Enter a coupon code.' }); return; }
+    setCouponBusy(true);
+    setCouponMsg(null);
+    try {
+      const { coupon: found } = await api<{ coupon: Coupon }>('/orders/coupon', { method: 'POST', body: { code } });
+      setCoupon(found);
+      setCouponInput(found.code);
+      setCouponMsg({ ok: true, text: `${found.percent}% off applied. Tax is added at checkout.` });
+    } catch (e: any) {
+      setCoupon(null);
+      setCouponMsg({ ok: false, text: e?.message || 'This coupon code is not valid.' });
+    } finally {
+      setCouponBusy(false);
+    }
+  };
+  const removeCoupon = () => { setCoupon(null); setCouponInput(''); setCouponMsg(null); };
+  const shownPrice = coupon ? Math.round(calculatedPrice * (100 - coupon.percent)) / 100 : calculatedPrice;
+
   useEffect(() => {
     // Number roll animation
     const duration = 250;
     const startVal = animatedPrice;
-    const endVal = calculatedPrice;
+    const endVal = shownPrice;
     if (startVal === endVal) return;
 
     const startTime = performance.now();
@@ -141,7 +170,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
       }
     };
     requestAnimationFrame(step);
-  }, [calculatedPrice]);
+  }, [shownPrice]);
 
   const handleIncrement = () => {
     setWords((prev) => Math.min(200000, (Math.floor(prev / WORD_STEP) + 1) * WORD_STEP));
@@ -180,6 +209,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
       instructions: description || (email ? `Contact: ${email} | Phone: ${countryCode} ${phone}` : undefined),
       files: attachedFileName ? [attachedFileName] : undefined,
       fileObjects: attachedFile ? [attachedFile] : undefined,
+      coupon: coupon || undefined,
     });
   };
 
@@ -1023,6 +1053,42 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 </div>
               </div>
 
+              {/* Coupon code */}
+              <div>
+                <label htmlFor="calc-coupon" className="block text-xs font-black text-[#000a1e] mb-1.5 uppercase tracking-wide">
+                  COUPON CODE
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    id="calc-coupon"
+                    type="text"
+                    value={couponInput}
+                    maxLength={40}
+                    disabled={!!coupon}
+                    onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); if (couponMsg) setCouponMsg(null); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyCoupon(); } }}
+                    placeholder="Enter coupon code"
+                    className="flex-1 min-w-0 border-0 rounded-full px-3.5 py-[11px] bg-gray-50 text-[#000a1e] placeholder:text-[#9ca3af] placeholder:font-medium focus:ring-2 focus:ring-[#002147]/20 transition-all outline-none text-[15px] font-bold uppercase tracking-wider shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] disabled:opacity-70"
+                  />
+                  {coupon ? (
+                    <button type="button" onClick={removeCoupon}
+                      className="shrink-0 rounded-full px-5 text-[14px] font-bold text-[#374151] bg-white border border-[#d1d5db] hover:bg-gray-50 transition-colors cursor-pointer">
+                      Remove
+                    </button>
+                  ) : (
+                    <button type="button" onClick={applyCoupon} disabled={couponBusy || !couponInput.trim()}
+                      className="shrink-0 rounded-full px-5 text-[14px] font-bold text-white bg-[#eb6200] hover:bg-[#c85600] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                      {couponBusy ? 'Checking…' : 'Apply'}
+                    </button>
+                  )}
+                </div>
+                {couponMsg && (
+                  <p role={couponMsg.ok ? 'status' : 'alert'} className={`mt-1.5 text-[13px] font-semibold ${couponMsg.ok ? 'text-emerald-700' : 'text-red-600'}`}>
+                    {couponMsg.text}
+                  </p>
+                )}
+              </div>
+
               {/* 8. Course Code & Description / Attach File (From Pic 1) */}
               <div>
                 <div className="flex justify-between items-center mb-1">
@@ -1149,6 +1215,9 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                           Save 51%
                         </span>
                       </div>
+                    )}
+                    {coupon && calculatedPrice > 0 && (
+                      <span className="text-xs font-bold text-emerald-700">Coupon {coupon.code}: −{coupon.percent}% applied</span>
                     )}
                     {quoteError && words > 0 && !quote ? (
                       <span role="alert" className="text-xs font-semibold text-red-600">{quoteError}</span>
