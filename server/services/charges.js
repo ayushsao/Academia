@@ -13,23 +13,27 @@ export class CouponError extends Error {
     constructor(message, status = 400) { super(message); this.status = status; }
 }
 
-/** The coupon set in Admin → Settings, or null when none is switched on. */
-export async function activeCoupon() {
-    const rows = await SiteSettings.find({ key: { $in: ['discount_code', 'discount_percent', 'discount_active'] } }).lean();
-    const s = Object.fromEntries(rows.map(r => [r.key, r.value]));
-    const code = String(s.discount_code || '').trim().toUpperCase();
-    const percent = Number(s.discount_percent) || 0;
-    if (!code || s.discount_active !== true || !(percent > 0 && percent <= 100)) return null;
-    return { code, percent };
+// Coupons offered until an admin saves their own list in Admin → Settings.
+export const DEFAULT_COUPONS = [
+    { code: 'NEWONE', percent: 10, active: true },
+    { code: 'FLAT10', percent: 10, active: true },
+    { code: 'GRAB10', percent: 10, active: true },
+];
+
+/** Every coupon (active or not): the admin's saved list, else the defaults. */
+export async function listCoupons() {
+    const saved = await SiteSettings.findOne({ key: 'coupons' }).lean();
+    return Array.isArray(saved?.value) ? saved.value : DEFAULT_COUPONS;
 }
 
 /** The coupon for a code the customer typed; throws CouponError when it isn't valid. */
 export async function findCoupon(input) {
     const code = String(input || '').trim().toUpperCase();
     if (!code) return null;
-    const coupon = await activeCoupon();
-    if (!coupon || coupon.code !== code) throw new CouponError('This coupon code is not valid or has expired.');
-    return coupon;
+    const coupon = (await listCoupons()).find(c => c.active && String(c.code).toUpperCase() === code);
+    const percent = Number(coupon?.percent) || 0;
+    if (!coupon || !(percent > 0 && percent <= 100)) throw new CouponError('This coupon code is not valid or has expired.');
+    return { code, percent };
 }
 
 export function computeCharges({ subtotalMinor, coupon, channel = 'STANDARD', currency }) {

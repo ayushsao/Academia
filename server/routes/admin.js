@@ -10,6 +10,7 @@ import { IS_PRODUCTION, ADMIN_2FA_REQUIRED } from '../config.js';
 import { streamOrderFile, receiveOrderFiles, storeOrderUploads } from '../services/orderFiles.js';
 import crypto from 'crypto';
 import { remember, cacheDelPattern } from '../services/cache.js';
+import { DEFAULT_COUPONS } from '../services/charges.js';
 
 const require = createRequire(import.meta.url);
 const bcrypt = require('bcryptjs');
@@ -717,9 +718,11 @@ router.get('/audit', authenticateAdmin, async (req, res) => {
 // Storefront settings editable from the admin Settings tab. Membership and
 // assignment configuration live in their own validated endpoints.
 const SITE_SETTING_VALIDATORS = {
-    discount_code: v => typeof v === 'string' && v.length <= 40,
-    discount_percent: v => typeof v === 'number' && v >= 0 && v <= 100,
-    discount_active: v => typeof v === 'boolean',
+    // Coupon codes applied at checkout (services/charges.js): [{ code, percent, active }].
+    coupons: v => Array.isArray(v) && v.length <= 50
+        && v.every(c => c && typeof c.code === 'string' && /^[A-Z0-9_-]{3,30}$/.test(c.code)
+            && typeof c.percent === 'number' && c.percent > 0 && c.percent <= 100 && typeof c.active === 'boolean')
+        && new Set(v.map(c => c.code)).size === v.length,
     site_announcement: v => typeof v === 'string' && v.length <= 500,
     whatsapp_number: v => typeof v === 'string' && v.length <= 30,
 };
@@ -730,11 +733,8 @@ router.get('/settings', authenticateAdmin, async (req, res) => {
         const settings = await SiteSettings.find({ key: { $in: Object.keys(SITE_SETTING_VALIDATORS) } });
         const obj = {};
         settings.forEach(s => { obj[s.key] = s.value; });
-        // Defaults for settings never saved. The coupon is off until an admin sets
-        // a code and switches it on (it is applied at checkout: services/charges.js).
-        if (!obj.discount_code) obj.discount_code = '';
-        if (!obj.discount_percent) obj.discount_percent = 0;
-        if (typeof obj.discount_active !== 'boolean') obj.discount_active = false;
+        // Defaults for settings never saved.
+        if (!Array.isArray(obj.coupons)) obj.coupons = DEFAULT_COUPONS;
         if (!obj.site_announcement) obj.site_announcement = '';
         if (!obj.whatsapp_number) obj.whatsapp_number = '+447700900000';
         res.json(obj);

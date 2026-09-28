@@ -1340,32 +1340,37 @@ const SettingsTab = ({ token }: { token: string }) => {
     return (
         <div className="space-y-6">
             <div className="grid gap-6 lg:grid-cols-2">
-            {/* Coupon / Discount */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
-                <div className="flex items-center gap-2 mb-1"><Tag className="w-5 h-5 text-[#fea520]" /><h3 className="font-bold text-[#000a1e]">Discount / Coupon Code</h3></div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-xs font-bold text-gray-400 uppercase mb-1.5">Coupon Code</label>
-                        <input type="text" value={settings.discount_code || ''}
-                            onChange={e => setSettings({ ...settings, discount_code: e.target.value.toUpperCase() })}
-                            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-bold text-[#000a1e] focus:outline-none focus:ring-2 focus:ring-[#fea520]/30 uppercase tracking-widest" />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-gray-400 uppercase mb-1.5">Discount %</label>
-                        <input type="number" min="0" max="100" value={settings.discount_percent || 0}
-                            onChange={e => setSettings({ ...settings, discount_percent: Number(e.target.value) })}
-                            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-bold text-[#000a1e] focus:outline-none focus:ring-2 focus:ring-[#fea520]/30" />
-                    </div>
+            {/* Coupon codes (applied at checkout: discount first, then tax) */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+                <div className="flex items-center gap-2 mb-1"><Tag className="w-5 h-5 text-[#fea520]" /><h3 className="font-bold text-[#000a1e]">Coupon Codes</h3></div>
+                <p className="text-xs text-gray-500">Customers enter these in the price calculator or at checkout. The discount comes off the subtotal before tax.</p>
+                <div className="space-y-2.5">
+                    {(settings.coupons || []).map((c: { code: string; percent: number; active: boolean }, i: number) => {
+                        const update = (patch: Partial<typeof c>) => setSettings({ ...settings, coupons: settings.coupons.map((x: typeof c, j: number) => j === i ? { ...x, ...patch } : x) });
+                        return (
+                            <div key={i} className="flex items-center gap-2">
+                                <input type="text" value={c.code} aria-label="Coupon code" placeholder="CODE" maxLength={30}
+                                    onChange={e => update({ code: e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '') })}
+                                    className="min-w-0 flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold text-[#000a1e] focus:outline-none focus:ring-2 focus:ring-[#fea520]/30 uppercase tracking-widest" />
+                                <div className="relative w-20 shrink-0">
+                                    <input type="number" min="1" max="100" value={c.percent} aria-label="Discount percent"
+                                        onChange={e => update({ percent: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
+                                        className="w-full border border-gray-200 rounded-xl pl-3 pr-6 py-2 text-sm font-bold text-[#000a1e] focus:outline-none focus:ring-2 focus:ring-[#fea520]/30" />
+                                    <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">%</span>
+                                </div>
+                                <button type="button" onClick={() => update({ active: !c.active })} aria-pressed={c.active}
+                                    className={`shrink-0 rounded-lg px-2.5 py-2 text-[11px] font-bold border ${c.active ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                                    {c.active ? 'Active' : 'Off'}
+                                </button>
+                                <button type="button" aria-label={`Remove ${c.code || 'coupon'}`}
+                                    onClick={() => setSettings({ ...settings, coupons: settings.coupons.filter((_: unknown, j: number) => j !== i) })}
+                                    className="shrink-0 rounded-lg p-2 text-red-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                            </div>
+                        );
+                    })}
                 </div>
-                <div className="flex items-center gap-3">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                        <div onClick={() => setSettings({ ...settings, discount_active: !settings.discount_active })}
-                            className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${settings.discount_active ? 'bg-emerald-500' : 'bg-gray-200'}`}>
-                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${settings.discount_active ? 'translate-x-6' : 'translate-x-1'}`} />
-                        </div>
-                        <span className="text-sm font-semibold text-gray-700">{settings.discount_active ? 'Coupon Active' : 'Coupon Disabled'}</span>
-                    </label>
-                </div>
+                <button type="button" onClick={() => setSettings({ ...settings, coupons: [...(settings.coupons || []), { code: '', percent: 10, active: true }] })}
+                    className="text-xs font-bold text-[#002147] hover:text-[#e36100]">+ Add coupon</button>
             </div>
 
             {/* Site Info */}
