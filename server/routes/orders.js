@@ -162,12 +162,24 @@ const orderError = (res, err, fallback) => {
     res.status(500).json({ error: fallback });
 };
 
+// Orders whose payment is checked by hand (manual reference, WhatsApp): limited
+// per IP so nobody can flood the admin queue with unpaid orders.
+const pendingOrderLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 20, message: { error: 'Too many orders from this connection. Please try again later.' } });
+
+// A payment reference (UTR / transaction / payment ID) may back only one order.
+const referenceInUse = (reference, exceptOrderId) => Order.exists({
+    ...(exceptOrderId && { _id: { $ne: exceptOrderId } }),
+    transactionId: new RegExp(`^${reference.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
+});
+
 // POST /api/orders — place an order paid manually (UPI / PayPal / bank reference).
 // The reference is recorded for the team to verify; it is never treated as proof of payment.
-router.post('/', authenticateUser, validateInput(orderSchema), async (req, res) => {
+router.post('/', pendingOrderLimiter, authenticateUser, validateInput(orderSchema), async (req, res) => {
     try {
-        const { fields } = await prepareOrder(req.body, req.user.id);
         const reference = (req.body.transactionId || '').trim();
+        if (reference.length < 5) return res.status(400).json({ error: 'Enter the Transaction ID / UTR number of your payment.' });
+        if (await referenceInUse(reference)) return res.status(409).json({ error: 'This payment reference is already used for another order. Check it and try again.' });
+        const { fields } = await prepareOrder(req.body, req.user.id);
         const order = await createOrderRecord({
             ...fields,
             transactionId: reference,
@@ -191,7 +203,7 @@ router.post('/coupon', couponLimiter, validateInput(couponCheckSchema), async (r
 // ── Order on WhatsApp ──────────────────────────────────────────────────────────
 // POST /api/orders/whatsapp — the customer arranges payment with the team on
 // WhatsApp. No tax is charged; the payment stays pending until an admin confirms it.
-router.post('/whatsapp', authenticateUser, validateInput(orderCheckoutSchema), async (req, res) => {
+router.post('/whatsapp', pendingOrderLimiter, authenticateUser, validateInput(orderCheckoutSchema), async (req, res) => {
     try {
         const { fields } = await prepareOrder(req.body, req.user.id, 'WHATSAPP');
         const order = await createOrderRecord({ ...fields, payment: { provider: 'WHATSAPP', status: 'PENDING_VERIFICATION' } });
@@ -210,8 +222,7 @@ router.post('/:id/payment-reference', referenceLimiter, authenticateUser, valida
         if (order.payment?.status === 'PAID') return res.status(409).json({ error: 'This payment is already confirmed.' });
         if (order.payment?.provider !== 'WHATSAPP') return res.status(400).json({ error: 'Payment references are only needed for orders paid on WhatsApp.' });
         const reference = req.body.reference;
-        const escaped = reference.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        if (await Order.exists({ _id: { $ne: order._id }, transactionId: new RegExp(`^${escaped}$`, 'i') }))
+        if (await referenceInUse(reference, order._id))
             return res.status(409).json({ error: 'This reference is already used for another order. Check it and try again.' });
         order.transactionId = reference;
         order.payment = { ...(order.payment?.toObject?.() || {}), provider: 'WHATSAPP', status: 'PENDING_VERIFICATION', failedAt: undefined, failureReason: undefined };
