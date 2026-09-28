@@ -14,6 +14,20 @@ export const loginSchema = z.object({
     portal: z.enum(['client', 'writer']).optional()
 });
 
+// Customer sign-in / sign-up with a one-time code sent by email.
+const otpName = signupSchema.shape.name;
+export const otpLoginSendSchema = z.object({
+    email: z.string().trim().email("Invalid email format"),
+    mode: z.enum(['login', 'signup']),
+    name: otpName.optional(),
+}).strict();
+export const otpLoginVerifySchema = z.object({
+    email: z.string().trim().email("Invalid email format"),
+    mode: z.enum(['login', 'signup']),
+    code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code'),
+    name: otpName.optional(),
+}).strict();
+
 export const adminLoginSchema = z.object({
     username: z.string().min(1, "Username is required"),
     password: z.string().min(1, "Password is required")

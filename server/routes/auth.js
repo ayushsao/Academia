@@ -6,7 +6,9 @@ import crypto from 'crypto';
 import { User, Writer } from '../db.js';
 import { AbuseError, assertNotLocked, recordLoginFailure, clearLoginFailures } from '../services/abuse.js';
 import { authenticateUser, issueUserSession, clearUserSession, CLIENT_COOKIE } from '../middleware.js';
-import { validateInput, signupSchema, loginSchema } from '../validation.js';
+import { validateInput, signupSchema, loginSchema, otpLoginSendSchema, otpLoginVerifySchema } from '../validation.js';
+import { issueOtp, verifyOtp, OtpError } from '../services/otp.js';
+import { DeliveryUnavailableError } from '../services/messaging.js';
 import { remember } from '../services/cache.js';
 
 const require = createRequire(import.meta.url);
@@ -160,6 +162,61 @@ router.post('/login', authLimiter, validateInput(loginSchema), async (req, res) 
     } catch (err) {
         res.status(500).json({ error: 'Login failed due to a server error.' });
     }
+});
+
+// ── One-time code (email OTP) sign-in / sign-up for customers ─────────────────
+// Login: the code goes to an existing customer account's email.
+// Signup: the code proves the email; the account is created once it is verified.
+// OTP tokens are keyed by a user id; before an account exists we use an id
+// derived from the email address.
+const otpLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { error: 'Too many code requests. Please try again later.' } });
+const pendingOtpId = (email) => crypto.createHash('sha256').update(`signup:${email}`).digest('hex').slice(0, 24);
+const otpFail = (res, err) => {
+    if (err instanceof OtpError) return res.status(err.status).json({ error: err.message, ...err.extra });
+    if (err instanceof DeliveryUnavailableError) return res.status(503).json({ error: 'Login with OTP isn’t available right now. Please use Google or email & password.' });
+    console.error('[Auth OTP]', err?.message);
+    res.status(500).json({ error: 'Could not send the code. Please try again.' });
+};
+
+// POST /api/auth/otp/send
+router.post('/otp/send', otpLimiter, validateInput(otpLoginSendSchema), async (req, res) => {
+    try {
+        const email = req.body.email.toLowerCase();
+        const user = await User.findOne({ email }).select('_id role').lean();
+        if (req.body.mode === 'login') {
+            if (!user) return res.status(404).json({ error: 'No account found with this email. Please sign up first.' });
+            if (portalOf(user) !== 'client') return res.status(403).json({ error: WRONG_PORTAL.client, portal: 'writer' });
+        } else if (user) {
+            return res.status(409).json({ error: 'An account with this email already exists. Please log in.' });
+        }
+        const userId = user ? user._id : pendingOtpId(email);
+        const subject = req.body.mode === 'login' ? 'Your AssignmentMinds login code' : 'Confirm your email for AssignmentMinds';
+        res.json(await issueOtp({ userId, channel: 'EMAIL', target: email, subject }));
+    } catch (err) { otpFail(res, err); }
+});
+
+// POST /api/auth/otp/verify
+router.post('/otp/verify', otpLimiter, validateInput(otpLoginVerifySchema), async (req, res) => {
+    try {
+        const email = req.body.email.toLowerCase();
+        let user = await User.findOne({ email });
+        let isNewUser = false;
+        if (req.body.mode === 'login') {
+            if (!user) return res.status(404).json({ error: 'No account found with this email. Please sign up first.' });
+            if (portalOf(user) !== 'client') return res.status(403).json({ error: WRONG_PORTAL.client, portal: 'writer' });
+            await verifyOtp({ userId: user._id, channel: 'EMAIL', target: email, code: req.body.code });
+        } else {
+            if (user) return res.status(409).json({ error: 'An account with this email already exists. Please log in.' });
+            await verifyOtp({ userId: pendingOtpId(email), channel: 'EMAIL', target: email, code: req.body.code });
+            // No password was chosen: store a random one (they sign in with a code, Google, or a password reset).
+            user = await User.create({ name: req.body.name || email.split('@')[0], email, password: await bcrypt.hash(crypto.randomBytes(24).toString('hex'), 12) });
+            isNewUser = true;
+        }
+        user.lastLogin = new Date();
+        await user.save();
+        const token = issueUserSession(res, user);
+        res.json({ token, isNewUser, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+    } catch (err) { otpFail(res, err); }
 });
 
 // POST /api/auth/logout — signs out the customer account only (the writer

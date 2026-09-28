@@ -23,6 +23,18 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
   const [password, setPassword] = useState<string>('');
   const [name, setName] = useState<string>('');
   const [apiError, setApiError] = useState<string>('');
+  // Login / signup with a one-time code sent to the email address.
+  const [showOtpForm, setShowOtpForm] = useState<boolean>(false);
+  const [otpStep, setOtpStep] = useState<'email' | 'code'>('email');
+  const [otpCode, setOtpCode] = useState<string>('');
+  const [otpBusy, setOtpBusy] = useState<boolean>(false);
+  const [otpInfo, setOtpInfo] = useState<string>('');
+  const [resendIn, setResendIn] = useState<number>(0);
+  React.useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setTimeout(() => setResendIn(n => n - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
   const login = useStore(state => state.login);
   const navigate = useNavigate();
 
@@ -131,6 +143,53 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
     }
   };
 
+  const openOtp = () => { setShowOtpForm(true); setShowEmailForm(false); setOtpStep('email'); setOtpCode(''); setOtpInfo(''); setApiError(''); };
+  const closeForms = () => { setShowOtpForm(false); setShowEmailForm(false); setApiError(''); setOtpInfo(''); };
+
+  const postAuth = async (path: string, body: unknown) => {
+    const res = await fetch(`${API}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), credentials: 'include' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw Object.assign(new Error(data.error || 'Something went wrong. Please try again.'), { data });
+    return data;
+  };
+  const authErrorText = (err: any) => {
+    const msg = err?.message ? String(err.message).toLowerCase() : '';
+    return (msg.includes('failed to fetch') || msg.includes('load failed') || msg.includes('network'))
+      ? 'Server is securely waking up. Please try again in 30 seconds.'
+      : err?.message || 'Something went wrong. Please try again.';
+  };
+
+  const sendOtp = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!email.trim()) { setApiError('Enter your email address.'); return; }
+    if (activeTab === 'signup' && name.trim().length < 2) { setApiError('Enter your full name.'); return; }
+    setOtpBusy(true); setApiError(''); setOtpInfo('');
+    try {
+      const data = await postAuth('/auth/otp/send', { email: email.trim(), mode: activeTab, ...(activeTab === 'signup' && { name: name.trim() }) });
+      setOtpStep('code');
+      setResendIn(data.resendInSeconds || 60);
+      setOtpInfo(`We sent a 6-digit code to ${email.trim()}. It expires in 10 minutes.`);
+    } catch (err: any) {
+      if (err?.data?.retryAfter) { setOtpStep('code'); setResendIn(err.data.retryAfter); }
+      setApiError(authErrorText(err));
+    } finally { setOtpBusy(false); }
+  };
+
+  const verifyOtpCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!/^\d{6}$/.test(otpCode)) { setApiError('Enter the 6-digit code.'); return; }
+    setOtpBusy(true); setApiError('');
+    try {
+      const data = await postAuth('/auth/otp/verify', { email: email.trim(), mode: activeTab, code: otpCode, ...(activeTab === 'signup' && { name: name.trim() }) });
+      login(data.user.email, data.user.name, data.token, data.user.id, data.user.role);
+      if (data.isNewUser) await sendWelcomeEmail(data.user.name, data.user.email);
+      onClose();
+      navigate('/dashboard');
+    } catch (err: any) {
+      setApiError(authErrorText(err));
+    } finally { setOtpBusy(false); }
+  };
+
   const containerVariants = {
     hidden: { opacity: 0, scale: 0.95, y: 20 },
     visible: {
@@ -196,7 +255,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
                 {/* Tabs */}
                 <div className="flex w-full mb-8 relative justify-center gap-8">
                   <button
-                    onClick={() => { setActiveTab('login'); setShowEmailForm(false); }}
+                    onClick={() => { setActiveTab('login'); closeForms(); }}
                     className={`text-lg transition-colors px-2 cursor-pointer pb-2 relative font-bold outline-none ${activeTab === 'login' ? 'text-[#000a1e]' : 'text-gray-400 hover:text-gray-700'
                       }`}
                   >
@@ -206,7 +265,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
                     )}
                   </button>
                   <button
-                    onClick={() => { setActiveTab('signup'); setShowEmailForm(false); }}
+                    onClick={() => { setActiveTab('signup'); closeForms(); }}
                     className={`text-lg transition-colors px-2 cursor-pointer pb-2 relative font-bold outline-none ${activeTab === 'signup' ? 'text-[#000a1e]' : 'text-gray-400 hover:text-gray-700'
                       }`}
                   >
@@ -219,7 +278,58 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
                 </div>
 
                 <AnimatePresence mode="wait">
-                  {!showEmailForm ? (
+                  {showOtpForm ? (
+                    <motion.form
+                      key="otp"
+                      variants={formVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      onSubmit={otpStep === 'email' ? sendOtp : verifyOtpCode}
+                      className="w-full space-y-4"
+                    >
+                      {apiError && (
+                        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-xs flex items-center gap-2 font-semibold">
+                          <AlertCircle className="w-4 h-4 flex-shrink-0" />{apiError}
+                        </div>
+                      )}
+                      {otpStep === 'email' ? (<>
+                        {activeTab === 'signup' && (
+                          <div className="relative group">
+                            <User className="absolute left-4 top-4 w-5 h-5 text-gray-400 group-focus-within:text-[#002147] transition-colors" />
+                            <input type="text" placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name"
+                              className="w-full border border-gray-200 bg-gray-50/50 rounded-xl pl-12 pr-4 py-3.5 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#fea520]/50 focus:border-[#fea520] transition-all font-medium text-sm text-[#000a1e]" />
+                          </div>
+                        )}
+                        <div className="relative group">
+                          <Mail className="absolute left-4 top-4 w-5 h-5 text-gray-400 group-focus-within:text-[#002147] transition-colors" />
+                          <input type="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email"
+                            className="w-full border border-gray-200 bg-gray-50/50 rounded-xl pl-12 pr-4 py-3.5 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#fea520]/50 focus:border-[#fea520] transition-all font-medium text-sm text-[#000a1e]" />
+                        </div>
+                      </>) : (<>
+                        {otpInfo && <p role="status" className="text-xs text-gray-600 text-center">{otpInfo}</p>}
+                        <input
+                          type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="••••••" aria-label="6-digit code"
+                          value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))} autoFocus
+                          className="w-full border border-gray-200 bg-gray-50/50 rounded-xl px-4 py-3.5 text-center text-2xl font-bold tracking-[0.5em] text-[#000a1e] placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#fea520]/50 focus:border-[#fea520] transition-all" />
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <button type="button" onClick={() => { setOtpStep('email'); setOtpCode(''); setApiError(''); }} className="text-gray-500 hover:text-[#000a1e]">Change email</button>
+                          <button type="button" onClick={() => sendOtp()} disabled={resendIn > 0 || otpBusy} className="text-[#002147] hover:text-[#e36100] disabled:text-gray-400">
+                            {resendIn > 0 ? `Resend code in ${resendIn}s` : 'Resend code'}
+                          </button>
+                        </div>
+                      </>)}
+                      <button type="submit" disabled={otpBusy}
+                        className="w-full bg-[#000a1e] hover:bg-[#002147] text-white py-4 rounded-xl font-bold mt-2 transition-all shadow-glass hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-60">
+                        {otpBusy ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          : <><span>{otpStep === 'email' ? 'Send Code' : activeTab === 'login' ? 'Verify & Login' : 'Verify & Create Account'}</span><ArrowRight className="w-4 h-4 text-[#fea520]" /></>}
+                      </button>
+                      <button type="button" onClick={closeForms}
+                        className="w-full text-center text-sm font-semibold text-gray-400 hover:text-[#000a1e] transition-colors pt-2 cursor-pointer">
+                        Back to options
+                      </button>
+                    </motion.form>
+                  ) : !showEmailForm ? (
                     <motion.div
                       key="options"
                       variants={formVariants}
@@ -253,7 +363,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => 
                           <span className="text-sm font-bold">{activeTab === 'login' ? 'Login' : 'Signup'} With Email & Password</span>
                         </button>
 
-                        <button className="w-full flex items-center justify-center gap-3 border border-gray-200 bg-white rounded-[12px] py-3.5 hover:border-[#000a1e]/30 hover:bg-gray-50 hover:shadow-sm transition-all cursor-pointer text-[#000a1e] group">
+                        <button type="button" onClick={openOtp} className="w-full flex items-center justify-center gap-3 border border-gray-200 bg-white rounded-[12px] py-3.5 hover:border-[#000a1e]/30 hover:bg-gray-50 hover:shadow-sm transition-all cursor-pointer text-[#000a1e] group">
                           <div className="relative group-hover:scale-110 transition-transform">
                             <Lock className="w-5 h-5 text-[#002147]" strokeWidth={2} />
                             <span className="absolute -bottom-1 -right-1 text-[7px] bg-white rounded-full font-bold px-0.5 text-gray-500">OTP</span>

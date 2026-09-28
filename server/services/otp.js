@@ -21,7 +21,7 @@ export class OtpError extends Error {
 
 // Creates a fresh code (invalidating any previous one) and delivers it.
 // The code itself is never returned to the caller.
-export async function issueOtp({ userId, channel, target }) {
+export async function issueOtp({ userId, channel, target, subject = 'Verify your AssignmentMinds writer account' }) {
     const existing = await OtpToken.findOne({ userId, channel }).sort({ createdAt: -1 });
     if (existing) {
         const waitMs = existing.createdAt.getTime() + RESEND_COOLDOWN_MS - Date.now();
@@ -40,7 +40,7 @@ export async function issueOtp({ userId, channel, target }) {
     if (channel === 'EMAIL') {
         await sendEmail({
             to: target,
-            subject: 'Verify your AssignmentMinds writer account',
+            subject,
             text,
             html: `<p>Your AssignmentMinds verification code is:</p><p style="font-size:28px;font-weight:700;letter-spacing:6px">${code}</p><p>It expires in 10 minutes. If you did not request this, you can ignore this email.</p>`,
         });
