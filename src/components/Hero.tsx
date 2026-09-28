@@ -42,6 +42,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
   const [email, setEmail] = useState<string>('');
   const [countryCode, setCountryCode] = useState<string>('IN(+91)');
   const [phone, setPhone] = useState<string>('');
+  const [contactErrors, setContactErrors] = useState<{ email?: string; phone?: string }>({});
   const [courseCode, setCourseCode] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
@@ -191,6 +192,13 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
 
   const handleSubmitQuote = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Email and phone are required before the detailed quote.
+    const errs: { email?: string; phone?: string } = {};
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) errs.email = email.trim() ? 'Enter a valid email address.' : 'Email is required.';
+    const phoneDigits = phone.replace(/[\s()+-]/g, '');
+    if (!/^\d{6,15}$/.test(phoneDigits)) errs.phone = phone.trim() ? 'Enter a valid phone number.' : 'Phone number is required.';
+    setContactErrors(errs);
+    if (errs.email || errs.phone) return;
     // Hand the order form the exact quote shown here (fetched now if the inputs just changed).
     let finalQuote: OrderQuote | undefined;
     try {
@@ -206,7 +214,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
       deadline: `${deadline} (${deadlineTime})`,
       academicLevel,
       topicTitle: courseCode ? `[${courseCode}]` : undefined,
-      instructions: description || (email ? `Contact: ${email} | Phone: ${countryCode} ${phone}` : undefined),
+      instructions: [description.trim(), `Contact: ${email.trim()} | Phone: ${countryCode} ${phone.trim()}`].filter(Boolean).join('\n\n'),
       files: attachedFileName ? [attachedFileName] : undefined,
       fileObjects: attachedFile ? [attachedFile] : undefined,
       coupon: coupon || undefined,
@@ -818,7 +826,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
               </span>
             </div>
 
-            <form onSubmit={handleSubmitQuote} className="space-y-4">
+            <form onSubmit={handleSubmitQuote} noValidate className="space-y-4">
               {/* 2. Track Category Radio Pills — MAH style */}
               <div>
                 <div className="flex items-center justify-between gap-2 p-1 bg-[#f4f7fc] rounded-lg border border-[#e5e7eb]">
@@ -923,15 +931,19 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 <div>
                   <input
                     type="email"
-                    placeholder="Email"
+                    placeholder="Email *"
+                    aria-label="Email (required)"
+                    aria-invalid={!!contactErrors.email}
+                    aria-required="true"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="am-input"
+                    onChange={(e) => { setEmail(e.target.value); if (contactErrors.email) setContactErrors(p => ({ ...p, email: undefined })); }}
+                    className={`am-input ${contactErrors.email ? 'border-red-500!' : ''}`}
                   />
+                  {contactErrors.email && <p role="alert" className="mt-1 text-xs font-semibold text-red-600">{contactErrors.email}</p>}
                 </div>
 
                 <div>
-                  <div className="flex rounded-[6px] overflow-hidden border border-[#d1d5db] bg-white focus-within:border-[#eb6200] focus-within:shadow-[0_0_0_3px_rgba(235,98,0,0.10)] transition-all">
+                  <div className={`flex rounded-[6px] overflow-hidden border ${contactErrors.phone ? 'border-red-500' : 'border-[#d1d5db]'} bg-white focus-within:border-[#eb6200] focus-within:shadow-[0_0_0_3px_rgba(235,98,0,0.10)] transition-all`}>
                     <select
                       value={countryCode}
                       onChange={(e) => setCountryCode(e.target.value)}
@@ -946,12 +958,17 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     </select>
                     <input
                       type="tel"
-                      placeholder="Phone no."
+                      inputMode="tel"
+                      placeholder="Phone no. *"
+                      aria-label="Phone number (required)"
+                      aria-invalid={!!contactErrors.phone}
+                      aria-required="true"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={(e) => { setPhone(e.target.value.replace(/[^\d\s()+-]/g, '')); if (contactErrors.phone) setContactErrors(p => ({ ...p, phone: undefined })); }}
                       className="w-full px-3 py-[10px] bg-transparent text-[#374151] placeholder:text-[#9ca3af] outline-none text-sm font-normal"
                     />
                   </div>
+                  {contactErrors.phone && <p role="alert" className="mt-1 text-xs font-semibold text-red-600">{contactErrors.phone}</p>}
                 </div>
               </div>
 
