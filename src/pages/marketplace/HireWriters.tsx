@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Search, Star, FileText, MapPin, SlidersHorizontal, BadgeCheck, ArrowRight } from 'lucide-react';
 import { MarketplaceNavbar as Navbar } from '../../components/writer/MarketplaceNavbar';
 import { Footer } from '../../components/Footer';
@@ -9,8 +9,32 @@ import { ACADEMIC_LEVELS, PREDEFINED_SKILLS, SUGGESTED_SUBJECTS, countryName } f
 import { CountrySelect, inputClass } from '../../components/writer/FormKit';
 import { AvailabilityDot, Spinner, WriterAvatar } from '../../components/writer/WriterBits';
 import { cn } from '../../lib/utils';
+import { SAMPLE_WRITERS, SampleWriterDialog, type SampleWriter } from '../../components/writer/FeaturedWriters';
 
 const PAGE_SIZE = 12;
+
+// Shown only while no real writer is public (see FeaturedWriters.tsx).
+function SampleWriterCard({ s, onOpen }: { s: SampleWriter; onOpen: () => void }) {
+    return (
+        <button type="button" onClick={onOpen} className="group flex flex-col rounded-3xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-[#002147]/30 hover:shadow-[0_20px_50px_-30px_rgba(0,33,71,0.45)] sm:p-6">
+            <div className="flex items-start gap-4">
+                <img src={s.avatar} alt="" aria-hidden loading="lazy" decoding="async" className="h-[60px] w-[60px] shrink-0 rounded-full bg-slate-100" />
+                <div className="min-w-0 flex-1">
+                    <h3 className="flex items-center gap-1.5 truncate text-lg font-bold text-[#0b1b33] group-hover:text-[#002147]">
+                        <span className="truncate">{s.name}</span>
+                        <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">Sample</span>
+                    </h3>
+                    <p className="line-clamp-1 text-sm text-slate-600">{s.headline}</p>
+                    <p className="mt-1 flex items-center gap-1 text-xs text-slate-500"><MapPin className="h-3 w-3" />{s.country} · {s.yearsExperience} yrs · {s.qualification}</p>
+                </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-1.5">
+                {s.subjects.map(x => <span key={x} className="rounded-md bg-[#002147]/[0.05] px-2 py-1 text-xs font-medium text-[#002147]">{x}</span>)}
+            </div>
+            <span className="mt-auto inline-flex items-center gap-1 pt-5 text-sm font-semibold text-[#002147]">View sample profile <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" /></span>
+        </button>
+    );
+}
 
 function WriterCard({ w }: { w: PublicWriter }) {
     return (
@@ -72,6 +96,17 @@ export default function HireWriters() {
     const setFilter = <K extends keyof typeof filters>(k: K, v: (typeof filters)[K]) => setFilters(f => ({ ...f, [k]: v }));
     const activeCount = Object.values(filters).filter(Boolean).length;
 
+    // No public writer yet (and no search or filter): show the sample profiles.
+    const showSamples = !loading && !error && total === 0 && !debounced && activeCount === 0;
+    const [openSample, setOpenSample] = useState<SampleWriter | null>(null);
+    const { hash } = useLocation();
+    const navigate = useNavigate();
+    useEffect(() => {
+        const slug = hash.startsWith('#sample-') ? hash.slice('#sample-'.length) : '';
+        setOpenSample(SAMPLE_WRITERS.find(s => s.slug === slug) || null);
+    }, [hash]);
+    const closeSample = () => { setOpenSample(null); if (hash) navigate('/hire-writers', { replace: true }); };
+
     return (
         <div className="flex min-h-screen flex-col bg-[#f6f8fc] font-sans">
             <Navbar activeSection="writers" />
@@ -115,7 +150,17 @@ export default function HireWriters() {
 
                 {error && <p role="alert" className="mb-6 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
 
-                {!loading && writers.length === 0 && !error ? (
+                {showSamples ? (
+                    <>
+                        <p className="mb-4 rounded-xl bg-white px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-200">
+                            <span className="mr-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-slate-500">Sample profiles</span>
+                            These show how writer profiles look. Our reviewed writers will appear here as they join.
+                        </p>
+                        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                            {SAMPLE_WRITERS.map(s => <React.Fragment key={s.slug}><SampleWriterCard s={s} onOpen={() => navigate(`/hire-writers#sample-${s.slug}`)} /></React.Fragment>)}
+                        </div>
+                    </>
+                ) : !loading && writers.length === 0 && !error ? (
                     <div className="rounded-3xl border border-slate-200 bg-white px-6 py-20 text-center">
                         <FileText className="mx-auto h-12 w-12 text-slate-300" />
                         <h2 className="mt-4 text-xl font-bold text-[#0b1b33]">No writers match those filters</h2>
@@ -143,6 +188,10 @@ export default function HireWriters() {
                 </aside>
             </main>
             <Footer />
+            {openSample && (
+                <SampleWriterDialog s={openSample} onClose={closeSample}
+                    onOrder={() => { closeSample(); navigate('/'); setTimeout(() => window.dispatchEvent(new Event('open-order-modal')), 300); }} />
+            )}
         </div>
     );
 }

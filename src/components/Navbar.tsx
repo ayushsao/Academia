@@ -176,7 +176,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                     {featuredWriters === null
                       ? Array.from({ length: 8 }, (_, i) => <div key={i} className="h-14 animate-pulse rounded-lg bg-gray-50" />)
                       : featuredWriters.length === 0
-                        ? SAMPLE_WRITERS.map(sw => <React.Fragment key={sw.name}><SampleWriterItem s={sw} onClick={onOpenOrder} /></React.Fragment>)
+                        ? SAMPLE_WRITERS.map(sw => <React.Fragment key={sw.slug}><SampleWriterItem s={sw} onClick={() => navigate(`/hire-writers#sample-${sw.slug}`)} /></React.Fragment>)
                         : featuredWriters.map(w => <React.Fragment key={w.id}><FeaturedWriterLink w={w} /></React.Fragment>)}
                   </div>
 
@@ -362,7 +362,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                   {link.hasDropdown && mobileExpandedMenu === link.label && link.label === 'Hire Writers' && (
                     <div className="flex flex-col gap-2 mt-2 bg-gray-50/50 p-3 rounded-lg border border-gray-100 max-h-[300px] overflow-y-auto">
                       {(featuredWriters || []).map(w => <React.Fragment key={w.id}><FeaturedWriterLink w={w} compact onNavigate={() => setMobileMenuOpen(false)} /></React.Fragment>)}
-                      {featuredWriters?.length === 0 && SAMPLE_WRITERS.map(sw => <React.Fragment key={sw.name}><SampleWriterItem s={sw} compact onClick={() => { setMobileMenuOpen(false); onOpenOrder(); }} /></React.Fragment>)}
+                      {featuredWriters?.length === 0 && SAMPLE_WRITERS.map(sw => <React.Fragment key={sw.slug}><SampleWriterItem s={sw} compact onClick={() => { setMobileMenuOpen(false); navigate(`/hire-writers#sample-${sw.slug}`); }} /></React.Fragment>)}
                       <Link to="/hire-writers" onClick={() => setMobileMenuOpen(false)} className="p-2 text-xs font-bold text-[#002147]">Browse all writers →</Link>
                       <Link to="/become-a-writer" onClick={() => setMobileMenuOpen(false)} className="mt-1 rounded-lg bg-[#002147] p-2.5 text-center text-xs font-bold text-white">Join as a writer</Link>
                     </div>
