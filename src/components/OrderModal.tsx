@@ -65,6 +65,8 @@ interface OrderModalProps {
     quote?: OrderQuote;
     /** A coupon already applied in the home calculator. */
     coupon?: Coupon;
+    /** A coupon code to check and apply when the form opens (e.g. from the promo popup). */
+    couponCode?: string;
   };
 }
 
@@ -186,6 +188,20 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       }
       setStep(1);
     }
+  }, [isOpen, initialConfig]);
+
+  // A coupon code handed in (e.g. from the promo popup) is checked and applied.
+  React.useEffect(() => {
+    const code = initialConfig?.couponCode?.trim().toUpperCase();
+    if (!isOpen || !code || initialConfig?.coupon) return;
+    let live = true;
+    setCouponInput(code);
+    setCouponBusy(true);
+    api<{ coupon: Coupon }>('/orders/coupon', { method: 'POST', body: { code } })
+      .then(({ coupon: found }) => { if (live) { setCoupon(found); setCouponMsg({ ok: true, text: `Coupon applied: ${found.percent}% off the subtotal.` }); } })
+      .catch((e: any) => { if (live) setCouponMsg({ ok: false, text: e?.message || 'This coupon code is not valid.' }); })
+      .finally(() => { if (live) setCouponBusy(false); });
+    return () => { live = false; };
   }, [isOpen, initialConfig]);
 
   // Catalogue mode: the price comes from the admin's active pricing rule (API),

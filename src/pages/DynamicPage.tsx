@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { OrderModal } from '../components/OrderModal';
 import { SignInModal } from '../components/SignInModal';
 import { SideDrawer } from '../components/SideDrawer';
 import { Calculator, ArrowRight, CheckCircle2, FileText, Lock, Award } from 'lucide-react';
-import { API } from '../lib/api';
+import { API, api } from '../lib/api';
+import { coverSrc, type BlogCard, type BlogList } from '../lib/blog';
 
 export const DynamicPage: React.FC = () => {
     const { slug } = useParams<{ slug: string }>();
@@ -22,6 +23,7 @@ export const DynamicPage: React.FC = () => {
     const [toolOutput, setToolOutput] = useState<string>('');
     const [isToolProcessing, setIsToolProcessing] = useState<boolean>(false);
     const [toolError, setToolError] = useState<string>('');
+    const [copied, setCopied] = useState(false);
     const [loadingText, setLoadingText] = useState<string>('Initializing AI engine...');
 
     useEffect(() => {
@@ -450,14 +452,13 @@ export const DynamicPage: React.FC = () => {
         });
     };
 
-    const mockBlogs = [
-        { title: 'How to Write a First-Class Dissertation', category: 'Writing Guide', image: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=600&auto=format&fit=crop', desc: 'A step-by-step masterclass on conquering your final year dissertation without burning out.' },
-        { title: 'Understanding Advanced Qualitative Research', category: 'Methodology', image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=600&auto=format&fit=crop', desc: 'Demystifying thematic analysis, coding, and grounded theory for your master\'s thesis project.' },
-        { title: 'The 2026 Guide to Academic SEO', category: 'Tech & Research', image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600&auto=format&fit=crop', desc: 'How to utilize modern AI engines and Google Scholar natively to surface hidden academic journals.' },
-        { title: 'Mastering Time Management as a Full-Time Student', category: 'Student Life', image: 'https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e?q=80&w=600&auto=format&fit=crop', desc: 'Balancing internships, academic coursework, and a social life using the time-block method.' },
-        { title: 'Defending Your Thesis: What Examiners Actually Want', category: 'Graduation', image: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?q=80&w=600&auto=format&fit=crop', desc: 'An insider look from university professors on what makes a thesis defense truly remarkable and flawless.' },
-        { title: '10 Citations Mistakes That Instantly Drop Your Grade', category: 'Referencing', image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=600', desc: 'Are you confusing APA 7th Edition formats? Make sure you never make these critical referencing mistakes again.' }
-    ];
+    // The six newest posts from the blog (Admin → Blog).
+    const [latestPosts, setLatestPosts] = useState<BlogCard[]>([]);
+    useEffect(() => {
+        let live = true;
+        api<BlogList>('/blog?page=1&limit=6').then(r => { if (live) setLatestPosts(r.posts); }).catch(() => {});
+        return () => { live = false; };
+    }, []);
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col font-sans relative z-0">
@@ -496,10 +497,10 @@ export const DynamicPage: React.FC = () => {
                             </p>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {mockBlogs.map((blog, idx) => (
-                                <div key={idx} className="bg-white rounded-2xl border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden hover:shadow-[0_10px_40px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 group cursor-pointer flex flex-col">
+                            {latestPosts.map((blog) => (
+                                <Link key={blog.slug} to={`/blog/${blog.slug}`} className="bg-white rounded-2xl border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden hover:shadow-[0_10px_40px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 group cursor-pointer flex flex-col">
                                     <div className="h-56 overflow-hidden relative">
-                                        <img loading="lazy" decoding="async" src={blog.image} alt={blog.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        <img loading="lazy" decoding="async" src={coverSrc(blog) || '/blog-covers/how-to-write-a-strong-essay-introduction.jpg'} alt={blog.coverAlt || blog.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                         <div className="absolute top-4 left-4 bg-white/90 backdrop-blur text-[#000a1e] text-xs font-bold px-3 py-1.5 rounded-full">
                                             {blog.category}
                                         </div>
@@ -509,13 +510,13 @@ export const DynamicPage: React.FC = () => {
                                             {blog.title}
                                         </h3>
                                         <p className="text-sm text-gray-500 mb-6 line-clamp-3">
-                                            {blog.desc}
+                                            {blog.excerpt}
                                         </p>
                                         <div className="mt-auto flex items-center text-[#fea520] font-bold text-sm">
                                             Read Article <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
                                         </div>
                                     </div>
-                                </div>
+                                </Link>
                             ))}
                         </div>
                     </div>
@@ -855,7 +856,13 @@ export const DynamicPage: React.FC = () => {
                                         {toolOutput && (
                                             <button onClick={handleDownload} className="text-xs font-bold bg-[#000a1e] text-white px-3 py-1.5 rounded hover:bg-[#fea520] hover:text-[#000a1e] shadow-sm transition-all focus:outline-none">Download .TXT</button>
                                         )}
-                                        <button aria-label="copy" className="p-2 hover:bg-gray-200 rounded transition"><ArrowRight className="w-4 h-4" /></button>
+                                        {toolOutput && (
+                                            <button type="button" aria-label="Copy output" title="Copy"
+                                                onClick={() => { navigator.clipboard?.writeText(toolOutput).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }).catch(() => {}); }}
+                                                className="text-xs font-bold bg-white border border-gray-200 px-3 py-1.5 rounded hover:bg-gray-100 transition">
+                                                {copied ? 'Copied' : 'Copy'}
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>

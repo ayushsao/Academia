@@ -1,4 +1,8 @@
 import React from 'react';
+import { DIAL_CODES, POPULAR_DIAL_CODES, dialLabel, countryName } from '../lib/countryCodes';
+
+// The promo shown in the deal card; checked and applied by the order form.
+const PROMO = { code: 'NEWONE', percent: 10 };
 
 interface AssistanceBannerProps {
     onOpenOrder: () => void;
@@ -6,11 +10,12 @@ interface AssistanceBannerProps {
 
 export const AssistanceBanner: React.FC<AssistanceBannerProps> = ({ onOpenOrder }) => {
     const [phoneString, setPhoneString] = React.useState('');
+    const [dialCode, setDialCode] = React.useState('IN(+91)');
 
     const handleChatClick = () => {
         let text = "Hello AssignmentMinds, I need some free assistance!";
         if (phoneString) {
-            text = `Hello AssignmentMinds, I need some free assistance! You can reach me at: ${phoneString}`;
+            text = `Hello AssignmentMinds, I need some free assistance! You can reach me at: ${dialCode} ${phoneString}`;
         }
         window.open(`https://wa.me/919263606941?text=${encodeURIComponent(text)}`, '_blank');
     };
@@ -60,12 +65,21 @@ export const AssistanceBanner: React.FC<AssistanceBannerProps> = ({ onOpenOrder 
                             <div className="flex flex-col sm:flex-row items-center gap-6 w-full max-w-lg mx-auto sm:mx-0">
                                 {/* Transparent bottom-border form */}
                                 <div className="flex-1 border-b border-[#333]/30 flex items-center pb-2 w-full">
-                                    <div className="flex items-center gap-2 pr-4 border-r border-[#333]/30 mr-4 whitespace-nowrap cursor-pointer">
-                                        <svg className="w-5 h-5 text-[#333]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2" ry="2" strokeWidth="2" /><path d="M12 18h.01" strokeWidth="2" strokeLinecap="round" /></svg>
-                                        <span className="font-bold text-[14.5px] text-[#222]">Country <span className="text-[10px]">▼</span></span>
+                                    <div className="flex items-center gap-1.5 pr-3 border-r border-[#333]/30 mr-4 whitespace-nowrap">
+                                        <svg className="w-5 h-5 text-[#333] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2" ry="2" strokeWidth="2" /><path d="M12 18h.01" strokeWidth="2" strokeLinecap="round" /></svg>
+                                        <select value={dialCode} onChange={(e) => setDialCode(e.target.value)} aria-label="Country code"
+                                            className="bg-transparent font-bold text-[14.5px] text-[#222] outline-none cursor-pointer">
+                                            <optgroup label="Popular">
+                                                {POPULAR_DIAL_CODES.map(c => <option key={`p-${c[0]}`} value={dialLabel(c)} title={countryName(c[0])}>{dialLabel(c)}</option>)}
+                                            </optgroup>
+                                            <optgroup label="All countries">
+                                                {DIAL_CODES.filter(c => !POPULAR_DIAL_CODES.some(p => p[0] === c[0])).map(c => <option key={c[0]} value={dialLabel(c)} title={countryName(c[0])}>{dialLabel(c)}</option>)}
+                                            </optgroup>
+                                        </select>
                                     </div>
                                     <input
-                                        type="text"
+                                        type="tel"
+                                        inputMode="tel"
                                         placeholder="WhatsApp Number Only"
                                         value={phoneString}
                                         onChange={(e) => setPhoneString(e.target.value)}
@@ -100,11 +114,11 @@ export const AssistanceBanner: React.FC<AssistanceBannerProps> = ({ onOpenOrder 
                         <div className="relative z-10 w-full h-full flex flex-col justify-center items-start text-left mt-2">
                             <span className="text-[#333] text-[17px] font-medium mb-1 tracking-wide">Extra</span>
                             <h3 className="text-[52px] md:text-[64px] font-black text-[#e83e58] leading-none mb-3 tracking-tighter">
-                                25% <span className="text-[32px] md:text-[40px] font-bold">OFF</span>
+                                {PROMO.percent}% <span className="text-[32px] md:text-[40px] font-bold">OFF</span>
                             </h3>
-                            <p className="text-[#2d2d2d] text-[17px] font-medium mb-8">On Your First Purchase!</p>
+                            <p className="text-[#2d2d2d] text-[17px] font-medium mb-8">With code <strong>{PROMO.code}</strong> at checkout</p>
 
-                            <button onClick={onOpenOrder} className="bg-[#ffcb05] hover:bg-[#ffb600] text-[#000a1e] font-bold py-3.5 px-6 rounded-[12px] w-full text-[17px] shadow-sm hover:shadow-md transition-all">
+                            <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('open-order-modal', { detail: { couponCode: PROMO.code } }))} className="bg-[#ffcb05] hover:bg-[#ffb600] text-[#000a1e] font-bold py-3.5 px-6 rounded-[12px] w-full text-[17px] shadow-sm hover:shadow-md transition-all">
                                 Get Deal
                             </button>
                         </div>

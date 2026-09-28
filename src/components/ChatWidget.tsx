@@ -4,7 +4,14 @@ import { MessageCircle, X } from 'lucide-react';
 // Floating help chat: a plain, Messages-style bubble that opens the embedded
 // chat assistant.
 export const ChatWidget = () => {
-    const [isOpen, setIsOpen] = useState(false);
+    // Other buttons open the chat with window.dispatchEvent(new Event('open-chat')).
+    const [isOpen, setIsOpen] = useState(() => Boolean((window as any).__openChatPending));
+    React.useEffect(() => {
+        (window as any).__openChatPending = false;
+        const open = () => setIsOpen(true);
+        window.addEventListener('open-chat', open);
+        return () => window.removeEventListener('open-chat', open);
+    }, []);
 
     return (
         <div data-chat-widget className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end pointer-events-none">

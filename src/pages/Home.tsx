@@ -68,12 +68,17 @@ export default function App() {
     fileObjects?: File[];
     quote?: OrderQuote;
     coupon?: Coupon;
+    couponCode?: string;
   }>({});
 
   const [activeSection, setActiveSection] = useState<string>('academic-support');
 
   React.useEffect(() => {
-    const handleGlobalOrder = () => handleOpenOrder();
+    // Other components open the order form with this event (optionally with a coupon code).
+    const handleGlobalOrder = (e: Event) => {
+      const couponCode = (e as CustomEvent<{ couponCode?: string }>).detail?.couponCode;
+      handleOpenOrder(couponCode ? { couponCode } : undefined);
+    };
     window.addEventListener('open-order-modal', handleGlobalOrder);
     return () => window.removeEventListener('open-order-modal', handleGlobalOrder);
   }, []);
@@ -90,6 +95,7 @@ export default function App() {
     fileObjects?: File[];
     quote?: OrderQuote;
     coupon?: Coupon;
+    couponCode?: string;
   }) => {
     if (prefill && Object.keys(prefill).length > 0) {
       setOrderPrefill(prefill);

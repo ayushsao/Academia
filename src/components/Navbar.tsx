@@ -26,6 +26,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
   // The writer portal is a separate sign-in: it never shows as the account here, only as a link.
   const writerSignedIn = useStore(state => Boolean(state.writer));
   const navigate = useNavigate();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchText, setSearchText] = useState('');
 
   const activeOrderCount = orders ? orders.filter(o => o.status !== 'Completed' && o.status !== 'Cancelled').length : 0;
 
@@ -194,9 +196,22 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
 
         {/* Right Side Tools */}
         <div className="hidden xl:flex shrink-0 items-center gap-3 2xl:gap-4">
-          <button className="hidden 2xl:block text-[#2d2d2d] hover:text-[#fea520] transition-colors p-2">
-            <Search className="w-5 h-5" />
-          </button>
+          {/* Search: finds articles on the blog */}
+          <div className="relative hidden 2xl:block">
+            <button type="button" onClick={() => setSearchOpen(o => !o)} aria-label="Search articles" aria-expanded={searchOpen} className="text-[#2d2d2d] hover:text-[#fea520] transition-colors p-2">
+              <Search className="w-5 h-5" />
+            </button>
+            {searchOpen && (
+              <form
+                onSubmit={(e) => { e.preventDefault(); const q = searchText.trim(); setSearchOpen(false); navigate(q ? `/blog?q=${encodeURIComponent(q)}` : '/blog'); }}
+                className="absolute right-0 top-full mt-2 flex w-72 items-center gap-2 rounded-xl border border-gray-200 bg-white p-2 shadow-lg"
+              >
+                <input autoFocus value={searchText} onChange={e => setSearchText(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') setSearchOpen(false); }}
+                  placeholder="Search articles" aria-label="Search articles" className="min-w-0 flex-1 rounded-lg bg-gray-50 px-3 py-2 text-sm outline-none" />
+                <button type="submit" className="rounded-lg bg-[#000a1e] px-3 py-2 text-xs font-bold text-white">Search</button>
+              </form>
+            )}
+          </div>
 
           <button onClick={onOpenOrder} className="bg-[#eb6200] hover:bg-[#d45600] text-white font-bold px-5 2xl:px-6 py-2.5 rounded-md text-sm shadow-[0_2px_10px_rgba(235,98,0,0.30)] transition-all whitespace-nowrap">
             Order Now

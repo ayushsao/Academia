@@ -60,7 +60,10 @@ function DeferredChatWidget() {
     useEffect(() => {
         const w = window as any;
         const id = w.requestIdleCallback ? w.requestIdleCallback(() => setReady(true), { timeout: 3000 }) : window.setTimeout(() => setReady(true), 1500);
-        return () => (w.cancelIdleCallback ? w.cancelIdleCallback(id) : window.clearTimeout(id));
+        // Asked to open before it loaded: load now and open once mounted.
+        const openEarly = () => { w.__openChatPending = true; setReady(true); };
+        window.addEventListener('open-chat', openEarly);
+        return () => { window.removeEventListener('open-chat', openEarly); w.cancelIdleCallback ? w.cancelIdleCallback(id) : window.clearTimeout(id); };
     }, []);
     return ready ? <Suspense fallback={null}><ChatWidget /></Suspense> : null;
 }

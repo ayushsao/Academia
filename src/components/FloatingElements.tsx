@@ -23,25 +23,26 @@ export const FloatingElements: React.FC = () => {
         <>
             {/* WhatsApp Floating Bubble */}
             <a
-                href="https://wa.me/1234567890"
+                href="https://wa.me/919263606941"
+                aria-label="Chat on WhatsApp"
                 target="_blank"
                 rel="noreferrer"
-                className="fixed bottom-6 right-6 z-50 bg-[#25D366] text-white p-3.5 rounded-full shadow-lg hover:scale-110 transition-transform hidden md:flex items-center justify-center group"
+                className="fixed bottom-24 right-6 z-50 bg-[#25D366] text-white p-3.5 rounded-full shadow-lg hover:scale-110 transition-transform hidden md:flex items-center justify-center group"
             >
                 <MessageCircle className="w-7 h-7 relative z-10" />
             </a>
 
             {/* Mobile Sticky Action Bar */}
             <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-3 z-50 flex justify-around items-center md:hidden pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-                <button className="flex flex-col items-center gap-1 text-gray-500">
+                <a href="tel:+919263606941" className="flex flex-col items-center gap-1 text-gray-500">
                     <Phone className="w-5 h-5 text-[#002147]" />
-                    <span className="text-[10px] font-bold">Call Back</span>
-                </button>
-                <button className="flex flex-col items-center gap-1 text-gray-500">
+                    <span className="text-[10px] font-bold">Call Us</span>
+                </a>
+                <button type="button" onClick={() => window.dispatchEvent(new Event('open-chat'))} className="flex flex-col items-center gap-1 text-gray-500">
                     <MessageCircle className="w-5 h-5 text-[#25D366]" />
                     <span className="text-[10px] font-bold">Live Chat</span>
                 </button>
-                <button className="bg-[#fea520] text-[#000a1e] font-bold px-6 py-2.5 rounded-[12px] shadow-soft text-sm">
+                <button type="button" onClick={() => window.dispatchEvent(new Event('open-order-modal'))} className="bg-[#fea520] text-[#000a1e] font-bold px-6 py-2.5 rounded-[12px] shadow-soft text-sm">
                     Order Now
                 </button>
             </div>

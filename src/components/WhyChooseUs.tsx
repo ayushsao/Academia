@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -87,7 +88,7 @@ export const WhyChooseUs: React.FC = () => {
 
                 {/* Yellow Top CTA */}
                 <div className="flex justify-center mb-10 text-center">
-                    <button className="btn-am-primary cursor-pointer">
+                    <button type="button" onClick={() => window.dispatchEvent(new Event('open-order-modal'))} className="btn-am-primary cursor-pointer">
                         Get your Assignments Done!
                     </button>
                 </div>
@@ -99,7 +100,7 @@ export const WhyChooseUs: React.FC = () => {
                     </h2>
 
                     <div className="max-w-4xl mx-auto mb-2 text-[#666] text-[13px] md:text-[14px] leading-relaxed relative">
-                        Being the leading assignment writing service provider in the UK, Instant Assignment Help understands the problems that students go through every day during their academic careers. It's not only preparing assignments but also studying for examinations, doing part-time jobs, taking part in extra-curricular activities and a k... <span className="text-[#fea520] cursor-pointer hover:underline">Know more</span>
+                        AssignmentMinds understands the pressure students face every day: assignments, exam preparation, part-time jobs and everything else that comes with university life. Our subject experts help you keep up without falling behind. <Link to="/about" className="text-[#fea520] hover:underline">Know more</Link>
                     </div>
                 </div>
 

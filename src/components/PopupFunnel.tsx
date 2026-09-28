@@ -43,6 +43,12 @@ export const PopupFunnel: React.FC = () => {
     }, []);
 
     const closePopup = () => setIsVisible(false);
+    // Opens the order form (Home.tsx listens) with the promo code applied.
+    const PROMO_CODE = 'NEWONE';
+    const claim = () => {
+        closePopup();
+        window.dispatchEvent(new CustomEvent('open-order-modal', { detail: { couponCode: PROMO_CODE } }));
+    };
 
     // Completely hide if user is logged in
     if (user) return null;
@@ -98,7 +104,7 @@ export const PopupFunnel: React.FC = () => {
                                     {/* Promocode Box */}
                                     <div className="relative w-full mb-4">
                                         <div className="bg-[#fea520] text-white font-bold text-[15px] py-2.5 px-4 rounded-[6px] border-2 border-dashed border-white shadow-[0_0_0_2px_#fea520] tracking-wider w-[90%] flex items-center justify-center mx-auto">
-                                            Use Code : INSTANT25
+                                            Use Code : {PROMO_CODE}
                                         </div>
                                         <div className="absolute -right-1 top-1/2 -translate-y-1/2 bg-white rounded-full p-1 shadow-sm border border-gray-100 z-10 rotate-90">
                                             <Scissors className="w-5 h-5 text-gray-600" />
@@ -106,7 +112,7 @@ export const PopupFunnel: React.FC = () => {
                                     </div>
 
                                     {/* Claim Button */}
-                                    <button className="w-[90%] bg-[#ffcb05] text-[#222] font-black py-3 rounded-[12px] text-[16px] hover:bg-[#f5b800] transition-colors uppercase tracking-tight shadow-md">
+                                    <button type="button" onClick={claim} className="w-[90%] bg-[#ffcb05] text-[#222] font-black py-3 rounded-[12px] text-[16px] hover:bg-[#f5b800] transition-colors uppercase tracking-tight shadow-md">
                                         Claim Now
                                     </button>
 
@@ -126,11 +132,7 @@ export const PopupFunnel: React.FC = () => {
 
                             <div className="w-full max-w-[360px] mx-auto flex flex-col gap-4 mb-6">
                                 <button
-                                    onClick={() => {
-                                        closePopup();
-                                        // Dispatch a standard custom event that Home.tsx listens to
-                                        window.dispatchEvent(new CustomEvent('open-order-modal'));
-                                    }}
+                                    onClick={claim}
                                     className="w-full bg-[#fea520] text-white font-bold py-4 rounded-xl text-[16px] hover:bg-[#b02c53] transition-colors shadow-lg hover:shadow-xl hover:-translate-y-0.5 transform duration-200"
                                 >
                                     Claim Discount & Order Now
