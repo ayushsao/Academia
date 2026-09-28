@@ -61,14 +61,20 @@ app.use(cors({
 app.use(cookieParser());
 app.use(csrfGuard(isAllowedOrigin));
 
-// ── Protect against NoSQL Injection ──────────────────────────────────────────
-app.use(mongoSanitize());
-
 // Payment webhooks are signature-checked against the exact raw bytes, so they
 // must bypass JSON parsing (express.json skips bodies that are already read).
 app.use('/api/membership/webhooks', express.raw({ type: '*/*', limit: '1mb' }));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
+
+// ── Protect against NoSQL injection ──────────────────────────────────────────
+// Removes MongoDB operator keys ($gt, $ne, $where…) from the body, query string,
+// params and headers. It must run after the body parsers, or request bodies are
+// never cleaned. Keys with dots are kept (they aren't operators).
+app.use(mongoSanitize({
+    allowDots: true,
+    onSanitize: ({ req, key }) => console.warn(`[Security] removed MongoDB operator from ${key} on ${req.method} ${req.path}`),
+}));
 
 // ── Rate Limiting (Global) ───────────────────────────────────────────────────
 const globalLimiter = rateLimit({
