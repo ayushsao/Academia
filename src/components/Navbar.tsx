@@ -4,7 +4,7 @@ import { BrandLogo } from './AcademiaLogo';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { useNavigate, Link } from 'react-router-dom';
-import { useFeaturedWriters, FeaturedWriterLink, SampleWriterItem, SAMPLE_WRITERS } from './writer/FeaturedWriters';
+import { useFeaturedWriters, FeaturedWriterLink, SampleWriterItem, SAMPLE_WRITERS, showSampleWriters } from './writer/FeaturedWriters';
 
 interface NavbarProps {
   onOpenOrder: () => void;
@@ -177,10 +177,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                   <div className="grid grid-cols-4 gap-4">
                     {featuredWriters === null
                       ? Array.from({ length: 8 }, (_, i) => <div key={i} className="h-14 animate-pulse rounded-lg bg-gray-50" />)
-                      : featuredWriters.length === 0
-                        ? SAMPLE_WRITERS.map(sw => <React.Fragment key={sw.slug}><SampleWriterItem s={sw} onClick={() => navigate(`/hire-writers#sample-${sw.slug}`)} /></React.Fragment>)
-                        : featuredWriters.map(w => <React.Fragment key={w.id}><FeaturedWriterLink w={w} /></React.Fragment>)}
+                      : featuredWriters.map(w => <React.Fragment key={w.id}><FeaturedWriterLink w={w} /></React.Fragment>)}
                   </div>
+                  {showSampleWriters(featuredWriters?.length) && (<>
+                    {featuredWriters!.length > 0 && <p className="mt-4 mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">Sample profiles</p>}
+                    <div className="grid grid-cols-4 gap-4">
+                      {SAMPLE_WRITERS.map(sw => <React.Fragment key={sw.slug}><SampleWriterItem s={sw} onClick={() => navigate(`/hire-writers#sample-${sw.slug}`)} /></React.Fragment>)}
+                    </div>
+                  </>)}
 
                   <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
                     <Link to="/hire-writers" className="text-xs font-bold text-[#002147] hover:text-[#e36100] transition-colors">Browse all writers →</Link>
@@ -377,7 +381,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                   {link.hasDropdown && mobileExpandedMenu === link.label && link.label === 'Hire Writers' && (
                     <div className="flex flex-col gap-2 mt-2 bg-gray-50/50 p-3 rounded-lg border border-gray-100 max-h-[300px] overflow-y-auto">
                       {(featuredWriters || []).map(w => <React.Fragment key={w.id}><FeaturedWriterLink w={w} compact onNavigate={() => setMobileMenuOpen(false)} /></React.Fragment>)}
-                      {featuredWriters?.length === 0 && SAMPLE_WRITERS.map(sw => <React.Fragment key={sw.slug}><SampleWriterItem s={sw} compact onClick={() => { setMobileMenuOpen(false); navigate(`/hire-writers#sample-${sw.slug}`); }} /></React.Fragment>)}
+                      {showSampleWriters(featuredWriters?.length) && SAMPLE_WRITERS.map(sw => <React.Fragment key={sw.slug}><SampleWriterItem s={sw} compact onClick={() => { setMobileMenuOpen(false); navigate(`/hire-writers#sample-${sw.slug}`); }} /></React.Fragment>)}
                       <Link to="/hire-writers" onClick={() => setMobileMenuOpen(false)} className="p-2 text-xs font-bold text-[#002147]">Browse all writers →</Link>
                       <Link to="/become-a-writer" onClick={() => setMobileMenuOpen(false)} className="mt-1 rounded-lg bg-[#002147] p-2.5 text-center text-xs font-bold text-white">Join as a writer</Link>
                     </div>

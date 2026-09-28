@@ -129,6 +129,11 @@ export function SampleWriterDialog({ s, onClose, onOrder }: { s: SampleWriter; o
     );
 }
 
+// While few real writers are public, the sample profiles are listed after them
+// (always under a "Sample profiles" label).
+export const SAMPLE_FILL_BELOW = 8;
+export const showSampleWriters = (realCount: number | null | undefined) => realCount != null && realCount < SAMPLE_FILL_BELOW;
+
 export function SampleWriterItem({ s, compact, onClick }: { s: SampleWriter; compact?: boolean; onClick?: () => void }) {
     return (
         <button type="button" onClick={onClick} title="Sample profile"

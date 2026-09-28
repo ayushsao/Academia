@@ -9,7 +9,7 @@ import { ACADEMIC_LEVELS, PREDEFINED_SKILLS, SUGGESTED_SUBJECTS, countryName } f
 import { CountrySelect, inputClass } from '../../components/writer/FormKit';
 import { AvailabilityDot, Spinner, WriterAvatar } from '../../components/writer/WriterBits';
 import { cn } from '../../lib/utils';
-import { SAMPLE_WRITERS, SampleWriterDialog, type SampleWriter } from '../../components/writer/FeaturedWriters';
+import { SAMPLE_WRITERS, SampleWriterDialog, showSampleWriters, type SampleWriter } from '../../components/writer/FeaturedWriters';
 
 const PAGE_SIZE = 12;
 
@@ -94,7 +94,8 @@ export default function HireWriters() {
     const activeCount = Object.values(filters).filter(Boolean).length;
 
     // No public writer yet (and no search or filter): show the sample profiles.
-    const showSamples = !loading && !error && total === 0 && !debounced && activeCount === 0;
+    // Few real writers yet (and no search or filter): the sample profiles are listed after them.
+    const showSamples = !loading && !error && showSampleWriters(total) && !debounced && activeCount === 0;
     const [openSample, setOpenSample] = useState<SampleWriter | null>(null);
     const { hash } = useLocation();
     const navigate = useNavigate();
@@ -147,17 +148,7 @@ export default function HireWriters() {
 
                 {error && <p role="alert" className="mb-6 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
 
-                {showSamples ? (
-                    <>
-                        <p className="mb-4 rounded-xl bg-white px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-200">
-                            <span className="mr-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-slate-500">Sample profiles</span>
-                            These show how writer profiles look. Our reviewed writers will appear here as they join.
-                        </p>
-                        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                            {SAMPLE_WRITERS.map(s => <React.Fragment key={s.slug}><SampleWriterCard s={s} onOpen={() => navigate(`/hire-writers#sample-${s.slug}`)} /></React.Fragment>)}
-                        </div>
-                    </>
-                ) : !loading && writers.length === 0 && !error ? (
+                {!loading && writers.length === 0 && !error && !showSamples ? (
                     <div className="rounded-3xl border border-slate-200 bg-white px-6 py-20 text-center">
                         <FileText className="mx-auto h-12 w-12 text-slate-300" />
                         <h2 className="mt-4 text-xl font-bold text-[#0b1b33]">No writers match those filters</h2>
@@ -165,8 +156,21 @@ export default function HireWriters() {
                     </div>
                 ) : (
                     <>
-                        <p className="mb-4 text-sm text-slate-500">{total} writer{total === 1 ? '' : 's'}</p>
-                        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{writers.map(w => <React.Fragment key={w.id}><WriterCard w={w} /></React.Fragment>)}</div>
+                        {writers.length > 0 && <>
+                            <p className="mb-4 text-sm text-slate-500">{total} writer{total === 1 ? '' : 's'}</p>
+                            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{writers.map(w => <React.Fragment key={w.id}><WriterCard w={w} /></React.Fragment>)}</div>
+                        </>}
+                        {showSamples && (
+                            <div className={writers.length > 0 ? 'mt-10' : ''}>
+                        <p className="mb-4 rounded-xl bg-white px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-200">
+                            <span className="mr-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-slate-500">Sample profiles</span>
+                            These show how writer profiles look. Our reviewed writers will appear here as they join.
+                        </p>
+                        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                            {SAMPLE_WRITERS.map(s => <React.Fragment key={s.slug}><SampleWriterCard s={s} onOpen={() => navigate(`/hire-writers#sample-${s.slug}`)} /></React.Fragment>)}
+                        </div>
+                            </div>
+                        )}
                     </>
                 )}
 
