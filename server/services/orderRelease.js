@@ -39,7 +39,7 @@ export const OPEN_ORDER = { adminApproved: true, writerId: null, status: { $in: 
 
 // What a writer may see of an order: the brief. Never the client's contact
 // details, payment references, pricing breakdown or internal admin notes.
-export const WRITER_HIDDEN_FIELDS = '-userId -transactionId -payment -pricing -charges -catalog -adminNotes -feedback -totalAmount -paymentStatus -bidding';
+export const WRITER_HIDDEN_FIELDS = '-userId -transactionId -payment -pricing -charges -catalog -adminNotes -feedback -totalAmount -paymentStatus -bidding -draftDelivery';
 
 /**
  * A customer's view of their own order: everything about their order and the
@@ -47,6 +47,13 @@ export const WRITER_HIDDEN_FIELDS = '-userId -transactionId -payment -pricing -c
  * or where files are stored on the server.
  */
 export const isCompleted = (status) => status === 'completed' || status === 'Completed';
+
+/** Delivery files the customer may see and download. */
+export function clientVisibleFiles(order) {
+    const files = order.deliveryFiles || [];
+    if (isCompleted(order.status)) return files;
+    return order.approvedVersion ? files.filter(f => (f.version || 1) <= order.approvedVersion) : [];
+}
 
 export function clientOrderView(order) {
     const o = typeof order?.toObject === 'function' ? order.toObject() : { ...order };
@@ -60,8 +67,10 @@ export function clientOrderView(order) {
         const { words, spacing, wordsPerPage, pages, deadlineAt, deliveryType, total, currency, quotedAt, model } = o.pricing;
         o.pricing = { model, words, spacing, wordsPerPage, pages, deadlineAt, deliveryType, total, subtotal: total, currency, quotedAt };
     }
-    // The customer receives the work after an admin has approved it.
-    o.deliveryFiles = isCompleted(o.status) ? (o.deliveryFiles || []).map(({ filePath, uploadedBy, ...file }) => file) : [];
+    // The customer receives the work after an admin has approved it (and keeps
+    // earlier approved versions while a revision they asked for is in progress).
+    o.deliveryFiles = clientVisibleFiles(o).map(({ filePath, uploadedBy, ...file }) => file);
+    delete o.draftDelivery;
     return o;
 }
 

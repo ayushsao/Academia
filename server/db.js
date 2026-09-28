@@ -38,9 +38,12 @@ const orderDeliveryFileSchema = new mongoose.Schema({
   filePath: { type: String, required: true },
   mimeType: { type: String, required: true },
   size: { type: Number, required: true },
-  uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },   // the writer (or admin) who uploaded it
   uploadedAt: { type: Date, default: Date.now },
   version: { type: Number, default: 1 },
+  // A writer's submission is exactly three files, one of each kind
+  // (see WRITER_SUBMISSION_KINDS in routes/orderWorkflow.js). Older and admin uploads have none.
+  kind: { type: String, enum: ['FINAL', 'PLAGIARISM', 'AI_REPORT'] },
 }, { _id: true });
 
 const orderFeedbackSchema = new mongoose.Schema({
@@ -105,6 +108,14 @@ const orderSchema = new mongoose.Schema({
   currency: { type: String, default: 'GBP' },
   // Writer-delivered files (final work submissions)
   deliveryFiles: { type: [orderDeliveryFileSchema], default: [] },
+  // Files the writer has uploaded for the next submission; they move into
+  // deliveryFiles (as one version) when all three kinds are present and submitted.
+  draftDelivery: { type: [orderDeliveryFileSchema], default: [] },
+  // The latest submission version an admin approved (the client can download up to it),
+  // and the client's own decision on the delivered work.
+  approvedVersion: { type: Number },
+  clientApprovedAt: { type: Date },
+  clientRevisionCount: { type: Number, default: 0 },
   submittedAt: { type: Date },
   completedAt: { type: Date },
   // Client feedback on completed work
@@ -477,6 +488,8 @@ const storedFileSchema = new mongoose.Schema({
   sha256: { type: String, default: '' },
   source: { type: String, enum: ['UPLOAD', 'ORDER'], default: 'UPLOAD' },  // ORDER = customer file from the linked order
   uploadedAt: { type: Date, default: Date.now },
+  // Writer submissions: which of the three required files this is.
+  kind: { type: String, enum: ['FINAL', 'PLAGIARISM', 'AI_REPORT'] },
 });
 
 const assignmentEventSchema = new mongoose.Schema({

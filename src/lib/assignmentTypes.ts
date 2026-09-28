@@ -2,7 +2,7 @@ export type AssignmentStatus = 'DRAFT' | 'OPEN' | 'OFFERED' | 'ASSIGNED' | 'SUBM
 export type Money = { amountMinor: number; currency: string };
 export type ByStatusCurrency = Partial<Record<'PENDING' | 'APPROVED' | 'PAID' | 'CANCELLED', Record<string, number>>>;
 
-export interface FileRef { id: string; name: string; size: number; mimeType: string }
+export interface FileRef { id: string; name: string; size: number; mimeType: string; kind?: string | null }
 
 export interface WriterAssignment {
     ref: string;

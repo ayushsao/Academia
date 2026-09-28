@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, LayoutDashboard, List, Coins, Layers, Plus, Bookmark, Wallet, Bell, MessageCircle, ChevronRight, User, FileText, CheckCircle, Clock, Home, Paperclip, Download, Star, Send, ArrowDown, Eye, Package } from 'lucide-react';
+import { LogOut, LayoutDashboard, List, Coins, Layers, Plus, Wallet, Bell, MessageCircle, ChevronRight, User, FileText, CheckCircle, Clock, Home, Paperclip, Download, Star, Send, ArrowDown, Eye, Package } from 'lucide-react';
 import { OrderModal } from '../components/OrderModal';
 import { WhatsAppPaymentReference } from '../components/WhatsAppPaymentReference';
+import { byKind, kindLabel } from '../lib/submissionKinds';
 import { AcademiaLogo } from '../components/AcademiaLogo';
 
 import { API } from '../lib/api';
@@ -176,6 +177,27 @@ export const Dashboard: React.FC = () => {
     const [feedbackComment, setFeedbackComment] = useState('');
     const [feedbackSending, setFeedbackSending] = useState(false);
     const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
+    // The client's review of delivered work: approve it, or ask for a revision.
+    const [revisionOrder, setRevisionOrder] = useState<string | null>(null);
+    const [revisionText, setRevisionText] = useState('');
+    const [reviewBusy, setReviewBusy] = useState<string | null>(null);
+    const reviewWork = async (orderId: string, action: 'approve' | 'revision') => {
+        if (action === 'approve' && !confirm('Approve the delivered work? You won’t be able to ask for a revision afterwards.')) return;
+        setReviewBusy(orderId);
+        try {
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (token) headers.Authorization = `Bearer ${token}`;
+            const res = await fetch(`${API}/order-workflow/client/${action}/${encodeURIComponent(orderId)}`, {
+                method: 'POST', headers, credentials: 'include', body: JSON.stringify(action === 'revision' ? { note: revisionText } : {}),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+            if (action === 'revision') alert('Revision requested. The writer will send an updated version.');
+            setRevisionOrder(null); setRevisionText('');
+            setOrdersAttempt(a => a + 1);
+        } catch (e: any) { alert(e.message); }
+        finally { setReviewBusy(null); }
+    };
 
     const handleDeliveryDownload = async (orderId: string, fileId: string, fileName: string) => {
         setDownloadingFile(fileId);
@@ -283,18 +305,13 @@ export const Dashboard: React.FC = () => {
                         New Order <Plus className="w-3 h-3 absolute -top-1 -right-1 text-emerald-500 font-extrabold" />
                     </button>
 
-                    <button className="text-white/90 hover:text-white hidden sm:block">
-                        <Bookmark className="w-5 h-5" />
-                    </button>
-
                     <div className="hidden sm:flex items-center gap-1 text-white/90">
                         <Wallet className="w-5 h-5" />
                         <span className="bg-[#000a1e] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm">£ 0.00</span>
                     </div>
 
-                    <button className="text-white/90 hover:text-white relative hidden sm:block">
+                    <button type="button" onClick={() => setActiveTab('orders')} title="Order updates" aria-label="Order updates" className="text-white/90 hover:text-white relative hidden sm:block">
                         <Bell className="w-5 h-5" />
-                        <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-[#f4933a]"></div>
                     </button>
 
                     <div className="relative group cursor-pointer pl-2 sm:pl-4 sm:border-l border-white/20 flex flex-col items-center">
@@ -546,9 +563,12 @@ export const Dashboard: React.FC = () => {
                                 {completedOrders.map(order => {
                                     const oid = (order as any).orderId || (order as any).id;
                                     const allFiles: any[] = (order as any).deliveryFiles || [];
-                                    // The final file(s): the writer's latest approved version.
+                                    // The final files: the latest approved version (Final Assignment,
+                                    // Turnitin Plagiarism Report, Turnitin AI Report); earlier versions stay available.
                                     const latest = Math.max(0, ...allFiles.map(f => f.version || 1));
-                                    const deliveryFiles = allFiles.filter(f => (f.version || 1) === latest);
+                                    const deliveryFiles = byKind(allFiles.filter(f => (f.version || 1) === latest));
+                                    const earlierFiles = byKind(allFiles.filter(f => (f.version || 1) !== latest)).sort((a, b) => (b.version || 1) - (a.version || 1));
+                                    const clientApproved = Boolean((order as any).clientApprovedAt);
                                     const feedback = (order as any).feedback;
                                     const isFeedbackOpen = feedbackOrder === oid;
 
@@ -603,11 +623,14 @@ export const Dashboard: React.FC = () => {
                                                 <div className="mb-3">
                                                     <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">{deliveryFiles.length > 1 ? 'Final files' : 'Final file'}</h4>
                                                     <div className="space-y-2">
-                                                        {deliveryFiles.map((f: any) => (
+                                                        {deliveryFiles.map((f: any, i: number) => (
                                                             <div key={f._id} className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-3">
                                                                 <div className="flex items-center gap-2 min-w-0 mr-2">
                                                                     <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
-                                                                    <span className="text-xs font-medium text-slate-700 truncate">{f.originalName}</span>
+                                                                    <span className="min-w-0">
+                                                                        {f.kind && <span className="block text-[10px] font-bold uppercase tracking-wide text-emerald-700">{i + 1}. {kindLabel(f.kind)}</span>}
+                                                                        <span className="block text-xs font-medium text-slate-700 truncate">{f.originalName}</span>
+                                                                    </span>
                                                                 </div>
                                                                 <button
                                                                     onClick={() => handleDeliveryDownload(oid, f._id, f.originalName)}
@@ -622,17 +645,56 @@ export const Dashboard: React.FC = () => {
                                                 </div>
                                             )}
 
+                                            {earlierFiles.length > 0 && (
+                                                <details className="mb-3">
+                                                    <summary className="cursor-pointer text-[11px] font-semibold text-slate-500">Earlier versions ({earlierFiles.length} files)</summary>
+                                                    <div className="mt-2 space-y-1.5">
+                                                        {earlierFiles.map((f: any) => (
+                                                            <button key={f._id} type="button" onClick={() => handleDeliveryDownload(oid, f._id, f.originalName)}
+                                                                className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-[11px] text-slate-600 hover:bg-slate-50">
+                                                                <span className="truncate">v{f.version} · {f.kind ? `${kindLabel(f.kind)} · ` : ''}{f.originalName}</span>
+                                                                <Download className="ml-2 h-3.5 w-3.5 shrink-0" />
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </details>
+                                            )}
+
                                             {deliveryFiles.length === 0 && (
                                                 <p className="mb-3 rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs text-slate-600">Your final file is being prepared. It will appear here to download.</p>
                                             )}
 
+                                            {/* Client review: approve, or ask for a revision */}
+                                            {deliveryFiles.length > 0 && !clientApproved && !feedback && (
+                                                revisionOrder === oid ? (
+                                                    <div className="mt-3 space-y-2 rounded-xl border border-orange-200 bg-orange-50 p-3">
+                                                        <label htmlFor={`rev-${oid}`} className="block text-xs font-bold text-[#0b1b33]">What should be changed?</label>
+                                                        <textarea id={`rev-${oid}`} rows={3} maxLength={2000} value={revisionText} onChange={e => setRevisionText(e.target.value)}
+                                                            className="w-full resize-none rounded-lg border border-orange-200 bg-white p-2.5 text-xs text-[#0b1b33] outline-none focus:border-orange-400" />
+                                                        <div className="flex gap-2">
+                                                            <button type="button" onClick={() => reviewWork(oid, 'revision')} disabled={reviewBusy === oid || revisionText.trim().length < 10}
+                                                                className="rounded-lg bg-[#002147] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">{reviewBusy === oid ? 'Sending…' : 'Send request'}</button>
+                                                            <button type="button" onClick={() => { setRevisionOrder(null); setRevisionText(''); }} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-500 hover:bg-white">Cancel</button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="mt-3 flex items-center gap-2">
+                                                        <button type="button" onClick={() => reviewWork(oid, 'approve')} disabled={reviewBusy === oid}
+                                                            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 bg-[#002147] hover:bg-[#001233] text-white text-xs font-bold rounded-xl transition disabled:opacity-50">
+                                                            <CheckCircle className="w-3.5 h-3.5" /> Approve work
+                                                        </button>
+                                                        <button type="button" onClick={() => { setRevisionOrder(oid); setRevisionText(''); }}
+                                                            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-[#002147] text-xs font-bold rounded-xl transition">
+                                                            Request revision
+                                                        </button>
+                                                    </div>
+                                                )
+                                            )}
+
                                             {/* Actions */}
                                             <div className="flex items-center gap-2 mt-3">
-                                                {deliveryFiles.length > 0 && (
-                                                    <button onClick={() => handleDeliveryDownload(oid, deliveryFiles[deliveryFiles.length - 1]._id, deliveryFiles[deliveryFiles.length - 1].originalName)}
-                                                        className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 bg-[#002147] hover:bg-[#001233] text-white text-xs font-bold rounded-xl transition">
-                                                        <Download className="w-3.5 h-3.5" /> Download completed work
-                                                    </button>
+                                                {clientApproved && (
+                                                    <span className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-700"><CheckCircle className="w-3.5 h-3.5" /> You approved this work</span>
                                                 )}
                                                 {!feedback ? (
                                                     <button onClick={() => { setFeedbackOrder(oid); setFeedbackRating(0); setFeedbackComment(''); }}
@@ -680,12 +742,12 @@ export const Dashboard: React.FC = () => {
                     {activeTab === 'loyalty' && (
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden min-h-[500px] flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-white to-amber-50">
                             <div className="w-24 h-24 bg-gradient-to-tr from-amber-400 to-[#e37e25] rounded-full flex flex-col items-center justify-center text-white shadow-xl shadow-amber-200 mb-6 border-4 border-white">
-                                <span className="text-3xl font-black">200</span>
+                                <Coins className="w-10 h-10" />
                             </div>
                             <h2 className="text-2xl font-black text-[#000a1e] mb-2">Loyalty Points</h2>
-                            <p className="text-gray-500 max-w-md">You've unlocked 200 loyalty points for joining AssignmentMinds! You can use these to claim discounts on future academic orders.</p>
-                            <button className="mt-8 bg-[#e37e25] hover:bg-amber-600 text-white font-bold px-8 py-3 rounded-[12px] transition-all shadow-md">
-                                Redeem Points
+                            <p className="text-gray-500 max-w-md">Our loyalty points programme is coming soon. Until then, save on your orders with a coupon code at checkout.</p>
+                            <button type="button" onClick={() => setOrderModalOpen(true)} className="mt-8 bg-[#e37e25] hover:bg-amber-600 text-white font-bold px-8 py-3 rounded-[12px] transition-all shadow-md">
+                                Place an Order
                             </button>
                         </div>
                     )}
@@ -694,16 +756,21 @@ export const Dashboard: React.FC = () => {
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden min-h-[500px] p-8">
                             <h2 className="text-xl font-bold text-[#000a1e] mb-6">Premium Academic Resources</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {['Citation Guide 2024', 'Structure of a Perfect Essay', 'Research Methodologies Guide'].map((res, i) => (
-                                    <div key={i} className="border border-gray-200 rounded-xl p-5 hover:border-blue-300 hover:bg-blue-50/50 transition-colors cursor-pointer group flex items-start gap-4">
+                                {([
+                                    ['Referencing Guide: Harvard, APA & MLA', '/blog/harvard-apa-mla-referencing-guide'],
+                                    ['Structure of a Perfect Essay', '/blog/how-to-write-a-strong-essay-introduction'],
+                                    ['Research Methods Guide', '/blog/qualitative-vs-quantitative-research'],
+                                    ['Dissertation Structure Guide', '/blog/how-to-structure-a-dissertation'],
+                                ] as const).map(([res, to]) => (
+                                    <Link key={to} to={to} className="border border-gray-200 rounded-xl p-5 hover:border-blue-300 hover:bg-blue-50/50 transition-colors cursor-pointer group flex items-start gap-4">
                                         <div className="w-10 h-10 rounded bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
                                             <FileText className="w-5 h-5" />
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-gray-800 group-hover:text-blue-700 transition-colors">{res}</h3>
-                                            <p className="text-xs text-gray-500 mt-1">Download this free PDF guide to dramatically improve your assignment quality.</p>
+                                            <p className="text-xs text-gray-500 mt-1">Read the free guide on our blog.</p>
                                         </div>
-                                    </div>
+                                    </Link>
                                 ))}
                             </div>
                         </div>
@@ -714,13 +781,13 @@ export const Dashboard: React.FC = () => {
                 <div className="space-y-4">
                     {/* Floating WhatsApp Button */}
                     <div className="fixed bottom-6 right-6 z-50">
-                        <button className="w-14 h-14 bg-[#25D366] hover:bg-[#20b858] text-white rounded-full flex items-center justify-center shadow-[0_4px_15px_rgba(37,211,102,0.4)] transition-transform hover:scale-110">
+                        <a href="https://wa.me/919263606941" target="_blank" rel="noreferrer" aria-label="Chat on WhatsApp" className="w-14 h-14 bg-[#25D366] hover:bg-[#20b858] text-white rounded-full flex items-center justify-center shadow-[0_4px_15px_rgba(37,211,102,0.4)] transition-transform hover:scale-110">
                             <MessageCircle className="w-8 h-8" />
-                        </button>
+                        </a>
                     </div>
 
                     {/* Personal A/C Manager Button */}
-                    <button className="w-full bg-[#f0f9f1] border border-[#a3d8ab] rounded-md p-4 flex items-center justify-between hover:bg-[#e4f5e7] transition-colors relative group">
+                    <a href={`https://wa.me/919263606941?text=${encodeURIComponent(`Hi, I'd like to talk to my account manager. My account email is ${user?.email || ''}.`)}`} target="_blank" rel="noreferrer" className="w-full bg-[#f0f9f1] border border-[#a3d8ab] rounded-md p-4 flex items-center justify-between hover:bg-[#e4f5e7] transition-colors relative group">
                         <div className="flex flex-col items-start pr-8">
                             <span className="bg-emerald-600 text-white text-[9px] font-black uppercase px-1.5 py-0.5 rounded-sm line-height-none tracking-wider mb-1">FREE</span>
                             <span className="text-[#3b8449] font-semibold text-[13px] uppercase tracking-wide leading-tight text-left">PERSONAL A/C MANAGER</span>
@@ -728,15 +795,15 @@ export const Dashboard: React.FC = () => {
                         <div className="w-10 h-10 rounded-full bg-[#25D366] text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform">
                             <MessageCircle className="w-5 h-5 ml-[-1px]" />
                         </div>
-                    </button>
+                    </a>
 
                     {/* Quick Tools List */}
                     <div className="space-y-3 pt-2">
-                        {['FREE TOOLS', 'ESSAY TYPER', 'REFERENCING'].map((label, idx) => (
-                            <button key={idx} className="w-full bg-[#eef0f3] hover:bg-[#e2e6eb] border border-[#e2e6eb] rounded-[12px] py-3.5 px-4 flex items-center justify-between transition-colors shadow-sm text-[#1b2733] group">
+                        {([['FREE TOOLS', '/#academic-tools-section'], ['ESSAY TYPER', '/p/free-essay-typer'], ['REFERENCING', '/p/referencing-tool']] as const).map(([label, to]) => (
+                            <Link key={label} to={to} className="w-full bg-[#eef0f3] hover:bg-[#e2e6eb] border border-[#e2e6eb] rounded-[12px] py-3.5 px-4 flex items-center justify-between transition-colors shadow-sm text-[#1b2733] group">
                                 <span className="font-bold text-[13px] tracking-wide">{label}</span>
                                 <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-700 transition-colors" />
-                            </button>
+                            </Link>
                         ))}
                     </div>
                 </div>

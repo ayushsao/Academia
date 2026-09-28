@@ -3,6 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { api, API } from '../../../lib/api';
 import { useStore } from '../../../store/useStore';
 import { Inbox, Clock, CheckCircle2, AlertTriangle, Upload, Eye, FileText, Calendar, DollarSign, BookOpen, ArrowRight, RefreshCw, Crown } from 'lucide-react';
+import { FinalSubmission, type DraftFile } from '../../../components/writer/FinalSubmission';
+import { byKind, kindLabel, type SubmissionKind } from '../../../lib/submissionKinds';
 
 type OrderFile = {
     _id: string;
@@ -12,6 +14,7 @@ type OrderFile = {
     size: number;
     version: number;
     uploadedAt: string;
+    kind?: SubmissionKind | null;
 };
 
 type Order = {
@@ -30,6 +33,8 @@ type Order = {
     status: string;
     files: string[];
     deliveryFiles: OrderFile[];
+    // Files uploaded for the next submission (see FinalSubmission).
+    draftDelivery?: DraftFile[];
     revisionNote?: string;
     createdAt: string;
     submittedAt?: string;
@@ -88,10 +93,6 @@ export default function WriterOrdersPage() {
     const [biddingProjects, setBiddingProjects] = useState<{ orderId: string; topicTitle: string; subject: string; pages: number; wordCount?: number; deadline: string; budget: { min: number; max: number; currency: string } | null; currency?: string; myBid: { amount: number; currency: string; status: string } | null }[]>([]);
     const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
     const [accepting, setAccepting] = useState<string | null>(null);
-    const [uploading, setUploading] = useState<string | null>(null);
-
-    const fileInputRef = React.useRef<HTMLInputElement | null>(null);
-    const [uploadTarget, setUploadTarget] = useState<string | null>(null);
 
     const loadOrders = async () => {
         setLoading(true);
@@ -132,27 +133,8 @@ export default function WriterOrdersPage() {
         }
     };
 
-    const handleUpload = async (orderId: string, files: FileList) => {
-        setUploading(orderId);
-        try {
-            const form = new FormData();
-            Array.from(files).forEach(f => form.append('files', f));
-            const headers: Record<string, string> = {};
-            if (token) headers.Authorization = `Bearer ${token}`;
-            const res = await fetch(`${API}/order-workflow/writer/upload/${orderId}`, {
-                method: 'POST', headers, credentials: 'include', body: form,
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Upload failed.');
-            alert('Work submitted successfully!');
-            await loadOrders();
-        } catch (e: any) {
-            alert(e.message || 'Upload failed.');
-        } finally {
-            setUploading(null);
-            setUploadTarget(null);
-        }
-    };
+    const setDraft = (orderId: string, draftDelivery: DraftFile[]) =>
+        setMyOrders(list => list.map(o => (o.orderId === orderId ? { ...o, draftDelivery } : o)));
 
     const handleDownloadRef = async (orderId: string, fileName: string) => {
         try {
@@ -314,14 +296,15 @@ export default function WriterOrdersPage() {
                                             )}
                                             {(order.status === 'in_progress' || order.status === 'revision_required') && (
                                                 <button
-                                                    onClick={(e) => { e.stopPropagation(); setUploadTarget(order.orderId); fileInputRef.current?.click(); }}
-                                                    disabled={uploading === order.orderId}
-                                                    className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl transition disabled:opacity-50"
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); setExpandedOrder(order.orderId); }}
+                                                    className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl transition"
                                                 >
-                                                    <Upload className="w-4 h-4" />{uploading === order.orderId ? 'Uploading...' : 'Submit Work'}
+                                                    <Upload className="w-4 h-4" />Final Submission
                                                 </button>
                                             )}
-                                            <button className="p-2 rounded-lg hover:bg-slate-100 transition text-slate-400">
+                                            {/* The row toggles the details; this button just makes that visible. */}
+                                            <button type="button" onClick={(e) => { e.stopPropagation(); setExpandedOrder(isExpanded ? null : order.orderId); }} aria-label={isExpanded ? 'Hide details' : 'View details'} className="p-2 rounded-lg hover:bg-slate-100 transition text-slate-400">
                                                 <Eye className="w-5 h-5" />
                                             </button>
                                         </div>
@@ -371,16 +354,24 @@ export default function WriterOrdersPage() {
                                             </div>
                                         )}
 
-                                        {/* Delivered Files */}
+                                        {/* Final submission: the three required files */}
+                                        {tab === 'my-orders' && (order.status === 'in_progress' || order.status === 'revision_required') && (
+                                            <FinalSubmission orderId={order.orderId} token={token} draft={order.draftDelivery || []}
+                                                onDraft={files => setDraft(order.orderId, files)}
+                                                onSubmitted={() => { alert('Work submitted. Our team will check it and send it to the client.'); loadOrders(); }} />
+                                        )}
+
+                                        {/* Delivered Files (every submission is kept, newest first) */}
                                         {order.deliveryFiles && order.deliveryFiles.length > 0 && (
                                             <div>
                                                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Submitted Work</h4>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                    {order.deliveryFiles.map(f => (
+                                                    {byKind<OrderFile>(order.deliveryFiles).sort((a, b) => (b.version || 1) - (a.version || 1)).map(f => (
                                                         <div key={f._id} className="flex items-center justify-between bg-white border border-emerald-200 rounded-lg p-3">
                                                             <div className="flex items-center gap-2 min-w-0 mr-2">
                                                                 <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
                                                                 <div className="min-w-0">
+                                                                    {f.kind && <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700">{kindLabel(f.kind)}</p>}
                                                                     <p className="text-xs font-medium text-slate-700 truncate">{f.originalName}</p>
                                                                     <p className="text-[10px] text-slate-400">v{f.version} · {formatFileSize(f.size)} · {formatDate(f.uploadedAt)}</p>
                                                                 </div>
@@ -406,20 +397,6 @@ export default function WriterOrdersPage() {
                 </div>
             )}
 
-            {/* Hidden file input for uploads */}
-            <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept=".pdf,.doc,.docx,.ppt,.pptx,.zip"
-                className="hidden"
-                onChange={(e) => {
-                    if (e.target.files && uploadTarget) {
-                        handleUpload(uploadTarget, e.target.files);
-                    }
-                    e.target.value = '';
-                }}
-            />
         </div>
     );
 }

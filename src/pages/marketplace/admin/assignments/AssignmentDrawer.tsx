@@ -10,7 +10,7 @@ import type { AdminAssignment } from './AssignmentForm';
 
 const TABS = ['Details', 'Allocation', 'Submissions', 'Rating', 'Earnings', 'History'] as const;
 const SIGNAL_LABEL: Record<string, string> = { subject: 'Subject', skills: 'Skills', quality: 'Quality', rating: 'Rating', performance: 'Performance', workload: 'Workload', timezone: 'Time zone', membership: 'Membership' };
-const files = (list: any[]) => list.map(f => ({ id: f._id, name: f.originalName, size: f.size, mimeType: f.mimeType }));
+const files = (list: any[]) => list.map(f => ({ id: f._id, name: f.originalName, size: f.size, mimeType: f.mimeType, kind: f.kind || null }));
 
 function Candidates({ a, token, onChanged }: { a: AdminAssignment; token: string; onChanged: (x: AdminAssignment) => void }) {
     const [data, setData] = useState<{ eligible: any[]; ineligible: any[]; totals: any } | null>(null);

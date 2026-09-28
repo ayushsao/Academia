@@ -9,7 +9,7 @@ import { authenticateUser } from '../middleware.js';
 import { validateInput, declineOfferSchema, workloadSchema } from '../validation.js';
 import { getAssignmentSettings, workloadLimit } from '../services/assignmentSettings.js';
 import { AssignmentError, acceptOffer, declineOffer, submitWork, DECLINE_REASONS } from '../services/assignmentService.js';
-import { receiveFiles, finalizeFiles, discardTempFiles, streamAssignmentFile } from '../services/assignmentFiles.js';
+import { receiveFiles, receiveSubmissionFiles, SUBMISSION_FIELDS, finalizeFiles, discardTempFiles, streamAssignmentFile, removeAssignmentFile } from '../services/assignmentFiles.js';
 import { UploadError } from '../services/writerFiles.js';
 import { effectiveAvailability, loadWriterBundle, computeOnboarding } from '../services/writerService.js';
 import { MEMBERSHIP_DISCLAIMER } from '../services/membershipSettings.js';
@@ -57,7 +57,7 @@ const offerView = (o, a) => ({
 const submissionView = (s) => ({
     id: s._id, version: s.version, status: s.status, note: s.note, submittedAt: s.createdAt, dueAt: s.dueAt, minutesLate: s.minutesLate,
     reviewNote: s.reviewNote, reviewedAt: s.reviewedAt,
-    files: s.files.map(f => ({ id: f._id, name: f.originalName, size: f.size, mimeType: f.mimeType })),
+    files: s.files.map(f => ({ id: f._id, name: f.originalName, size: f.size, mimeType: f.mimeType, kind: f.kind || null })),
 });
 
 const earningView = (e) => e && ({
@@ -241,22 +241,39 @@ router.get('/writer/assignments/:ref/submissions/:subId/files/:fileId', authenti
     } catch (err) { handleError(res, err, 'Could not load file.'); }
 });
 
-// Multipart: files[] + note. Formats and limits come from admin settings.
+// Multipart: exactly three files — final, plagiarism, ai_report — plus an optional
+// note. The final file's formats and the size limit come from admin settings.
 router.post('/writer/assignments/:ref/submissions', actionLimiter, authenticateUser, requireWriter, requireActiveMember, loadVisibleAssignment,
     async (req, res, next) => {
         const s = (await getAssignmentSettings()).submission;
         req.submissionRules = s;
-        receiveFiles(s.maxFiles, s.maxFileMB * 1024 * 1024)(req, res, next);
+        receiveSubmissionFiles(s.maxFileMB * 1024 * 1024)(req, res, next);
     },
     async (req, res) => {
+        const uploaded = Object.values(req.files || {}).flat();
         try {
-            if (!req.isAssigned) { await discardTempFiles(req.files); return res.status(404).json({ error: 'Assignment not found.' }); }
+            if (!req.isAssigned) { await discardTempFiles(uploaded); return res.status(404).json({ error: 'Assignment not found.' }); }
             const note = typeof req.body.note === 'string' ? req.body.note.replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, '').trim().slice(0, 3000) : '';
             if (!['ASSIGNED', 'REVISION_REQUESTED'].includes(req.assignment.status)) {
-                await discardTempFiles(req.files);
+                await discardTempFiles(uploaded);
                 return res.status(409).json({ error: 'This assignment isn’t waiting for a submission.' });
             }
-            const files = await finalizeFiles(req.files, req.submissionRules.allowedFormats);
+            const missing = Object.entries(SUBMISSION_FIELDS).filter(([name]) => !req.files?.[name]?.[0]).map(([, f]) => f.label);
+            if (missing.length) {
+                await discardTempFiles(uploaded);
+                return res.status(400).json({ error: 'Please upload all 3 required files before submitting the order.', missing });
+            }
+            const files = [];
+            try {
+                for (const [name, field] of Object.entries(SUBMISSION_FIELDS)) {
+                    const [stored] = await finalizeFiles(req.files[name], field.formats || req.submissionRules.allowedFormats);
+                    files.push({ ...stored, kind: field.kind });
+                }
+            } catch (err) {
+                await discardTempFiles(uploaded);
+                await Promise.all(files.map(f => removeAssignmentFile(f.storedName)));
+                throw err;
+            }
             const submission = await submitWork(req.assignment, req.writer, files, note);
             res.status(201).json({ submission: submissionView(submission), assignment: writerAssignmentView(req.assignment) });
         } catch (err) { handleError(res, err, 'Could not submit work.'); }

@@ -8,6 +8,7 @@ import { AssignmentBadge, Countdown, FileList, StarRow } from '../../../componen
 import { Notice, inputClass } from '../../../components/writer/FormKit';
 import { Spinner, formatBytes } from '../../../components/writer/WriterBits';
 import { cn } from '../../../lib/utils';
+import { SUBMISSION_KINDS } from '../../../lib/submissionKinds';
 
 type Detail = {
     assignment: WriterAssignment; isAssigned: boolean; offer: Offer | null; submissions: Submission[]; earning: Earning | null;
@@ -45,36 +46,38 @@ function Flow({ status, revisions }: { status: string; revisions: number }) {
     );
 }
 
+// Every submission is exactly three files: the final work, the Turnitin
+// plagiarism report and the Turnitin AI report (the server checks this too).
 function SubmitForm({ detail, onSubmitted }: { detail: Detail; onSubmitted: () => void }) {
     const { assignment: a, submissionRules: rules } = detail;
-    const input = useRef<HTMLInputElement>(null);
-    const [files, setFiles] = useState<File[]>([]);
+    const inputs = useRef<Record<string, HTMLInputElement | null>>({});
+    const [picked, setPicked] = useState<Record<string, File | undefined>>({});
     const [note, setNote] = useState('');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
-    const accept = rules.allowedFormats.map(f => `.${f}`).join(',');
+    const formatsFor = (kind: string) => (kind === 'FINAL' ? rules.allowedFormats : ['pdf', 'png', 'jpg']);
+    const complete = SUBMISSION_KINDS.every(k => picked[k.field]);
 
-    const add = (list: FileList | null) => {
-        if (!list) return;
-        const next = [...files];
-        for (const f of Array.from(list)) {
-            const ext = f.name.split('.').pop()?.toLowerCase() || '';
-            if (!rules.allowedFormats.includes(ext === 'jpeg' ? 'jpg' : ext)) { setError(`“${f.name}” isn’t an accepted format.`); continue; }
-            if (f.size > rules.maxFileMB * 1024 * 1024) { setError(`“${f.name}” is larger than ${rules.maxFileMB} MB.`); continue; }
-            if (next.length < rules.maxFiles && !next.some(x => x.name === f.name && x.size === f.size)) next.push(f);
-        }
-        setFiles(next);
-        if (input.current) input.current.value = '';
+    const choose = (field: string, kind: string, file?: File) => {
+        if (!file) return;
+        const ext = (file.name.split('.').pop() || '').toLowerCase();
+        const formats = formatsFor(kind);
+        setError('');
+        if (!formats.includes(ext === 'jpeg' ? 'jpg' : ext)) setError(`“${file.name}” isn’t an accepted format. Allowed: ${formats.map(f => f.toUpperCase()).join(', ')}.`);
+        else if (file.size > rules.maxFileMB * 1024 * 1024) setError(`“${file.name}” is larger than ${rules.maxFileMB} MB.`);
+        else setPicked(p => ({ ...p, [field]: file }));
+        if (inputs.current[field]) inputs.current[field]!.value = '';
     };
 
     const submit = async () => {
+        if (!complete) { setError('Please upload all 3 required files before submitting the order.'); return; }
         setBusy(true); setError('');
         const form = new FormData();
-        files.forEach(f => form.append('files', f));
+        SUBMISSION_KINDS.forEach(k => form.append(k.field, picked[k.field]!));
         if (note.trim()) form.append('note', note.trim());
         try {
             await api(`/assignments/writer/assignments/${a.ref}/submissions`, { method: 'POST', body: form });
-            setFiles([]); setNote('');
+            setPicked({}); setNote('');
             onSubmitted();
         } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
     };
@@ -82,31 +85,49 @@ function SubmitForm({ detail, onSubmitted }: { detail: Detail; onSubmitted: () =
     const isRevision = a.status === 'REVISION_REQUESTED';
     return (
         <section className="rounded-2xl border-2 border-[#002147]/15 bg-white p-5 sm:p-6">
-            <h2 className="text-lg font-bold text-[#0b1b33]">{isRevision ? 'Submit your revision' : 'Submit your work'}</h2>
-            <p className="mt-1 text-sm text-slate-600">Accepted: {rules.allowedFormats.map(f => f.toUpperCase()).join(', ')} · up to {rules.maxFiles} files · {rules.maxFileMB} MB each.</p>
+            <h2 className="text-lg font-bold text-[#0b1b33]">Final Submission{isRevision ? ' (revision)' : ''}</h2>
+            <p className="mt-1 text-sm text-slate-600">Attach all three files · up to {rules.maxFileMB} MB each.</p>
             <div className="mt-3"><Countdown iso={isRevision ? a.revisionDueAt : a.writerDeadline} label={isRevision ? 'Revision due' : 'Due'} /></div>
-            <input ref={input} id="sub-files" type="file" multiple accept={accept} className="sr-only" onChange={e => add(e.target.files)} />
-            <label htmlFor="sub-files" onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); add(e.dataTransfer.files); }}
-                className="mt-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-600 hover:border-[#002147]">
-                <Upload className="h-6 w-6 text-[#002147]" />
-                <span><span className="font-semibold text-[#002147]">Choose files</span> or drop them here</span>
-            </label>
-            {files.length > 0 && (
-                <ul className="mt-3 space-y-2">
-                    {files.map(f => (
-                        <li key={f.name + f.size} className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                            <span className="min-w-0 flex-1 truncate">{f.name}</span><span className="text-xs text-slate-400">{formatBytes(f.size)}</span>
-                            <button onClick={() => setFiles(list => list.filter(x => x !== f))} aria-label={`Remove ${f.name}`} className="rounded p-1 text-slate-400 hover:text-red-600"><X className="h-4 w-4" /></button>
-                        </li>
-                    ))}
-                </ul>
-            )}
+
+            <div className="mt-4 space-y-3">
+                {SUBMISSION_KINDS.map(k => {
+                    const file = picked[k.field];
+                    return (
+                        <div key={k.kind} className={cn('flex flex-col gap-2 rounded-xl border p-3 sm:flex-row sm:items-center', file ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-200')}>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold text-[#0b1b33]">{k.label} <span className="text-red-600" aria-hidden>*</span> <span className="ml-1 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-red-600">Required</span></p>
+                                <p className="truncate text-xs text-slate-500">{file ? `${file.name} · ${formatBytes(file.size)}` : formatsFor(k.kind).map(f => f.toUpperCase()).join(', ')}</p>
+                            </div>
+                            <input ref={el => { inputs.current[k.field] = el; }} type="file" accept={formatsFor(k.kind).map(f => `.${f}${f === 'jpg' ? ',.jpeg' : ''}`).join(',')} className="sr-only"
+                                aria-label={`Upload ${k.label}`} onChange={e => choose(k.field, k.kind, e.target.files?.[0])} />
+                            <div className="flex shrink-0 items-center gap-2">
+                                <button type="button" onClick={() => inputs.current[k.field]?.click()}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-[#002147] hover:bg-slate-50">
+                                    <Upload className="h-3.5 w-3.5" />{file ? 'Replace' : `Upload ${k.label}`}
+                                </button>
+                                {file && <button type="button" onClick={() => setPicked(p => ({ ...p, [k.field]: undefined }))} aria-label={`Remove ${k.label}`} className="rounded p-1 text-slate-400 hover:text-red-600"><X className="h-4 w-4" /></button>}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            <ul className="mt-4 space-y-1.5 rounded-xl bg-slate-50 p-3 text-sm" aria-label="File status">
+                {SUBMISSION_KINDS.map(k => (
+                    <li key={k.kind} className="flex items-center justify-between">
+                        <span className="text-slate-700">{k.short}</span>
+                        {picked[k.field] ? <span className="font-semibold text-emerald-700">✓ Attached</span> : <span className="font-semibold text-red-600">✗ Required</span>}
+                    </li>
+                ))}
+            </ul>
+            {!complete && <p className="mt-3 text-xs font-semibold text-red-600">Please upload all 3 required files before submitting the order.</p>}
+
             <label htmlFor="sub-note" className="mt-4 block text-sm font-semibold text-[#0b1b33]">Note to the reviewer <span className="font-normal text-slate-500">(optional)</span></label>
             <textarea id="sub-note" rows={3} maxLength={3000} value={note} onChange={e => setNote(e.target.value)} className={cn(inputClass, 'mt-1.5 text-sm')}
                 placeholder={isRevision ? 'Summarise what you changed.' : 'Anything the reviewer should know.'} />
             {error && <Notice tone="error" className="mt-3">{error}</Notice>}
-            <button onClick={submit} disabled={busy || !files.length} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#002147] px-6 py-3 font-semibold text-white disabled:opacity-50">
-                {busy && <Spinner className="h-4 w-4" />} {isRevision ? 'Submit revision' : 'Submit work'}
+            <button onClick={submit} disabled={busy || !complete} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#002147] px-6 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+                {busy && <Spinner className="h-4 w-4" />} Submit for review
             </button>
         </section>
     );

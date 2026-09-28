@@ -30,6 +30,7 @@ import { AdminLogin, AdminSecurityDialog, restoreAdminSession, signOutAdmin } fr
 import { API } from '../lib/api';
 import { formatOrderTotal, formatMoney } from '../lib/money';
 import { chargeRows, paymentState, type Charges } from '../lib/charges';
+import { byKind, kindLabel, SUBMISSION_KINDS } from '../lib/submissionKinds';
 
 // Payment status for admins: Paid, Failed or Pending.
 const PAYMENT_BADGE = {
@@ -84,7 +85,8 @@ interface Order {
     totalAmount: number; currency?: string; status: string; assignedTo?: string;
     adminApproved?: boolean; adminApprovedAt?: string;
     adminNotes?: string; revisionNote?: string; transactionId?: string; writerId?: string | null;
-    deliveryFiles?: { _id: string; originalName: string; mimeType?: string; size: number; uploadedAt: string; version: number }[];
+    deliveryFiles?: { _id: string; originalName: string; mimeType?: string; size: number; uploadedAt: string; version: number; kind?: string | null }[];
+    draftDelivery?: { _id: string; kind: string; originalName: string }[];
     submittedAt?: string; completedAt?: string; feedback?: { rating: number; comment?: string; createdAt: string }; payment?: { provider: 'RAZORPAY' | 'MANUAL' | 'WHATSAPP'; status: 'PAID' | 'PENDING_VERIFICATION' | 'FAILED'; providerPaymentId?: string; amountMinor?: number; currency?: string; failureReason?: string }; createdAt: string; updatedAt: string;
     charges?: Charges;
 }
@@ -169,7 +171,7 @@ const WriterSubmission = ({ order, token, onUpdate, download }: { order: Order; 
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Final work</p>
                     <p className="text-xs text-gray-500">
                         {completed ? 'This order is completed but has no final file, so the customer has nothing to download. Upload the final file.'
-                            : order.writerId ? 'The writer hasn’t uploaded the work yet.' : 'No final file yet. The writer uploads it, or you can upload it here.'}
+                            : order.writerId ? `The writer hasn’t submitted yet. Uploaded so far: ${SUBMISSION_KINDS.map(k => `${k.short} ${(order.draftDelivery || []).some(d => d.kind === k.kind) ? '✓' : '✗'}`).join(' · ')}` : 'No final file yet. The writer uploads it, or you can upload it here.'}
                     </p>
                 </div>
                 {uploadButton}
@@ -177,8 +179,8 @@ const WriterSubmission = ({ order, token, onUpdate, download }: { order: Order; 
         </div>
     );
     const latest = Math.max(...files.map(f => f.version || 1));
-    const current = files.filter(f => (f.version || 1) === latest);
-    const earlier = files.filter(f => (f.version || 1) !== latest).sort((a, b) => b.version - a.version);
+    const current = byKind(files.filter(f => (f.version || 1) === latest));
+    const earlier = byKind(files.filter(f => (f.version || 1) !== latest)).sort((a, b) => b.version - a.version);
     const act = async (kind: 'approve' | 'revision') => {
         if (kind === 'approve' && !confirm(`Approve the work for ${order.orderId}? The customer will be able to download it.`)) return;
         setBusy(kind);
@@ -193,6 +195,7 @@ const WriterSubmission = ({ order, token, onUpdate, download }: { order: Order; 
         <div key={f._id} className="flex items-center gap-4 p-4 bg-gray-50 border border-gray-100 rounded-xl">
             <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
             <div className="flex-1 min-w-0">
+                {f.kind && <span className="text-[10px] font-bold uppercase tracking-wide text-blue-700 block">{kindLabel(f.kind)}</span>}
                 <span className="text-sm font-semibold text-gray-800 truncate block" title={f.originalName}>{f.originalName}</span>
                 <span className="text-[11px] text-gray-400 block">Version {f.version} · {fileSize(f.size)} · {new Date(f.uploadedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
             </div>

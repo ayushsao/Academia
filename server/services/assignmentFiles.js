@@ -54,6 +54,25 @@ export function receiveFiles(maxFiles, maxBytes) {
     });
 }
 
+// A writer submission: exactly one file in each of these fields.
+export const SUBMISSION_FIELDS = {
+    final: { kind: 'FINAL', label: 'Final Assignment' },
+    plagiarism: { kind: 'PLAGIARISM', label: 'Turnitin Plagiarism Report', formats: ['pdf', 'png', 'jpg'] },
+    ai_report: { kind: 'AI_REPORT', label: 'Turnitin AI Report', formats: ['pdf', 'png', 'jpg'] },
+};
+export function receiveSubmissionFiles(maxBytes) {
+    const upload = multer({
+        storage: multer.diskStorage({ destination: ASSIGNMENT_STORAGE_DIR, filename: (_q, _f, cb) => cb(null, `tmp-${crypto.randomUUID()}`) }),
+        limits: { fileSize: maxBytes, files: 3, fields: 10, fieldSize: 8192 },
+    });
+    return (req, res, next) => upload.fields(Object.keys(SUBMISSION_FIELDS).map(name => ({ name, maxCount: 1 })))(req, res, (err) => {
+        if (!err) return next();
+        const message = err.code === 'LIMIT_FILE_SIZE' ? `Each file must be ${Math.round(maxBytes / 1024 / 1024)} MB or smaller.`
+            : err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE' ? 'Upload one Final Assignment, one Turnitin Plagiarism Report and one Turnitin AI Report.' : 'Upload failed.';
+        res.status(400).json({ error: message });
+    });
+}
+
 export const discardTempFiles = (files = []) => Promise.all(files.map(f => fs.promises.unlink(f.path).catch(() => {})));
 
 // Verifies each temp file against the allowed formats (by content, not the

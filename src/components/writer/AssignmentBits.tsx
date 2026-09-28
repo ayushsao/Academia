@@ -1,6 +1,7 @@
 import React from 'react';
 import { Clock, FileText, Download } from 'lucide-react';
 import { ASSIGNMENT_STATUS_META, timeLeft, type AssignmentStatus, type FileRef } from '../../lib/assignmentTypes';
+import { kindLabel } from '../../lib/submissionKinds';
 import { openProtectedFile } from '../../lib/api';
 import { formatBytes } from './WriterBits';
 import { cn } from '../../lib/utils';
@@ -29,7 +30,10 @@ export function FileList({ files, basePath, token, onError }: { files: FileRef[]
             {files.map(f => (
                 <li key={f.id} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm">
                     <FileText className="h-4 w-4 shrink-0 text-[#002147]" />
-                    <span className="min-w-0 flex-1 truncate font-medium text-[#0b1b33]" title={f.name}>{f.name}</span>
+                    <span className="min-w-0 flex-1 truncate font-medium text-[#0b1b33]" title={f.name}>
+                        {f.kind && <span className="block text-[10px] font-bold uppercase tracking-wide text-[#b86e00]">{kindLabel(f.kind)}</span>}
+                        {f.name}
+                    </span>
                     <span className="shrink-0 text-xs text-slate-400">{formatBytes(f.size)}</span>
                     <button type="button" aria-label={`Download ${f.name}`} onClick={() => openProtectedFile(`${basePath}/${f.id}?download=1`, token).catch(e => onError?.(e.message))}
                         className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-[#002147]"><Download className="h-4 w-4" /></button>

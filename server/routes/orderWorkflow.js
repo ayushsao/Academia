@@ -16,7 +16,7 @@ import { bidRatesView, saveBidRates, budgetFor, getBidRates } from '../services/
 import { getRateCard } from '../services/orderPricing.js';
 import { issueReceipt } from '../services/receipts.js';
 import { BiddingError, setBidding, listForWriter, placeBid, withdrawBid, bidsForOrder, acceptBid } from '../services/orderBidding.js';
-import { releaseOrder, getOrderSettings, saveOrderSettings, canTakeOrders, clientOrderView, isCompleted, OPEN_ORDER, WRITER_HIDDEN_FIELDS } from '../services/orderRelease.js';
+import { releaseOrder, getOrderSettings, saveOrderSettings, canTakeOrders, clientOrderView, clientVisibleFiles, isCompleted, OPEN_ORDER, WRITER_HIDDEN_FIELDS } from '../services/orderRelease.js';
 
 const require = createRequire(import.meta.url);
 const multer = require('multer');
@@ -143,7 +143,7 @@ router.get('/writer/my-orders', authenticateUser, requireWriter, async (req, res
     try {
         // The client's name only — never their email or other contact details.
         const orders = await Order.find({ writerId: req.user.id })
-            .select('-transactionId -payment -pricing -charges -catalog -adminNotes -deliveryFiles.filePath -totalAmount -paymentStatus -bidding')
+            .select('-transactionId -payment -pricing -charges -catalog -adminNotes -deliveryFiles.filePath -draftDelivery.filePath -totalAmount -paymentStatus -bidding')
             .populate('userId', 'name')
             .sort({ createdAt: -1 })
             .lean();
@@ -163,7 +163,7 @@ router.get('/writer/orders/:orderId', authenticateUser, requireWriter, async (re
             orderId: req.params.orderId,
             $or: [{ writerId: req.user.id }, ...(canTakeOrders(writer) ? [OPEN_ORDER] : [])],
         })
-            .select('-transactionId -payment -pricing -charges -catalog -adminNotes -deliveryFiles.filePath -totalAmount -paymentStatus -bidding')
+            .select('-transactionId -payment -pricing -charges -catalog -adminNotes -deliveryFiles.filePath -draftDelivery.filePath -totalAmount -paymentStatus -bidding')
             .populate('userId', 'name')
             .lean();
 
@@ -190,40 +190,119 @@ router.get('/writer/files/:orderId/:name', authenticateUser, requireWriter, asyn
     } catch { if (!res.headersSent) res.status(500).json({ error: 'Could not load file.' }); }
 });
 
-// POST /api/order-workflow/writer/upload/:orderId — writer uploads completed work
-router.post('/writer/upload/:orderId', authenticateUser, requireWriter, deliveryUpload.array('files', 5), async (req, res) => {
-    const discard = () => Promise.all((req.files || []).map(f => fs.promises.unlink(f.path).catch(() => {})));
+// ── Writer final submission: exactly three required files ─────────────────────
+// The writer uploads each file on its own (it is kept as a draft), then submits.
+// The submission is refused unless all three kinds are present, so it cannot be
+// skipped by calling the API directly. Each submission is a new version; earlier
+// versions (e.g. before a revision) are kept.
+export const WRITER_SUBMISSION_KINDS = {
+    FINAL: { slug: 'final', label: 'Final Assignment', exts: ALLOWED_DELIVERY_EXTS },
+    PLAGIARISM: { slug: 'plagiarism', label: 'Turnitin Plagiarism Report', exts: ['.pdf', '.png', '.jpg', '.jpeg'] },
+    AI_REPORT: { slug: 'ai-report', label: 'Turnitin AI Report', exts: ['.pdf', '.png', '.jpg', '.jpeg'] },
+};
+const kindFromSlug = (slug) => Object.keys(WRITER_SUBMISSION_KINDS).find(k => WRITER_SUBMISSION_KINDS[k].slug === slug);
+const SUBMITTABLE = ['in_progress', 'revision_required'];
+const draftView = (files) => (files || []).map(({ filePath, ...f }) => (typeof f.toObject === 'function' ? f.toObject() : f));
 
+// POST /api/order-workflow/writer/submission/:orderId/:kind — upload one required file (kind: final | plagiarism | ai-report)
+router.post('/writer/submission/:orderId/:kind', authenticateUser, requireWriter, deliveryUpload.single('file'), async (req, res) => {
+    const discard = () => (req.file ? fs.promises.unlink(req.file.path).catch(() => {}) : Promise.resolve());
     try {
-        const order = await Order.findOne({
-            orderId: req.params.orderId,
-            writerId: req.user.id,
-            status: { $in: ['in_progress', 'revision_required'] },
-        });
+        const kind = kindFromSlug(req.params.kind);
+        if (!kind) { await discard(); return res.status(404).json({ error: 'Unknown file type.' }); }
+        const rules = WRITER_SUBMISSION_KINDS[kind];
+        const order = await Order.findOne({ orderId: req.params.orderId, writerId: req.user.id, status: { $in: SUBMITTABLE } });
+        if (!order) { await discard(); return res.status(404).json({ error: 'Order not found or not waiting for a submission.' }); }
+        if (!req.file) return res.status(400).json({ error: `Choose the ${rules.label} file.` });
 
-        if (!order) {
+        const ext = path.extname(req.file.originalname).toLowerCase();
+        if (!rules.exts.includes(ext)) {
             await discard();
-            return res.status(404).json({ error: 'Order not found or not in a submittable state.' });
+            return res.status(400).json({ error: `${rules.label}: allowed formats are ${rules.exts.map(e => e.slice(1).toUpperCase()).join(', ')}.` });
+        }
+        const head = Buffer.alloc(64);
+        const fh = await fs.promises.open(req.file.path, 'r');
+        const { bytesRead } = await fh.read(head, 0, 64, 0);
+        await fh.close();
+        if (!kindMatchesExtension(sniffOrderFileKind(head.subarray(0, bytesRead)), ext)) {
+            await discard();
+            return res.status(400).json({ error: `"${safeName(req.file.originalname)}" doesn't appear to be a valid file.` });
         }
 
-        const stored = await storeDeliveryFiles(req.files, order, req.user.id);
-        if (stored.error) return res.status(400).json({ error: stored.error });
-
-        order.deliveryFiles.push(...stored.files);
-        order.status = 'submitted';
-        order.submittedAt = new Date();
-        await order.save();
-
-        res.json({
-            message: 'Work submitted successfully.',
-            order: { ...order.toObject(), status: normaliseStatus(order.status) },
+        const storedName = `${crypto.randomBytes(16).toString('hex')}-${safeName(req.file.originalname)}`;
+        const storedPath = path.join(DELIVERY_DIR, storedName);
+        await fs.promises.rename(req.file.path, storedPath);
+        // One draft per kind: a new upload replaces the previous one.
+        const previous = order.draftDelivery.filter(f => f.kind === kind);
+        order.draftDelivery = order.draftDelivery.filter(f => f.kind !== kind);
+        order.draftDelivery.push({
+            kind, originalName: req.file.originalname.slice(0, 200), fileName: storedName, filePath: storedPath,
+            mimeType: EXT_MIMES[ext] || 'application/octet-stream', size: req.file.size,
+            uploadedBy: req.user.id, uploadedAt: new Date(),
         });
+        await order.save();
+        await Promise.all(previous.map(f => fs.promises.unlink(path.join(DELIVERY_DIR, path.basename(f.fileName))).catch(() => {})));
+        res.json({ draftDelivery: draftView(order.draftDelivery) });
     } catch (err) {
         await discard();
-        console.error('[OrderWorkflow] upload error:', err.message);
-        res.status(500).json({ error: 'Could not upload files.' });
+        console.error('[OrderWorkflow] submission upload error:', err.message);
+        res.status(500).json({ error: 'Could not upload the file.' });
     }
 });
+
+// DELETE /api/order-workflow/writer/submission/:orderId/:kind — remove an uploaded draft file
+router.delete('/writer/submission/:orderId/:kind', authenticateUser, requireWriter, async (req, res) => {
+    try {
+        const kind = kindFromSlug(req.params.kind);
+        const order = kind && await Order.findOne({ orderId: req.params.orderId, writerId: req.user.id, status: { $in: SUBMITTABLE } });
+        if (!order) return res.status(404).json({ error: 'Order not found or not waiting for a submission.' });
+        const removed = order.draftDelivery.filter(f => f.kind === kind);
+        order.draftDelivery = order.draftDelivery.filter(f => f.kind !== kind);
+        await order.save();
+        await Promise.all(removed.map(f => fs.promises.unlink(path.join(DELIVERY_DIR, path.basename(f.fileName))).catch(() => {})));
+        res.json({ draftDelivery: draftView(order.draftDelivery) });
+    } catch (err) {
+        res.status(500).json({ error: 'Could not remove the file.' });
+    }
+});
+
+// POST /api/order-workflow/writer/submit/:orderId — submit the three files for review.
+router.post('/writer/submit/:orderId', authenticateUser, requireWriter, async (req, res) => {
+    try {
+        const order = await Order.findOne({ orderId: req.params.orderId, writerId: req.user.id, status: { $in: SUBMITTABLE } });
+        if (!order) return res.status(404).json({ error: 'Order not found or not waiting for a submission.' });
+        const missing = Object.keys(WRITER_SUBMISSION_KINDS).filter(k => !order.draftDelivery.some(f => f.kind === k));
+        if (missing.length) {
+            return res.status(400).json({
+                error: 'Please upload all 3 required files before submitting the order.',
+                missing: missing.map(k => WRITER_SUBMISSION_KINDS[k].label),
+            });
+        }
+        const version = (order.deliveryFiles.length ? Math.max(...order.deliveryFiles.map(f => f.version || 1)) : 0) + 1;
+        const now = new Date();
+        for (const k of Object.keys(WRITER_SUBMISSION_KINDS)) {
+            const f = order.draftDelivery.find(d => d.kind === k).toObject();
+            delete f._id;
+            order.deliveryFiles.push({ ...f, version, uploadedAt: f.uploadedAt || now });
+        }
+        order.draftDelivery = [];
+        order.status = 'submitted';
+        order.submittedAt = now;
+        await order.save();
+        res.json({
+            message: 'Work submitted. Our team will check it and send it to the client.',
+            order: { ...order.toObject(), deliveryFiles: draftView(order.deliveryFiles), status: normaliseStatus(order.status) },
+        });
+    } catch (err) {
+        console.error('[OrderWorkflow] submit error:', err.message);
+        res.status(500).json({ error: 'Could not submit the work.' });
+    }
+});
+
+// POST /api/order-workflow/writer/upload/:orderId — the old one-step upload. Writers
+// now submit the three required files above; this no longer changes the order.
+router.post('/writer/upload/:orderId', authenticateUser, requireWriter, (_req, res) =>
+    res.status(400).json({ error: 'Please upload all 3 required files (Final Assignment, Turnitin Plagiarism Report, Turnitin AI Report) in the Final Submission section.' }));
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ADMIN ENDPOINTS
@@ -479,6 +558,8 @@ router.post('/admin/approve/:orderId', authenticateAdmin, requirePermission('ord
 
         order.status = 'completed';
         order.completedAt = new Date();
+        if (order.deliveryFiles.length) order.approvedVersion = Math.max(...order.deliveryFiles.map(f => f.version || 1));
+        order.clientApprovedAt = undefined;   // the client reviews each approved version
         await order.save();
 
         await recordAudit(req, 'ORDER_APPROVED', { targetType: 'ORDER', targetId: order.orderId });
@@ -627,13 +708,12 @@ router.get('/client/download/:orderId/:fileId', authenticateUser, async (req, re
         if (!order) return res.status(404).json({ error: 'Order not found.' });
 
         // The work is released to the customer once an admin has approved it.
-        if (!isCompleted(order.status)) {
-            return res.status(403).json({ error: 'You can download the work once your order is completed.' });
+        const file = clientVisibleFiles(order).find(f => String(f._id) === String(req.params.fileId));
+        if (!file) {
+            return order.deliveryFiles.id(req.params.fileId)
+                ? res.status(403).json({ error: 'You can download the work once your order is completed.' })
+                : res.status(404).json({ error: 'File not found.' });
         }
-
-        // Find file
-        const file = order.deliveryFiles.id(req.params.fileId);
-        if (!file) return res.status(404).json({ error: 'File not found.' });
 
         const fullPath = path.join(DELIVERY_DIR, path.basename(file.fileName));
         try { await fs.promises.access(fullPath); } catch { return res.status(404).json({ error: 'File not found on disk.' }); }
@@ -646,6 +726,45 @@ router.get('/client/download/:orderId/:fileId', authenticateUser, async (req, re
         fs.createReadStream(fullPath).pipe(res);
     } catch (err) {
         if (!res.headersSent) res.status(500).json({ error: 'Could not download file.' });
+    }
+});
+
+// POST /api/order-workflow/client/approve/:orderId — the client accepts the delivered work.
+router.post('/client/approve/:orderId', authenticateUser, async (req, res) => {
+    try {
+        const order = await Order.findOne({ orderId: req.params.orderId, userId: req.user.id });
+        if (!order) return res.status(404).json({ error: 'Order not found.' });
+        if (!isCompleted(order.status)) return res.status(409).json({ error: 'You can approve the work once it has been delivered.' });
+        if (!order.clientApprovedAt) {
+            order.clientApprovedAt = new Date();
+            await order.save();
+            if (order.writerId) notify({ userId: order.writerId, category: 'APPROVAL', type: 'CLIENT_APPROVED', title: `Client approved ${order.orderId}`, message: `The client approved your work for "${order.topicTitle}".`, link: '/writer/orders' }).catch(() => {});
+        }
+        res.json({ order: { ...clientOrderView(order), status: normaliseStatus(order.status) } });
+    } catch (err) {
+        res.status(500).json({ error: 'Could not approve the work.' });
+    }
+});
+
+// POST /api/order-workflow/client/revision/:orderId — the client asks for changes to
+// delivered work. The previous files stay available; the writer submits a new set.
+router.post('/client/revision/:orderId', authenticateUser, async (req, res) => {
+    try {
+        const note = typeof req.body?.note === 'string' ? req.body.note.trim().slice(0, 2000) : '';
+        if (note.length < 10) return res.status(400).json({ error: 'Please describe what needs to change (at least 10 characters).' });
+        const order = await Order.findOne({ orderId: req.params.orderId, userId: req.user.id });
+        if (!order) return res.status(404).json({ error: 'Order not found.' });
+        if (!isCompleted(order.status)) return res.status(409).json({ error: 'You can ask for a revision once the work has been delivered.' });
+        if (order.clientApprovedAt || order.feedback) return res.status(409).json({ error: 'This work is already approved. Contact support if something is wrong.' });
+        if (!order.writerId) return res.status(409).json({ error: 'Please contact support to request changes to this order.' });
+        order.status = 'revision_required';
+        order.revisionNote = `Client: ${note}`;
+        order.clientRevisionCount = (order.clientRevisionCount || 0) + 1;
+        await order.save();
+        notify({ userId: order.writerId, category: 'REVISION', type: 'REVISION_REQUESTED', title: `Revision requested: ${order.orderId}`, message: `The client asked for changes to "${order.topicTitle}": ${note}`, link: '/writer/orders' }).catch(() => {});
+        res.json({ order: { ...clientOrderView(order), status: normaliseStatus(order.status) } });
+    } catch (err) {
+        res.status(500).json({ error: 'Could not request the revision.' });
     }
 });
 
