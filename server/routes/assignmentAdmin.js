@@ -232,7 +232,8 @@ router.delete('/:id/reference-files/:fileId', loadAssignment, async (req, res) =
 router.get('/:id/files/:fileId', loadAssignment, (req, res) => {
     const file = req.assignment.referenceFiles.id(req.params.fileId);
     if (!file) return res.status(404).json({ error: 'File not found.' });
-    streamAssignmentFile(res, file, { download: req.query.download === '1' });
+    streamAssignmentFile(res, file, { download: req.query.download === '1' })
+        .catch(() => { if (!res.headersSent) res.status(500).json({ error: 'Could not load file.' }); });
 });
 
 router.get('/:id/submissions/:subId/files/:fileId', loadAssignment, async (req, res) => {
@@ -241,7 +242,7 @@ router.get('/:id/submissions/:subId/files/:fileId', loadAssignment, async (req, 
         const sub = await AssignmentSubmission.findOne({ _id: req.params.subId, assignmentId: req.assignment._id });
         const file = sub?.files.id(req.params.fileId);
         if (!file) return res.status(404).json({ error: 'File not found.' });
-        streamAssignmentFile(res, file, { download: req.query.download === '1' });
+        await streamAssignmentFile(res, file, { download: req.query.download === '1' });
     } catch (err) { handleError(res, err, 'Failed to load file.'); }
 });
 

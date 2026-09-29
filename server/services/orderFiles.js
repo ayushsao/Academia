@@ -5,6 +5,7 @@ import { createRequire } from 'module';
 import { UploadedFile, Order } from '../db.js';
 import { sniffKind } from './writerFiles.js';
 import { ORDER_UPLOADS_DIR } from './assignmentFiles.js';
+import { saveFile, openFile } from './fileStore.js';
 
 const require = createRequire(import.meta.url);
 const multer = require('multer');
@@ -115,15 +116,16 @@ export async function storeOrderUploads(files, userId) {
         const stored = [];
         for (const { f, ext } of accepted) {
             const storedName = `${crypto.randomBytes(16).toString('hex')}-${safeName(f.originalname)}`;
-            await fs.promises.rename(f.path, path.join(ORDER_UPLOADS_DIR, storedName));
             const mimeType = EXT_MIMES[ext] || 'application/octet-stream';
+            const hash = await sha256(f.path);
+            await saveFile(f.path, 'orders', storedName, mimeType);
             await UploadedFile.create({
                 storedName,
                 userId,
                 originalName: f.originalname.slice(0, 200),
                 mimeType,
                 size: f.size,
-                sha256: await sha256(path.join(ORDER_UPLOADS_DIR, storedName))
+                sha256: hash,
             });
             stored.push(storedName);
         }
@@ -150,15 +152,15 @@ const mimeFor = (name) => {
 export async function streamOrderFile(res, storedName) {
     const name = path.basename(String(storedName));
     if (!name || name.startsWith('.')) return res.status(404).json({ error: 'File not found.' });
-    const full = path.join(ORDER_UPLOADS_DIR, name);
-    try { await fs.promises.access(full); } catch { return res.status(404).json({ error: 'File not found.' }); }
+    const stream = await openFile('orders', name);
+    if (!stream) return res.status(404).json({ error: 'This file is no longer available. Please contact support and we’ll send it again.' });
     const meta = await UploadedFile.findOne({ storedName: name }).select('originalName mimeType').lean();
     const downloadName = (meta?.originalName || name.replace(/^[0-9a-f]{32}-/, '')).replace(/["\\\r\n]/g, '');
     res.setHeader('Content-Type', meta?.mimeType || mimeFor(name));
     res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"; filename*=UTF-8''${encodeURIComponent(downloadName)}`);
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Cache-Control', 'private, no-store');
-    fs.createReadStream(full).pipe(res);
+    stream.pipe(res);
 }
 
 // May this customer download this file? Their own upload, or a file on one of their orders (legacy uploads).

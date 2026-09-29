@@ -1,4 +1,5 @@
 import { createRequire } from 'module';
+import { saveFile, openFile, removeFile } from './fileStore.js';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
@@ -74,8 +75,7 @@ export function receiveSingleFile(req, res, next) {
     });
 }
 
-export const removeStoredFile = (storedName) =>
-    fs.promises.unlink(path.join(WRITER_STORAGE_DIR, path.basename(storedName))).catch(() => {});
+export const removeStoredFile = (storedName) => removeFile('writers', storedName);
 
 // Validates an uploaded temp file against the purpose's rules, then moves it to
 // a random final name. Deletes the temp file on any failure.
@@ -97,7 +97,7 @@ export async function finalizeUpload(file, purpose) {
 
         const sha256 = crypto.createHash('sha256').update(await fs.promises.readFile(file.path)).digest('hex');
         const storedName = `${crypto.randomUUID()}${FILE_KINDS[kind].ext}`;
-        await fs.promises.rename(file.path, path.join(WRITER_STORAGE_DIR, storedName));
+        await saveFile(file.path, 'writers', storedName, FILE_KINDS[kind].mime);
 
         const originalName = path.basename(file.originalname).replace(/[^\p{L}\p{N} ._()-]/gu, '_').slice(0, 150) || `document${FILE_KINDS[kind].ext}`;
         return { storedName, originalName, mimeType: FILE_KINDS[kind].mime, size: file.size, sha256 };
@@ -108,9 +108,9 @@ export async function finalizeUpload(file, purpose) {
 }
 
 // Streams a stored file with headers that stop browsers from executing it.
-export function streamStoredFile(res, { storedName, mimeType, originalName }, { download = false } = {}) {
-    const filePath = path.join(WRITER_STORAGE_DIR, path.basename(storedName));
-    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found.' });
+export async function streamStoredFile(res, { storedName, mimeType, originalName }, { download = false } = {}) {
+    const stream = await openFile('writers', storedName);
+    if (!stream) return res.status(404).json({ error: 'File not found.' });
     const inline = !download && (mimeType === 'application/pdf' || mimeType.startsWith('image/'));
     const safeName = encodeURIComponent(originalName || path.basename(storedName));
     res.setHeader('Content-Type', mimeType);
@@ -119,5 +119,5 @@ export function streamStoredFile(res, { storedName, mimeType, originalName }, { 
     res.setHeader('Content-Security-Policy', `default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'${mimeType === 'application/pdf' ? '' : '; sandbox'}`);
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Cache-Control', 'private, max-age=300');
-    res.sendFile(filePath);
+    stream.pipe(res);
 }

@@ -228,7 +228,8 @@ router.get('/writer/assignments/:ref/files/:fileId', authenticateUser, requireWr
     if (!isAssigned && offer?.status !== 'OFFERED') return res.status(404).json({ error: 'File not found.' });
     const file = a.referenceFiles.id(req.params.fileId);
     if (!file) return res.status(404).json({ error: 'File not found.' });
-    streamAssignmentFile(res, file, { download: req.query.download === '1' });
+    streamAssignmentFile(res, file, { download: req.query.download === '1' })
+        .catch(() => { if (!res.headersSent) res.status(500).json({ error: 'Could not load file.' }); });
 });
 
 router.get('/writer/assignments/:ref/submissions/:subId/files/:fileId', authenticateUser, requireWriter, loadVisibleAssignment, async (req, res) => {
@@ -237,7 +238,7 @@ router.get('/writer/assignments/:ref/submissions/:subId/files/:fileId', authenti
         const sub = await AssignmentSubmission.findOne({ _id: req.params.subId, assignmentId: req.assignment._id, writerId: req.writer._id });
         const file = sub?.files.id(req.params.fileId);
         if (!file) return res.status(404).json({ error: 'File not found.' });
-        streamAssignmentFile(res, file, { download: req.query.download === '1' });
+        await streamAssignmentFile(res, file, { download: req.query.download === '1' });
     } catch (err) { handleError(res, err, 'Could not load file.'); }
 });
 

@@ -8,6 +8,7 @@ import { Order, OrderCheckout, User, Writer } from '../db.js';
 import { authenticateUser, authenticateAdmin } from '../middleware.js';
 import { requirePermission, noStore } from '../permissions.js';
 import { EXT_MIMES, sniffOrderFileKind, kindMatchesExtension } from '../services/orderFiles.js';
+import { saveFile, openFile, removeFile } from '../services/fileStore.js';
 import { recordAudit } from '../services/audit.js';
 import { notify } from '../services/notifications.js';
 import { streamOrderFile } from '../services/orderFiles.js';
@@ -76,7 +77,7 @@ async function storeDeliveryFiles(uploads, order, uploaderId) {
         const ext = path.extname(f.originalname).toLowerCase();
         const storedName = `${crypto.randomBytes(16).toString('hex')}-${safeName(f.originalname)}`;
         const storedPath = path.join(DELIVERY_DIR, storedName);
-        await fs.promises.rename(f.path, storedPath);
+        await saveFile(f.path, 'deliveries', storedName, EXT_MIMES[ext] || 'application/octet-stream');
         files.push({
             originalName: f.originalname.slice(0, 200), fileName: storedName, filePath: storedPath,
             mimeType: EXT_MIMES[ext] || 'application/octet-stream', size: f.size,
@@ -231,7 +232,7 @@ router.post('/writer/submission/:orderId/:kind', authenticateUser, requireWriter
 
         const storedName = `${crypto.randomBytes(16).toString('hex')}-${safeName(req.file.originalname)}`;
         const storedPath = path.join(DELIVERY_DIR, storedName);
-        await fs.promises.rename(req.file.path, storedPath);
+        await saveFile(req.file.path, 'deliveries', storedName, EXT_MIMES[ext] || 'application/octet-stream');
         // One draft per kind: a new upload replaces the previous one.
         const previous = order.draftDelivery.filter(f => f.kind === kind);
         order.draftDelivery = order.draftDelivery.filter(f => f.kind !== kind);
@@ -241,7 +242,7 @@ router.post('/writer/submission/:orderId/:kind', authenticateUser, requireWriter
             uploadedBy: req.user.id, uploadedAt: new Date(),
         });
         await order.save();
-        await Promise.all(previous.map(f => fs.promises.unlink(path.join(DELIVERY_DIR, path.basename(f.fileName))).catch(() => {})));
+        await Promise.all(previous.map(f => removeFile('deliveries', f.fileName)));
         res.json({ draftDelivery: draftView(order.draftDelivery) });
     } catch (err) {
         await discard();
@@ -259,7 +260,7 @@ router.delete('/writer/submission/:orderId/:kind', authenticateUser, requireWrit
         const removed = order.draftDelivery.filter(f => f.kind === kind);
         order.draftDelivery = order.draftDelivery.filter(f => f.kind !== kind);
         await order.save();
-        await Promise.all(removed.map(f => fs.promises.unlink(path.join(DELIVERY_DIR, path.basename(f.fileName))).catch(() => {})));
+        await Promise.all(removed.map(f => removeFile('deliveries', f.fileName)));
         res.json({ draftDelivery: draftView(order.draftDelivery) });
     } catch (err) {
         res.status(500).json({ error: 'Could not remove the file.' });
@@ -642,15 +643,15 @@ router.get('/admin/delivery-file/:orderId/:fileId', authenticateAdmin, requirePe
         const file = order.deliveryFiles.id(req.params.fileId);
         if (!file) return res.status(404).json({ error: 'File not found.' });
 
-        const fullPath = path.join(DELIVERY_DIR, path.basename(file.fileName));
-        try { await fs.promises.access(fullPath); } catch { return res.status(404).json({ error: 'File not found on disk.' }); }
+        const stream = await openFile('deliveries', file.fileName);
+        if (!stream) return res.status(404).json({ error: 'This file is no longer available. Please contact support and we’ll send it again.' });
 
         res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
         const downloadName = (file.originalName || file.fileName).replace(/["\r\n]/g, '');
         res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"; filename*=UTF-8''${encodeURIComponent(downloadName)}`);
         res.setHeader('X-Content-Type-Options', 'nosniff');
         res.setHeader('Cache-Control', 'private, no-store');
-        fs.createReadStream(fullPath).pipe(res);
+        stream.pipe(res);
     } catch (err) {
         if (!res.headersSent) res.status(500).json({ error: 'Could not download file.' });
     }
@@ -715,15 +716,15 @@ router.get('/client/download/:orderId/:fileId', authenticateUser, async (req, re
                 : res.status(404).json({ error: 'File not found.' });
         }
 
-        const fullPath = path.join(DELIVERY_DIR, path.basename(file.fileName));
-        try { await fs.promises.access(fullPath); } catch { return res.status(404).json({ error: 'File not found on disk.' }); }
+        const stream = await openFile('deliveries', file.fileName);
+        if (!stream) return res.status(404).json({ error: 'This file is no longer available. Please contact support and we’ll send it again.' });
 
         res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
         const downloadName = (file.originalName || file.fileName).replace(/["\r\n]/g, '');
         res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"; filename*=UTF-8''${encodeURIComponent(downloadName)}`);
         res.setHeader('X-Content-Type-Options', 'nosniff');
         res.setHeader('Cache-Control', 'private, no-store');
-        fs.createReadStream(fullPath).pipe(res);
+        stream.pipe(res);
     } catch (err) {
         if (!res.headersSent) res.status(500).json({ error: 'Could not download file.' });
     }

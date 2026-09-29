@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { saveFile, openFile, removeFile } from './fileStore.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -66,25 +67,24 @@ export async function storeCatalogFiles(files, allow) {
         const stored = [];
         for (const { f, t, ext } of accepted) {
             const storedName = `${crypto.randomBytes(16).toString('hex')}${ext}`;
-            await fs.promises.rename(f.path, path.join(CATALOG_STORAGE_DIR, storedName));
+            await saveFile(f.path, 'catalog', storedName, t.mime || ZIP_MIME[ext]);
             stored.push({ storedName, originalName: f.originalname.slice(0, 200), mimeType: t.mime || ZIP_MIME[ext], size: f.size, kind: t.kind });
         }
         return stored;
     } catch (err) { await discard(files); throw err; }
 }
 
-export const removeCatalogFile = (storedName) =>
-    storedName ? fs.promises.unlink(path.join(CATALOG_STORAGE_DIR, path.basename(storedName))).catch(() => {}) : Promise.resolve();
+export const removeCatalogFile = (storedName) => removeFile('catalog', storedName);
 
 // Images display inline; other files download. Hardened headers either way.
 export async function streamCatalogFile(res, file, { cache = 'private, no-store' } = {}) {
-    const full = path.join(CATALOG_STORAGE_DIR, path.basename(file.storedName));
-    try { await fs.promises.access(full); } catch { return res.status(404).json({ error: 'File not found.' }); }
+    const stream = await openFile('catalog', file.storedName);
+    if (!stream) return res.status(404).json({ error: 'File not found.' });
     const name = file.originalName.replace(/["\\\r\n]/g, '');
     res.setHeader('Content-Type', file.mimeType);
     res.setHeader('Content-Disposition', `${file.kind === 'IMAGE' ? 'inline' : 'attachment'}; filename="${name}"; filename*=UTF-8''${encodeURIComponent(name)}`);
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Cache-Control', cache);
     if (file.kind !== 'IMAGE') res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
-    fs.createReadStream(full).pipe(res);
+    stream.pipe(res);
 }

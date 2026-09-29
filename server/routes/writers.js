@@ -264,7 +264,7 @@ router.get('/:writerId/photo', identifyPrincipal, async (req, res) => {
         if (!allowed) return res.status(404).end();
         const ext = profile.profilePhoto.split('.').pop();
         const mimeType = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' }[ext] || 'application/octet-stream';
-        streamStoredFile(res, { storedName: profile.profilePhoto, mimeType, originalName: `photo.${ext}` });
+        await streamStoredFile(res, { storedName: profile.profilePhoto, mimeType, originalName: `photo.${ext}` });
     } catch (err) { handleError(res, err, 'Could not load photo.'); }
 });
 
@@ -332,7 +332,7 @@ router.get('/documents/:docId/file', identifyPrincipal, async (req, res) => {
             allowed = isPubliclyVisible(writer, profile);
         }
         if (!allowed) return res.status(404).json({ error: 'File not found.' });
-        streamStoredFile(res, doc, { download: req.query.download === '1' });
+        await streamStoredFile(res, doc, { download: req.query.download === '1' });
     } catch (err) { handleError(res, err, 'Could not load file.'); }
 });
 

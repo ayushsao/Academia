@@ -11,7 +11,8 @@ import { recomputeWriterMetrics, timelinessFromLateness, weightedOverall } from 
 import { effectiveAvailability } from './writerService.js';
 import { notify } from './notifications.js';
 import { afterRating } from './abuse.js';
-import { ORDER_UPLOADS_DIR, mimeForName, removeAssignmentFile } from './assignmentFiles.js';
+import { mimeForName, removeAssignmentFile } from './assignmentFiles.js';
+import { fileSize } from './fileStore.js';
 
 const HOUR = 60 * 60 * 1000;
 
@@ -51,12 +52,12 @@ export async function orderPrefill(orderRef) {
     };
 }
 
-function orderFiles(order) {
-    return (order.files || []).map(f => {
-        const full = path.join(ORDER_UPLOADS_DIR, path.basename(f));
-        const size = fs.existsSync(full) ? fs.statSync(full).size : 0;
-        return { storedName: path.basename(f), originalName: f.replace(/^\d+-/, ''), mimeType: mimeForName(f), size, source: 'ORDER' };
-    }).filter(f => f.size > 0);
+async function orderFiles(order) {
+    const files = await Promise.all((order.files || []).map(async f => {
+        const size = await fileSize('orders', f).catch(() => null);
+        return { storedName: path.basename(f), originalName: f.replace(/^\d+-/, ''), mimeType: mimeForName(f), size: size || 0, source: 'ORDER' };
+    }));
+    return files.filter(f => f.size > 0);
 }
 
 export async function createAssignment(data, admin) {
@@ -73,7 +74,7 @@ export async function createAssignment(data, admin) {
         assignmentRef: genRef(),
         orderId: order?._id || null,
         source: order ? 'ORDER' : 'ADMIN',
-        referenceFiles: order ? orderFiles(order) : [],
+        referenceFiles: order ? await orderFiles(order) : [],
         status: 'DRAFT',
         createdBy: admin.id,
         history: [event('CREATED', 'ADMIN', order ? `From order ${order.orderId}` : '', admin.id)],

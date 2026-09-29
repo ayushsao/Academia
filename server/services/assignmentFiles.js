@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { sniffKind, UploadError } from './writerFiles.js';
+import { saveFile, openFile, removeFile } from './fileStore.js';
 
 const require = createRequire(import.meta.url);
 const multer = require('multer');
@@ -96,7 +97,7 @@ export async function finalizeFiles(files, allowedFormats) {
             if (!ok) throw new UploadError(`“${file.originalname}” doesn’t look like a real ${ext.toUpperCase()} file.`);
             const sha256 = crypto.createHash('sha256').update(await fs.promises.readFile(file.path)).digest('hex');
             const storedName = `${crypto.randomUUID()}.${ext}`;
-            await fs.promises.rename(file.path, path.join(ASSIGNMENT_STORAGE_DIR, storedName));
+            await saveFile(file.path, 'assignments', storedName, fmt.mime);
             stored.push({
                 storedName, mimeType: fmt.mime, size: file.size, sha256, source: 'UPLOAD',
                 originalName: path.basename(file.originalname).replace(/[^\p{L}\p{N} ._()-]/gu, '_').slice(0, 150) || storedName,
@@ -105,34 +106,33 @@ export async function finalizeFiles(files, allowedFormats) {
         return stored;
     } catch (err) {
         await discardTempFiles(files);
-        await Promise.all(stored.map(s => fs.promises.unlink(path.join(ASSIGNMENT_STORAGE_DIR, s.storedName)).catch(() => {})));
+        await Promise.all(stored.map(s => removeFile('assignments', s.storedName)));
         throw err;
     }
 }
 
-export const removeAssignmentFile = (storedName) =>
-    fs.promises.unlink(path.join(ASSIGNMENT_STORAGE_DIR, path.basename(storedName))).catch(() => {});
+export const removeAssignmentFile = (storedName) => removeFile('assignments', storedName);
 
 // Streams an assignment file. Order-linked files live in the order uploads folder.
-export function streamAssignmentFile(res, file, opts = {}) {
+export async function streamAssignmentFile(res, file, opts = {}) {
     if (file.source === 'ORDER') {
-        const full = path.join(ORDER_UPLOADS_DIR, path.basename(file.storedName));
-        if (!fs.existsSync(full)) return res.status(404).json({ error: 'File not found.' });
+        const orderStream = await openFile('orders', file.storedName);
+        if (!orderStream) return res.status(404).json({ error: 'File not found.' });
         res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
         res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(file.originalName)}`);
         res.setHeader('X-Content-Type-Options', 'nosniff');
-        return res.sendFile(full);
+        return orderStream.pipe(res);
     }
     // Same hardening as writer documents: no sniffing, sandboxed unless PDF.
-    const full = path.join(ASSIGNMENT_STORAGE_DIR, path.basename(file.storedName));
-    if (!fs.existsSync(full)) return res.status(404).json({ error: 'File not found.' });
+    const stream = await openFile('assignments', file.storedName);
+    if (!stream) return res.status(404).json({ error: 'File not found.' });
     const inline = !opts.download && (file.mimeType === 'application/pdf' || file.mimeType.startsWith('image/'));
     res.setHeader('Content-Type', file.mimeType);
     res.setHeader('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(file.originalName)}`);
     res.setHeader('Content-Security-Policy', `default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'${file.mimeType === 'application/pdf' ? '' : '; sandbox'}`);
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Cache-Control', 'private, max-age=300');
-    return res.sendFile(full);
+    return stream.pipe(res);
 }
 
 // Guesses a MIME type for a customer order file from its extension.

@@ -316,7 +316,7 @@ router.get('/documents/:docId/file', requirePermission('writers.documents'), asy
         if (!doc) return res.status(404).json({ error: 'File not found.' });
         const writer = await Writer.findById(doc.writerId).select('userId');
         await audit(req, 'WRITER_DOCUMENT_VIEWED', writer?.userId, `${doc.type}: ${doc.originalName}`, doc.writerId);
-        streamStoredFile(res, doc, { download: req.query.download === '1' });
+        await streamStoredFile(res, doc, { download: req.query.download === '1' });
     } catch (err) { handleError(res, err, 'Failed to load file.'); }
 });
 
