@@ -17,7 +17,7 @@ export const AcademicToolsSection: React.FC<AcademicToolsSectionProps> = ({ onOp
     {
       id: 'plagiarism-checker',
       title: 'Plagiarism Tool',
-      desc: 'Check your work against plagiarism & get a free Turnitin report!',
+      desc: 'Check your work for copied or AI-written passages before you submit.',
       image: 'https://images.pexels.com/photos/5989925/pexels-photo-5989925.jpeg?auto=compress&cs=tinysrgb&w=800'
     },
     {

@@ -18,6 +18,7 @@ import { membershipEligibility } from '../services/writerService.js';
 import { notify as sendNotification } from '../services/notifications.js';
 import { AbuseError, assertReferenceUnused, afterCheckout } from '../services/abuse.js';
 import { settleCheckoutFromWebhook, settleUpiQrFromWebhook, recordCheckoutFailure } from '../services/orderCheckout.js';
+import { settleToolPurchaseFromWebhook } from './tools.js';
 
 const router = Router();
 const payLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 40, message: { error: 'Too many payment attempts. Please try again later.' } });
@@ -291,7 +292,9 @@ router.post('/webhooks/razorpay', async (req, res) => {
         if (!payment) {
             // Not a membership payment: it may be a customer order whose browser
             // closed before the checkout callback — settle it from here.
-            if (['payment.captured', 'order.paid'].includes(event.event)) await settleCheckoutFromWebhook(entity);
+            if (['payment.captured', 'order.paid'].includes(event.event)) {
+                if (!await settleCheckoutFromWebhook(entity)) await settleToolPurchaseFromWebhook(entity);
+            }
             else if (event.event === 'payment.failed') await recordCheckoutFailure({ providerOrderId: entity.order_id, reason: entity.error_description });
             return res.json({ ok: true });
         }

@@ -8,6 +8,7 @@ import { SideDrawer } from '../components/SideDrawer';
 import { Calculator, ArrowRight, CheckCircle2, FileText, Lock, Award } from 'lucide-react';
 import { API, api } from '../lib/api';
 import { coverSrc, type BlogCard, type BlogList } from '../lib/blog';
+import { openRazorpayCheckout } from '../lib/razorpay';
 
 export const DynamicPage: React.FC = () => {
     const { slug } = useParams<{ slug: string }>();
@@ -24,6 +25,10 @@ export const DynamicPage: React.FC = () => {
     const [isToolProcessing, setIsToolProcessing] = useState<boolean>(false);
     const [toolError, setToolError] = useState<string>('');
     const [copied, setCopied] = useState(false);
+    // Paid AI Originality Check: contact details and the purchase (kept so the report can be reopened).
+    const [buyerEmail, setBuyerEmail] = useState('');
+    const [buyerPhone, setBuyerPhone] = useState('');
+    const ORIGINALITY_KEY = 'am_originality_purchase';
     const [loadingText, setLoadingText] = useState<string>('Initializing AI engine...');
 
     useEffect(() => {
@@ -225,23 +230,14 @@ export const DynamicPage: React.FC = () => {
             outputMessage: 'humanized',
             supportText: 'Upload text to enhance human tone and flow'
         },
-        'turnitin-plagiarism-checker': {
-            title: 'Turnitin Plagiarism & AI Checker',
-            desc: 'Scan your draft against Turnitin-standard academic databases, 99+ billion archived web pages, and university repositories. Receive an estimated similarity breakdown and AI originality score.',
-            benefits: ['Turnitin-Level Precision', 'AI Content Detection', 'Detailed Similarity Breakdown'],
-            inputPlaceholder: 'Type or paste content here to run a Turnitin originality and similarity check, or upload a document...',
-            actionButton: 'Scan with Turnitin',
-            outputMessage: 'Turnitin originality report',
-            supportText: 'Upload (.pdf, .docx, .txt) or copy-paste text to scan with Turnitin standards'
-        },
-        'turnitin': {
-            title: 'Turnitin Plagiarism & AI Checker',
-            desc: 'Scan your draft against Turnitin-standard academic databases, 99+ billion archived web pages, and university repositories. Receive an estimated similarity breakdown and AI originality score.',
-            benefits: ['Turnitin-Level Precision', 'AI Content Detection', 'Detailed Similarity Breakdown'],
-            inputPlaceholder: 'Type or paste content here to run a Turnitin originality and similarity check, or upload a document...',
-            actionButton: 'Scan with Turnitin',
-            outputMessage: 'Turnitin originality report',
-            supportText: 'Upload (.pdf, .docx, .txt) or copy-paste text to scan with Turnitin standards'
+        'ai-originality-check': {
+            title: 'AI Originality & Similarity Check',
+            desc: 'An AI review of your draft: an estimated originality score, passages that look copied or AI-written, referencing issues and how to fix them. It is an AI estimate, not a Turnitin report.',
+            benefits: ['Estimated Originality Score', 'AI-Writing Likelihood', 'Passage-by-Passage Suggestions'],
+            inputPlaceholder: 'Paste your text here (at least 50 characters), or upload a document...',
+            actionButton: 'Pay ₹100 & Get Report',
+            outputMessage: 'originality report',
+            supportText: 'Upload (.pdf, .docx, .txt) or paste your text for an AI originality review'
         },
         'inception-ai-research-assistant': {
             title: 'Inception AI Research Assistant',
@@ -307,9 +303,41 @@ export const DynamicPage: React.FC = () => {
         setIsToolProcessing(false);
     }, [slug]);
 
-    const isToolPage = slug && (slug.includes('tool') || slug.includes('checker') || slug.includes('typer') || slug.includes('generator') || slug.includes('summarizer') || slug.includes('writer') || slug.includes('humanizer') || slug.includes('calculator') || slug.includes('turnitin') || slug.includes('inception'));
+    const isToolPage = slug && (slug.includes('tool') || slug.includes('checker') || slug.includes('typer') || slug.includes('generator') || slug.includes('summarizer') || slug.includes('writer') || slug.includes('humanizer') || slug.includes('calculator') || slug.includes('turnitin') || slug.includes('originality') || slug.includes('inception'));
+
+    const handleOriginalityPurchase = async () => {
+        const text = toolInput.trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(buyerEmail.trim())) { setToolError('Enter a valid email address.'); return; }
+        if (!/^\+?[\d\s()-]{6,20}$/.test(buyerPhone.trim())) { setToolError('Enter a valid phone number.'); return; }
+        if (text.length < 50) { setToolError('Paste at least 50 characters of text to check.'); return; }
+        setIsToolProcessing(true); setToolError(''); setToolOutput('');
+        try {
+            const checkout = await api<{ keyId: string; orderId: string; amountMinor: number; currency: string; purchaseId: string; token: string }>(
+                '/tools/originality/checkout', { method: 'POST', body: { email: buyerEmail.trim(), phone: buyerPhone.trim(), text: text.slice(0, 20000) } });
+            try { localStorage.setItem(ORIGINALITY_KEY, JSON.stringify({ purchaseId: checkout.purchaseId, token: checkout.token })); } catch { /* ignore */ }
+            await openRazorpayCheckout({
+                checkout,
+                name: 'AssignmentMinds',
+                description: 'AI Originality & Similarity Check',
+                prefill: { email: buyerEmail.trim(), contact: buyerPhone.trim() },
+                onSuccess: async (payment) => {
+                    try {
+                        const r = await api<{ report?: string; error?: string }>('/tools/originality/confirm', { method: 'POST', body: payment });
+                        if (r.report) setToolOutput(r.report); else setToolError(r.error || 'Your report is being prepared. Open this page again in a minute.');
+                    } catch (e: any) { setToolError(`${e?.message || 'We could not confirm your payment.'} Payment ID: ${payment.razorpay_payment_id}`); }
+                    finally { setIsToolProcessing(false); }
+                },
+                onError: (msg) => { setToolError(msg); setIsToolProcessing(false); },
+                onDismiss: () => setIsToolProcessing(false),
+            });
+        } catch (e: any) {
+            setToolError(e?.message || 'Could not start the payment.');
+            setIsToolProcessing(false);
+        }
+    };
 
     const handleProcessTool = async () => {
+        if (isOriginality) { await handleOriginalityPurchase(); return; }
         const isPlagiarismScan = slug === 'free-plagiarism-checker' || Boolean(slug?.includes('turnitin'));
         const isFormEmpty = !toolInput.trim() && Object.values(customForm).filter(v => typeof v === 'string' && v.trim()).length === 0;
         if (isFormEmpty && !isPlagiarismScan) return;
@@ -452,6 +480,18 @@ export const DynamicPage: React.FC = () => {
         });
     };
 
+    const isOriginality = slug === 'ai-originality-check';
+    useEffect(() => { if (slug?.includes('turnitin')) navigate('/p/ai-originality-check', { replace: true }); }, [slug]);
+    useEffect(() => {
+        if (!isOriginality) return;
+        let saved: { purchaseId: string; token: string } | null = null;
+        try { saved = JSON.parse(localStorage.getItem(ORIGINALITY_KEY) || 'null'); } catch { /* ignore */ }
+        if (!saved?.purchaseId) return;
+        api<{ report?: string; pending?: boolean; error?: string }>(`/tools/originality/${saved.purchaseId}?token=${encodeURIComponent(saved.token)}`)
+            .then(r => { if (r.report) setToolOutput(r.report); else if (r.error) setToolError(r.error); })
+            .catch(() => { /* not paid (yet): nothing to show */ });
+    }, [isOriginality]);
+
     // The six newest posts from the blog (Admin → Blog).
     const [latestPosts, setLatestPosts] = useState<BlogCard[]>([]);
     useEffect(() => {
@@ -531,7 +571,7 @@ export const DynamicPage: React.FC = () => {
                             </p>
                         </div>
 
-                        {slug === 'free-plagiarism-checker' || slug?.includes('turnitin') ? (
+                        {slug === 'free-plagiarism-checker' || isOriginality ? (
                             <div className="w-full bg-white rounded-xl border border-gray-200 shadow-sm min-h-[400px] flex flex-col p-8 md:p-12 relative overflow-hidden">
                                 <div className="flex flex-col md:flex-row items-center gap-6 mb-8 w-full border-b pb-8">
                                     <div className="w-20 h-20 rounded-full bg-emerald-50 border-2 border-emerald-100 flex items-center justify-center shrink-0">
@@ -600,6 +640,16 @@ export const DynamicPage: React.FC = () => {
                                     }}
                                 />
 
+                                {isOriginality && (
+                                    <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                        <input type="email" value={buyerEmail} onChange={e => setBuyerEmail(e.target.value)} placeholder="Email *" aria-label="Email" autoComplete="email"
+                                            className="w-full rounded-lg border border-gray-200 p-3 text-sm outline-none focus:border-[#fea520]" />
+                                        <input type="tel" inputMode="tel" value={buyerPhone} onChange={e => setBuyerPhone(e.target.value)} placeholder="Phone number *" aria-label="Phone number" autoComplete="tel"
+                                            className="w-full rounded-lg border border-gray-200 p-3 text-sm outline-none focus:border-[#fea520]" />
+                                        <p className="text-xs text-gray-500 sm:col-span-2">The report costs <strong className="text-[#000a1e]">₹100</strong> and unlocks as soon as your payment is confirmed. It is an AI estimate, not a Turnitin report.</p>
+                                    </div>
+                                )}
+
                                 <div className="flex flex-col sm:flex-row gap-4 justify-end">
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
@@ -612,7 +662,7 @@ export const DynamicPage: React.FC = () => {
                                         disabled={isToolProcessing}
                                         className="bg-[#000a1e] hover:bg-[#002147] text-white px-8 py-3 rounded-lg font-bold transition-all shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed"
                                     >
-                                        {isToolProcessing ? 'Scanning...' : (content.actionButton || 'Scan Plagiarism')}
+                                        {isToolProcessing ? (isOriginality ? 'Processing payment…' : 'Scanning...') : (content.actionButton || 'Scan Plagiarism')}
                                     </button>
                                 </div>
 

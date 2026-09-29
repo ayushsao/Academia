@@ -254,6 +254,28 @@ const orderCheckoutSchema = new mongoose.Schema({
 // Abandoned checkouts are cleaned up after a week (completed ones are kept).
 orderCheckoutSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7 * 24 * 3600, partialFilterExpression: { status: 'CREATED' } });
 export const OrderCheckout = mongoose.model('OrderCheckout', orderCheckoutSchema);
+
+// A paid tool report (AI Originality & Similarity Check). The report is only
+// generated once Razorpay confirms the payment; the access token lets the buyer
+// open it again without an account.
+const toolPurchaseSchema = new mongoose.Schema({
+  tool: { type: String, enum: ['ORIGINALITY'], required: true },
+  email: { type: String, required: true, lowercase: true, trim: true },
+  phone: { type: String, required: true, trim: true },
+  text: { type: String, default: '' },             // what was checked; cleared once the report exists
+  amountMinor: { type: Number, required: true },
+  currency: { type: String, required: true },
+  providerOrderId: { type: String, index: { unique: true, sparse: true } },
+  providerPaymentId: String,
+  status: { type: String, enum: ['CREATED', 'PAID'], default: 'CREATED', index: true },
+  paidAt: Date,
+  accessToken: { type: String, required: true },
+  report: { type: String, default: '' },
+  reportError: { type: String, default: '' },
+}, { timestamps: true });
+// Unpaid checkouts are removed after a week.
+toolPurchaseSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7 * 24 * 3600, partialFilterExpression: { status: 'CREATED' } });
+export const ToolPurchase = mongoose.model('ToolPurchase', toolPurchaseSchema);
 export const Contact = mongoose.model('Contact', contactSchema);
 export const Admin = mongoose.model('Admin', adminSchema);
 export const SiteSettings = mongoose.model('SiteSettings', siteSettingsSchema);
