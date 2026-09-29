@@ -9,6 +9,7 @@ import { AcademiaLogo } from '../components/AcademiaLogo';
 
 import { API } from '../lib/api';
 import { formatOrderTotal } from '../lib/money';
+import { showAlert, showConfirm } from '../lib/dialog';
 
 // Normalise legacy/new status values for display
 const normaliseStatus = (s: string): string => {
@@ -94,7 +95,7 @@ export const Dashboard: React.FC = () => {
             document.body.removeChild(a);
             window.URL.revokeObjectURL(localUrl);
         } catch {
-            alert("Failed to download file.");
+            showAlert("Failed to download file.");
         }
     };
 
@@ -121,9 +122,9 @@ export const Dashboard: React.FC = () => {
 
             const data = await res.json();
             setOrders(orders.map(o => ((o as any).orderId === orderId || (o as any).id === orderId) ? { ...o, files: data.files } : o));
-            alert('File(s) attached successfully!');
+            showAlert('File(s) attached successfully!');
         } catch (err: any) {
-            alert(err.message || 'Upload failed');
+            showAlert(err.message || 'Upload failed');
         } finally {
             setUploadingForOrder(null);
             e.target.value = '';
@@ -145,7 +146,7 @@ export const Dashboard: React.FC = () => {
                 if (res.status === 401) {
                     // Session expired: sign in again so the right account's orders load.
                     logout();
-                    alert('Your session has expired. Please sign in again to see your orders.');
+                    showAlert('Your session has expired. Please sign in again to see your orders.');
                     navigate('/');
                     return;
                 }
@@ -182,7 +183,7 @@ export const Dashboard: React.FC = () => {
     const [revisionText, setRevisionText] = useState('');
     const [reviewBusy, setReviewBusy] = useState<string | null>(null);
     const reviewWork = async (orderId: string, action: 'approve' | 'revision') => {
-        if (action === 'approve' && !confirm('Approve the delivered work? You won’t be able to ask for a revision afterwards.')) return;
+        if (action === 'approve' && !(await showConfirm('Approve the delivered work? You won’t be able to ask for a revision afterwards.'))) return;
         setReviewBusy(orderId);
         try {
             const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -192,10 +193,10 @@ export const Dashboard: React.FC = () => {
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || 'Something went wrong.');
-            if (action === 'revision') alert('Revision requested. The writer will send an updated version.');
+            if (action === 'revision') showAlert('Revision requested. The writer will send an updated version.');
             setRevisionOrder(null); setRevisionText('');
             setOrdersAttempt(a => a + 1);
-        } catch (e: any) { alert(e.message); }
+        } catch (e: any) { showAlert(e.message); }
         finally { setReviewBusy(null); }
     };
 
@@ -213,7 +214,7 @@ export const Dashboard: React.FC = () => {
             document.body.appendChild(a); a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-        } catch (e: any) { alert(e.message || 'Download failed.'); }
+        } catch (e: any) { showAlert(e.message || 'Download failed.'); }
         finally { setDownloadingFile(null); }
     };
 
@@ -573,7 +574,7 @@ export const Dashboard: React.FC = () => {
                                     const isFeedbackOpen = feedbackOrder === oid;
 
                                     const handleSubmitFeedback = async () => {
-                                        if (!feedbackRating) return alert('Please select a rating.');
+                                        if (!feedbackRating) return showAlert('Please select a rating.');
                                         setFeedbackSending(true);
                                         try {
                                             const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -584,12 +585,12 @@ export const Dashboard: React.FC = () => {
                                             });
                                             const data = await res.json();
                                             if (!res.ok) throw new Error(data.error || 'Failed.');
-                                            alert('Thank you for your feedback!');
+                                            showAlert('Thank you for your feedback!');
                                             setFeedbackOrder(null);
                                             setFeedbackRating(0);
                                             setFeedbackComment('');
                                             setOrdersAttempt(a => a + 1); // refresh
-                                        } catch (e: any) { alert(e.message); }
+                                        } catch (e: any) { showAlert(e.message); }
                                         finally { setFeedbackSending(false); }
                                     };
 

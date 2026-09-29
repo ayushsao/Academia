@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Bold, Italic, Underline, Heading2, Heading3, List, ListOrdered, Link2, Quote, RemoveFormatting, Code2, Pilcrow } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
+import { showAlert, showPrompt } from '../../../../lib/dialog';
 
 // Lightweight rich text editor (contentEditable + execCommand, no extra
 // dependency). The server sanitises whatever HTML is saved, so this only needs
@@ -32,11 +33,17 @@ export default function RichTextEditor({ value, onChange, label, placeholder = '
         document.execCommand(cmd, false, arg);
         emit();
     };
-    const link = () => {
-        const url = window.prompt('Link URL (https://…, /page, mailto:…)');
+    const link = async () => {
+        // The dialog takes focus, so remember the selected text and put the
+        // selection back before applying the link.
+        const selection = window.getSelection();
+        const range = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
+        const url = await showPrompt('Link URL (https://…, /page, mailto:…)');
         if (url === null) return;
+        ref.current?.focus();
+        if (range) { selection!.removeAllRanges(); selection!.addRange(range); }
         if (!url.trim()) return exec('unlink');
-        if (!/^(https?:\/\/|\/|mailto:|tel:)/i.test(url.trim())) { window.alert('Use a full https:// link, a site path like /subjects/law, mailto: or tel:'); return; }
+        if (!/^(https?:\/\/|\/|mailto:|tel:)/i.test(url.trim())) { showAlert('Use a full https:// link, a site path like /subjects/law, mailto: or tel:'); return; }
         exec('createLink', url.trim());
     };
 

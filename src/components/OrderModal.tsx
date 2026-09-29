@@ -24,6 +24,7 @@ import { openRazorpayCheckout } from '../lib/razorpay';
 import { useOrderQuote, SPACING_OPTIONS, DEFAULT_SPACING, pagesFor, deadlineAtFrom, type OrderQuote, type Spacing, localDateString } from '../lib/orderQuote';
 import { computeCharges, chargeRows, toMinor, TAX_PERCENT, type Charges, type Coupon, type PayChannel } from '../lib/charges';
 import { WhatsAppPaymentReference } from './WhatsAppPaymentReference';
+import { showAlert } from '../lib/dialog';
 
 // Orders arranged on WhatsApp go to this number (no tax; the team confirms payment there).
 const WHATSAPP_NUMBER = '919263606941';
@@ -440,14 +441,14 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const handleOrderApiError = (status: number, data: any): boolean => {
     if (status === 401) {
       logout();
-      alert('Your session has expired. Please sign in again.');
+      showAlert('Your session has expired. Please sign in again.');
       navigate('/');
       return true;
     }
     if (status === 409 && data?.quote) {
       // Prices changed since the quote: show the new one and let the customer confirm again.
       if (catMode) setCatQuote(data.quote); else std.replace(data.quote);
-      alert(data.error || 'The price has changed. Please review the new price and confirm again.');
+      showAlert(data.error || 'The price has changed. Please review the new price and confirm again.');
       return true;
     }
     return false;
@@ -455,12 +456,12 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
   const canPlaceOrder = () => {
     if (!user) {
-      alert('Please login first to place an order.');
+      showAlert('Please login first to place an order.');
       return false;
     }
     // The order is placed at exactly the quoted price; never without a complete quote.
     if (!quoteReady || (!catMode && (!stdQuote || stdQuote.words !== words))) {
-      alert('Please wait for the price to finish updating, then try again.');
+      showAlert('Please wait for the price to finish updating, then try again.');
       return false;
     }
     return true;
@@ -593,7 +594,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     if (!canPlaceOrder()) return;
     const reference = transactionId.trim();
     if (reference.length < 5) {
-      alert("Please enter a valid Transaction ID / UTR Number or pay online with Razorpay.");
+      showAlert("Please enter a valid Transaction ID / UTR Number or pay online with Razorpay.");
       return;
     }
     setIsSubmitting(true);
@@ -606,7 +607,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       }
       await orderPlaced(data.order, `Manual reference ${reference} (to be verified)`);
     } catch (e: any) {
-      alert(`We couldn't place your order: ${e?.message || 'please try again'}.`);
+      showAlert(`We couldn't place your order: ${e?.message || 'please try again'}.`);
       console.error("Order completion failed:", e);
     } finally {
       setIsSubmitting(false);

@@ -31,6 +31,7 @@ import { API } from '../lib/api';
 import { formatOrderTotal, formatMoney } from '../lib/money';
 import { chargeRows, paymentState, type Charges } from '../lib/charges';
 import { byKind, kindLabel, SUBMISSION_KINDS } from '../lib/submissionKinds';
+import { showAlert, showConfirm, showPrompt } from '../lib/dialog';
 
 // Payment status for admins: Paid, Failed or Pending.
 const PAYMENT_BADGE = {
@@ -152,7 +153,7 @@ const WriterSubmission = ({ order, token, onUpdate, download }: { order: Order; 
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || 'Upload failed.');
             onUpdate({ status: data.order.status, deliveryFiles: data.order.deliveryFiles, completedAt: data.order.completedAt, submittedAt: data.order.submittedAt });
-        } catch (e: any) { alert(e.message || 'Upload failed.'); }
+        } catch (e: any) { showAlert(e.message || 'Upload failed.'); }
         finally { setUploading(false); if (fileInput.current) fileInput.current.value = ''; }
     };
     const uploadButton = !cancelled && (
@@ -182,13 +183,13 @@ const WriterSubmission = ({ order, token, onUpdate, download }: { order: Order; 
     const current = byKind(files.filter(f => (f.version || 1) === latest));
     const earlier = byKind(files.filter(f => (f.version || 1) !== latest)).sort((a, b) => b.version - a.version);
     const act = async (kind: 'approve' | 'revision') => {
-        if (kind === 'approve' && !confirm(`Approve the work for ${order.orderId}? The customer will be able to download it.`)) return;
+        if (kind === 'approve' && !(await showConfirm(`Approve the work for ${order.orderId}? The customer will be able to download it.`))) return;
         setBusy(kind);
         try {
             const data = await apiFetch(`/order-workflow/admin/${kind}/${order.orderId}`, { method: 'POST', body: JSON.stringify(kind === 'revision' ? { note } : {}) }, token);
             onUpdate({ status: data.order.status, completedAt: data.order.completedAt, revisionNote: data.order.revisionNote });
             setAsking(false); setNote('');
-        } catch (e: any) { alert(e.message); }
+        } catch (e: any) { showAlert(e.message); }
         finally { setBusy(null); }
     };
     const row = (f: NonNullable<Order['deliveryFiles']>[number]) => (
@@ -285,34 +286,34 @@ const OrderDetailDrawer = ({
 
     const [confirmingPayment, setConfirmingPayment] = useState(false);
     const confirmPayment = async () => {
-        if (!confirm(`Confirm that the payment for ${order.orderId} has been received? The customer will get a receipt.`)) return;
+        if (!(await showConfirm(`Confirm that the payment for ${order.orderId} has been received? The customer will get a receipt.`))) return;
         setConfirmingPayment(true);
         try {
             const data = await apiFetch(`/order-workflow/admin/payment/${order.orderId}/received`, { method: 'POST' }, token);
             onUpdate({ ...order, payment: data.payment, receipt: data.receipt } as any);
-        } catch (e: any) { alert(e.message || 'Could not confirm the payment.'); }
+        } catch (e: any) { showAlert(e.message || 'Could not confirm the payment.'); }
         finally { setConfirmingPayment(false); }
     };
     const markPaymentFailed = async () => {
-        const reason = prompt(`Mark the payment for ${order.orderId} as failed? Add a short reason (optional):`, '');
+        const reason = await showPrompt(`Mark the payment for ${order.orderId} as failed? Add a short reason (optional):`, '');
         if (reason === null) return;
         setConfirmingPayment(true);
         try {
             const data = await apiFetch(`/order-workflow/admin/payment/${order.orderId}/failed`, { method: 'POST', body: JSON.stringify({ reason }) }, token);
             onUpdate({ ...order, payment: data.payment } as any);
-        } catch (e: any) { alert(e.message || 'Could not update the payment.'); }
+        } catch (e: any) { showAlert(e.message || 'Could not update the payment.'); }
         finally { setConfirmingPayment(false); }
     };
 
     const handleReleaseToWriters = async () => {
-        if (!confirm(`Approve order ${order.orderId}? Writers with an active plan can then bid on it.`)) return;
+        if (!(await showConfirm(`Approve order ${order.orderId}? Writers with an active plan can then bid on it.`))) return;
         setReleasing(true);
         try {
             const data = await apiFetch(`/order-workflow/admin/release/${order.orderId}`, { method: 'POST' }, token);
             onUpdate({ ...order, status: data.order.status, adminApproved: data.order.adminApproved, adminApprovedAt: data.order.adminApprovedAt });
-            alert('Order approved — writers can now bid on it.');
+            showAlert('Order approved — writers can now bid on it.');
         } catch (e: any) {
-            alert(e.message || 'Failed to release order.');
+            showAlert(e.message || 'Failed to release order.');
         } finally {
             setReleasing(false);
         }
@@ -338,9 +339,9 @@ const OrderDetailDrawer = ({
 
             const data = await res.json();
             onUpdate(data.order);
-            alert('File(s) attached successfully!');
+            showAlert('File(s) attached successfully!');
         } catch (err: any) {
-            alert(err.message || 'Upload failed');
+            showAlert(err.message || 'Upload failed');
         } finally {
             setUploadingFile(false);
             if (adminFileInputRef.current) adminFileInputRef.current.value = '';
@@ -358,7 +359,7 @@ const OrderDetailDrawer = ({
             onUpdate(data.order);
             setSaved(true);
             setTimeout(() => setSaved(false), 2500);
-        } catch (e: any) { alert(e.message); }
+        } catch (e: any) { showAlert(e.message); }
         finally { setSaving(false); }
     };
 
@@ -377,7 +378,7 @@ const OrderDetailDrawer = ({
             document.body.removeChild(a);
             window.URL.revokeObjectURL(localUrl);
         } catch (e) {
-            alert("This file couldn’t be downloaded. It may have been removed.");
+            showAlert("This file couldn’t be downloaded. It may have been removed.");
         }
     };
 
@@ -710,12 +711,12 @@ const AutoApproveToggle = ({ token }: { token: string }) => {
     const toggle = async () => {
         if (on === null) return;
         const next = !on;
-        if (next && !confirm('Turn on auto-approve? New orders paid online will be released to writers immediately, without waiting for you.')) return;
+        if (next && !(await showConfirm('Turn on auto-approve? New orders paid online will be released to writers immediately, without waiting for you.'))) return;
         setSaving(true);
         try {
             const d = await apiFetch('/order-workflow/admin/settings', { method: 'PUT', body: JSON.stringify({ autoRelease: next }) }, token);
             setOn(Boolean(d.settings?.autoRelease));
-        } catch (e: any) { alert(e.message || 'Could not save.'); }
+        } catch (e: any) { showAlert(e.message || 'Could not save.'); }
         finally { setSaving(false); }
     };
     if (on === null) return null;
@@ -760,7 +761,7 @@ const OrdersTab = ({ token }: { token: string }) => {
                 setTimeout(() => setNewCount(0), 5000);
             }
             prevTotalRef.current = data.total;
-        } catch (e: any) { if (!silent) alert(e.message); }
+        } catch (e: any) { if (!silent) showAlert(e.message); }
         finally { if (!silent) setLoading(false); }
     }, [token, page, statusFilter, search]);
 
@@ -773,9 +774,9 @@ const OrdersTab = ({ token }: { token: string }) => {
     }, [load]);
 
     const handleDelete = async (id: string) => {
-        if (!confirm(`Delete order ${id}? This cannot be undone.`)) return;
+        if (!(await showConfirm(`Delete order ${id}? This cannot be undone.`))) return;
         try { await apiFetch(`/admin/orders/${id}`, { method: 'DELETE' }, token); load(); }
-        catch (e: any) { alert(e.message); }
+        catch (e: any) { showAlert(e.message); }
     };
 
     return (
@@ -993,16 +994,16 @@ const UsersTab = ({ token }: { token: string }) => {
             if (search) params.set('search', search);
             const data = await apiFetch(`/admin/users?${params}`, {}, token);
             setUsers(data.users); setTotal(data.total);
-        } catch (e: any) { alert(e.message); }
+        } catch (e: any) { showAlert(e.message); }
         finally { setLoading(false); }
     }, [token, page, search]);
 
     useEffect(() => { load(); }, [load]);
 
     const handleDelete = async (id: string, name: string) => {
-        if (!confirm(`Delete user "${name}" and all their orders? This cannot be undone.`)) return;
+        if (!(await showConfirm(`Delete user "${name}" and all their orders? This cannot be undone.`))) return;
         try { await apiFetch(`/admin/users/${id}`, { method: 'DELETE' }, token); load(); }
-        catch (e: any) { alert(e.message); }
+        catch (e: any) { showAlert(e.message); }
     };
 
     return (
@@ -1077,7 +1078,7 @@ const ContactsTab = ({ token }: { token: string }) => {
     const load = async () => {
         setLoading(true);
         try { const data = await apiFetch('/admin/contacts', {}, token); setContacts(data.contacts); }
-        catch (e: any) { alert(e.message); }
+        catch (e: any) { showAlert(e.message); }
         finally { setLoading(false); }
     };
 
@@ -1087,7 +1088,7 @@ const ContactsTab = ({ token }: { token: string }) => {
         try {
             await apiFetch(`/admin/contacts/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'read' }) }, token);
             setContacts(prev => prev.map(c => c._id === id ? { ...c, status: 'read' } : c));
-        } catch (e: any) { alert(e.message); }
+        } catch (e: any) { showAlert(e.message); }
     };
 
     return (
@@ -1336,7 +1337,7 @@ const SettingsTab = ({ token }: { token: string }) => {
             await apiFetch('/admin/settings', { method: 'PATCH', body: JSON.stringify(settings) }, token);
             setSaved(true);
             setTimeout(() => setSaved(false), 2500);
-        } catch (e: any) { alert(e.message); }
+        } catch (e: any) { showAlert(e.message); }
         finally { setSaving(false); }
     };
 

@@ -3,6 +3,7 @@ import { ChevronDown, RefreshCw } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { formatOrderTotal } from '../../../lib/money';
 import { Label, fieldClass } from './catalog/shared';
+import { showConfirm } from '../../../lib/dialog';
 
 // Admin/HR → Writer Bidding: open new orders for writer bids, set and change the
 // writer budget, and accept a bid. The customer's price is shown here as the
@@ -50,7 +51,7 @@ export function ProjectRow({ row, token, onChanged, startOpen = false, onAssigne
         finally { setBusy(false); }
     };
     const accept = async (bid: BidRow) => {
-        if (!confirm(`Assign ${row.orderId} to ${bid.writerName} for ${bid.currency} ${bid.amount}?`)) return;
+        if (!(await showConfirm(`Assign ${row.orderId} to ${bid.writerName} for ${bid.currency} ${bid.amount}?`))) return;
         setBusy(true); setError('');
         try {
             const r = await api<{ order: AssignedOrder }>(`/order-workflow/admin/bids/${bid.id}/accept`, { method: 'POST', token });

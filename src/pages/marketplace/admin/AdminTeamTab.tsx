@@ -4,6 +4,7 @@ import { api } from '../../../lib/api';
 import { Spinner } from '../../../components/writer/WriterBits';
 import { inputClass } from '../../../components/writer/FormKit';
 import { cn } from '../../../lib/utils';
+import { showConfirm } from '../../../lib/dialog';
 
 type Role = { id: string; label: string; permissions: string[] };
 type AdminRow = { _id: string; username: string; email?: string; role: string; roleLabel: string; isSelf: boolean; createdAt: string; lastLoginAt?: string; twoFactor?: { enabled?: boolean } };
@@ -70,7 +71,7 @@ export default function AdminTeamTab({ token }: { token: string }) {
     };
     // For an admin who lost their phone and recovery codes: they set up 2FA again at next sign-in.
     const reset2fa = async (a: AdminRow) => {
-        if (!window.confirm(`Reset two-factor authentication for ${a.username}? They will set up a new authenticator at their next sign-in.`)) return;
+        if (!(await showConfirm(`Reset two-factor authentication for ${a.username}? They will set up a new authenticator at their next sign-in.`))) return;
         setBusy(a._id); setMsg(null);
         try { await api(`/admin/managers/${a._id}/2fa/reset`, { method: 'POST', token }); setMsg({ ok: true, text: `Two-factor authentication reset for ${a.username}.` }); load(); }
         catch (err) { setMsg({ ok: false, text: (err as Error).message }); } finally { setBusy(''); }

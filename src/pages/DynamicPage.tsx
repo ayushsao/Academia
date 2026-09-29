@@ -11,6 +11,7 @@ import { coverSrc, type BlogCard, type BlogList } from '../lib/blog';
 import { openRazorpayCheckout } from '../lib/razorpay';
 import { usePageMeta } from '../lib/usePageMeta';
 import { SERVICE_GUIDES } from '../data/serviceGuides';
+import { showPrompt } from '../lib/dialog';
 
 export const DynamicPage: React.FC = () => {
     const { slug } = useParams<{ slug: string }>();
@@ -864,8 +865,8 @@ export const DynamicPage: React.FC = () => {
                                             </button>
 
                                             <button
-                                                onClick={() => {
-                                                    const link = prompt("Enter the URL to import context from:");
+                                                onClick={async () => {
+                                                    const link = await showPrompt("Enter the URL to import context from:");
                                                     if (link) {
                                                         setToolInput(prev => prev + `\n[Imported Link: ${link}]\n`);
                                                     }

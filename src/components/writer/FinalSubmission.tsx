@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { CheckCircle2, XCircle, Upload, Loader2, Trash2, Send } from 'lucide-react';
 import { API } from '../../lib/api';
 import { SUBMISSION_KINDS, type SubmissionKind } from '../../lib/submissionKinds';
+import { showConfirm } from '../../lib/dialog';
 
 export type DraftFile = { _id: string; kind: SubmissionKind; originalName: string; size: number; uploadedAt: string };
 
@@ -50,7 +51,7 @@ export function FinalSubmission({ orderId, token, draft, onDraft, onSubmitted }:
     };
     const submit = async () => {
         if (!complete) { setError('Please upload all 3 required files before submitting the order.'); return; }
-        if (!confirm('Submit these 3 files? Our team checks them and then sends them to the client.')) return;
+        if (!(await showConfirm('Submit these 3 files? Our team checks them and then sends them to the client.'))) return;
         setBusy('submit'); setError('');
         try { await call('POST', `/writer/submit/${encodeURIComponent(orderId)}`); onSubmitted(); }
         catch (e: any) { setError(e.message); }

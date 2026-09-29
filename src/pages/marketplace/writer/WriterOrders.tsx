@@ -5,6 +5,7 @@ import { useStore } from '../../../store/useStore';
 import { Inbox, Clock, CheckCircle2, AlertTriangle, Upload, Eye, FileText, Calendar, DollarSign, BookOpen, ArrowRight, RefreshCw, Crown } from 'lucide-react';
 import { FinalSubmission, type DraftFile } from '../../../components/writer/FinalSubmission';
 import { byKind, kindLabel, type SubmissionKind } from '../../../lib/submissionKinds';
+import { showAlert, showConfirm } from '../../../lib/dialog';
 
 type OrderFile = {
     _id: string;
@@ -120,14 +121,14 @@ export default function WriterOrdersPage() {
     useEffect(() => { loadOrders(); }, [token]);
 
     const handleAccept = async (orderId: string) => {
-        if (!confirm('Are you sure you want to accept this order?')) return;
+        if (!(await showConfirm('Are you sure you want to accept this order?'))) return;
         setAccepting(orderId);
         try {
             await api('/order-workflow/writer/accept/' + orderId, { method: 'POST', token: token || undefined });
             await loadOrders();
             setTab('my-orders');
         } catch (e: any) {
-            alert(e.message || 'Failed to accept order.');
+            showAlert(e.message || 'Failed to accept order.');
         } finally {
             setAccepting(null);
         }
@@ -149,7 +150,7 @@ export default function WriterOrdersPage() {
             document.body.appendChild(a); a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-        } catch { alert('Failed to download file.'); }
+        } catch { showAlert('Failed to download file.'); }
     };
 
     const orders = tab === 'available' ? availableOrders : myOrders;
@@ -358,7 +359,7 @@ export default function WriterOrdersPage() {
                                         {tab === 'my-orders' && (order.status === 'in_progress' || order.status === 'revision_required') && (
                                             <FinalSubmission orderId={order.orderId} token={token} draft={order.draftDelivery || []}
                                                 onDraft={files => setDraft(order.orderId, files)}
-                                                onSubmitted={() => { alert('Work submitted. Our team will check it and send it to the client.'); loadOrders(); }} />
+                                                onSubmitted={() => { showAlert('Work submitted. Our team will check it and send it to the client.'); loadOrders(); }} />
                                         )}
 
                                         {/* Delivered Files (every submission is kept, newest first) */}
