@@ -31,10 +31,8 @@ router.post('/chat', agentLimiter, async (req, res) => {
 
         const webhookUrl = process.env.N8N_AGENT_WEBHOOK_URL;
         if (!webhookUrl) {
-            return res.status(503).json({
-                error: 'Chat is not available right now.',
-                setup: 'Set N8N_AGENT_WEBHOOK_URL to your active n8n Webhook URL.'
-            });
+            console.warn('[Agent] N8N_AGENT_WEBHOOK_URL is not set; chat is disabled.');
+            return res.status(503).json({ error: 'Chat is not available right now.' });
         }
 
         const upstreamResponse = await fetch(webhookUrl, {

@@ -36,7 +36,7 @@ const deliveryUpload = multer({
         destination: DELIVERY_DIR,
         filename: (_req, _file, cb) => cb(null, `.tmp-${crypto.randomBytes(16).toString('hex')}`),
     }),
-    limits: { fileSize: MAX_DELIVERY_SIZE, files: 5 },
+    limits: { fileSize: MAX_DELIVERY_SIZE, files: 5, fields: 10, fieldSize: 8192 },
 });
 
 const ALLOWED_DELIVERY_EXTS = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.zip'];
@@ -773,7 +773,7 @@ router.post('/client/revision/:orderId', authenticateUser, async (req, res) => {
 router.post('/client/feedback/:orderId', authenticateUser, async (req, res) => {
     try {
         const rating = Number(req.body?.rating);
-        const comment = typeof req.body?.comment === 'string' ? req.body.comment.trim() : '';
+        const comment = typeof req.body?.comment === 'string' ? req.body.comment.trim().slice(0, 2000) : '';
         if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
             return res.status(400).json({ error: 'Rating must be between 1 and 5.' });
         }

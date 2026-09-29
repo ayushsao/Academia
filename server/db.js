@@ -720,6 +720,7 @@ const loginThrottleSchema = new mongoose.Schema({
   failures: { type: Number, default: 0 },
   firstFailureAt: { type: Date, default: Date.now },
   lockedUntil: { type: Date },
+  lockCount: { type: Number, default: 0 },   // lockouts in the last day; each one lasts twice as long
   expiresAt: { type: Date, required: true },
 });
 loginThrottleSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });

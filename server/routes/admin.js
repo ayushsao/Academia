@@ -56,7 +56,7 @@ ensureDefaultAdmin().catch(console.error);
 
 // POST /api/admin/login
 import { rateLimit } from 'express-rate-limit';
-import { validateInput, adminLoginSchema, adminPasswordSchema, adminTwoFactorLoginSchema, adminTwoFactorCodeSchema, adminTwoFactorDisableSchema } from '../validation.js';
+import { validateInput, adminLoginSchema, adminPasswordSchema, adminTwoFactorLoginSchema, adminTwoFactorCodeSchema, adminTwoFactorDisableSchema, adminOrderUpdateSchema, contactStatusSchema } from '../validation.js';
 
 const adminAuthLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -398,7 +398,7 @@ router.get('/orders/files/:name', async (req, res) => {
     } catch { if (!res.headersSent) res.status(500).json({ error: 'Could not load file.' }); }
 });
 
-router.patch('/orders/:id', authenticateAdmin, async (req, res) => {
+router.patch('/orders/:id', authenticateAdmin, validateInput(adminOrderUpdateSchema), async (req, res) => {
     try {
         const { status, adminNotes, assignedTo } = req.body;
         const update = {};
@@ -412,7 +412,6 @@ router.patch('/orders/:id', authenticateAdmin, async (req, res) => {
         }
         if (adminNotes !== undefined) update.adminNotes = adminNotes;
         if (assignedTo !== undefined) update.assignedTo = assignedTo;
-        if (Array.isArray(req.body.files)) update.files = req.body.files;
 
         const order = await Order.findOneAndUpdate(
             { orderId: req.params.id },
@@ -531,7 +530,7 @@ router.get('/contacts', authenticateAdmin, async (req, res) => {
 });
 
 // PATCH /api/admin/contacts/:id
-router.patch('/contacts/:id', authenticateAdmin, async (req, res) => {
+router.patch('/contacts/:id', authenticateAdmin, validateInput(contactStatusSchema), async (req, res) => {
     try {
         await Contact.findByIdAndUpdate(req.params.id, { status: req.body.status });
         res.json({ message: 'Updated.' });

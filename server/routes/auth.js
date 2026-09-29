@@ -6,7 +6,7 @@ import crypto from 'crypto';
 import { User, Writer } from '../db.js';
 import { AbuseError, assertNotLocked, recordLoginFailure, clearLoginFailures } from '../services/abuse.js';
 import { authenticateUser, issueUserSession, clearUserSession, CLIENT_COOKIE } from '../middleware.js';
-import { validateInput, signupSchema, loginSchema, otpLoginSendSchema, otpLoginVerifySchema } from '../validation.js';
+import { validateInput, signupSchema, loginSchema, otpLoginSendSchema, otpLoginVerifySchema, googleAuthSchema } from '../validation.js';
 import { issueOtp, verifyOtp, OtpError } from '../services/otp.js';
 import { DeliveryUnavailableError } from '../services/messaging.js';
 import { remember } from '../services/cache.js';
@@ -62,7 +62,7 @@ function fetchGoogleUserInfo(accessToken) {
 }
 
 // POST /api/auth/google
-router.post('/google', authLimiter, async (req, res) => {
+router.post('/google', authLimiter, validateInput(googleAuthSchema), async (req, res) => {
     try {
         const { access_token } = req.body;
         if (!access_token) return res.status(400).json({ error: 'Google access token missing.' });

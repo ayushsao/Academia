@@ -243,27 +243,40 @@ export async function afterRating(rating, { previous } = {}) {
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_FAILURES = 10;
 const LOCK_MS = 15 * 60 * 1000;
+// Repeat lockouts back off: 15 min, 30 min, 1 h, 2 h … up to a day. The count
+// is remembered for a day after the last lockout.
+const MAX_LOCK_MS = 24 * 60 * 60 * 1000;
+const LOCK_MEMORY_MS = 24 * 60 * 60 * 1000;
+const lockDuration = (lockCount) => Math.min(MAX_LOCK_MS, LOCK_MS * 2 ** Math.max(0, lockCount - 1));
 
 export async function assertNotLocked(key) {
     const t = await LoginThrottle.findOne({ key }).lean();
     if (t?.lockedUntil && t.lockedUntil > new Date()) {
         const minutes = Math.ceil((t.lockedUntil - Date.now()) / 60000);
-        throw new AbuseError(`Too many failed sign-in attempts. Please try again in ${minutes} minute${minutes === 1 ? '' : 's'} or reset your password.`, 429);
+        const wait = minutes >= 90 ? `${Math.ceil(minutes / 60)} hours` : `${minutes} minute${minutes === 1 ? '' : 's'}`;
+        throw new AbuseError(`Too many failed sign-in attempts. Please try again in ${wait} or reset your password.`, 429);
     }
 }
 
 export async function recordLoginFailure(key, { writerId, userId } = {}) {
     const now = new Date();
     const t = await LoginThrottle.findOne({ key });
+    const memory = (count) => new Date(now.getTime() + (count ? LOCK_MEMORY_MS : WINDOW_MS + LOCK_MS));
     if (!t || now - t.firstFailureAt > WINDOW_MS) {
-        await LoginThrottle.updateOne({ key }, { $set: { failures: 1, firstFailureAt: now, lockedUntil: null, expiresAt: new Date(now.getTime() + WINDOW_MS + LOCK_MS) } }, { upsert: true });
+        const lockCount = t?.lockCount || 0;
+        await LoginThrottle.updateOne({ key }, { $set: { failures: 1, firstFailureAt: now, lockedUntil: null, lockCount, expiresAt: memory(lockCount) } }, { upsert: true });
         return;
     }
     t.failures += 1;
-    t.expiresAt = new Date(now.getTime() + WINDOW_MS + LOCK_MS);
+    t.expiresAt = memory(t.lockCount);
     if (t.failures >= MAX_FAILURES) {
-        t.lockedUntil = new Date(now.getTime() + LOCK_MS);
-        if (writerId) await recordRisk({ kind: 'LOGIN_LOCKOUT', severity: 'LOW', writerId, userId, summary: `Account locked after ${t.failures} failed sign-in attempts.`, dedupeKey: `lock:${writerId}:${now.toISOString().slice(0, 13)}` });
+        t.lockCount = (t.lockCount || 0) + 1;
+        const duration = lockDuration(t.lockCount);
+        t.lockedUntil = new Date(now.getTime() + duration);
+        t.failures = 0;
+        t.firstFailureAt = now;
+        t.expiresAt = new Date(Math.max(t.lockedUntil.getTime(), now.getTime()) + LOCK_MEMORY_MS);
+        if (writerId) await recordRisk({ kind: 'LOGIN_LOCKOUT', severity: t.lockCount >= 3 ? 'MEDIUM' : 'LOW', writerId, userId, summary: `Account locked for ${Math.round(duration / 60000)} minutes after repeated failed sign-in attempts (lockout ${t.lockCount} today).`, dedupeKey: `lock:${writerId}:${now.toISOString().slice(0, 13)}` });
     }
     await t.save();
 }

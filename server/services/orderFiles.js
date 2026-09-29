@@ -72,7 +72,7 @@ const upload = multer({
         destination: ORDER_UPLOADS_DIR,
         filename: (_req, _file, cb) => cb(null, `.tmp-${crypto.randomBytes(16).toString('hex')}`),
     }),
-    limits: { fileSize: MAX_BYTES, files: MAX_FILES },
+    limits: { fileSize: MAX_BYTES, files: MAX_FILES, fields: 10, fieldSize: 8192 },
 });
 
 export function receiveOrderFiles(req, res, next) {

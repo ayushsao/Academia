@@ -74,7 +74,8 @@ async function fieldsFrom(body, existing) {
 }
 
 const fail = (res, err, fallback) => {
-    if (err?.status) return res.status(err.status).json({ error: err.message });
+    // Only our own 4xx errors carry a message meant for the user.
+    if (err?.status >= 400 && err.status < 500) return res.status(err.status).json({ error: err.message });
     if (err?.code === 11000) return res.status(409).json({ error: 'Another post already uses this URL. Choose a different one.' });
     console.error('[Blog]', err?.message);
     res.status(500).json({ error: fallback });

@@ -441,6 +441,20 @@ export const validateInput = (schema, source = 'body') => (req, res, next) => {
     next();
 };
 
+// ── Admin: customer orders and enquiries ─────────────────────────────────────
+// Only these fields can be changed from the order drawer; anything else is dropped.
+export const ORDER_STATUS_VALUES = ['pending', 'available', 'assigned', 'in_progress', 'submitted', 'revision_required', 'completed', 'cancelled',
+    'Pending', 'In Progress', 'Completed', 'Cancelled'];
+export const adminOrderUpdateSchema = z.object({
+    status: z.enum(ORDER_STATUS_VALUES, { message: 'Choose a valid order status.' }).optional(),
+    adminNotes: z.string().max(5000, 'Admin notes are too long.').optional(),
+    assignedTo: z.string().trim().max(120, 'Assigned writer is too long.').nullable().optional(),
+});
+export const contactStatusSchema = z.object({ status: z.enum(['unread', 'read']) });
+export const googleAuthSchema = z.object({
+    access_token: z.string().trim().min(10, 'Google access token missing.').max(4096, 'Google access token missing.'),
+}).passthrough();
+
 // ── Admin CRM: catalogue & pricing ─────────────────────────────────────────────
 const plain = (max) => z.string().trim().max(max).transform(s => s.replace(/<[^>]*>/g, '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, ''));
 const slugField = z.string().trim().toLowerCase().max(120)
