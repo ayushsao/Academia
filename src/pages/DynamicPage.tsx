@@ -232,7 +232,7 @@ export const DynamicPage: React.FC = () => {
         },
         'ai-originality-check': {
             title: 'AI Originality & Similarity Check',
-            desc: 'An AI review of your draft: an estimated originality score, passages that look copied or AI-written, referencing issues and how to fix them. It is an AI estimate, not a Turnitin report.',
+            desc: 'An AI review of your draft: an estimated originality score, passages that look copied or AI-written, referencing issues and how to fix them.',
             benefits: ['Estimated Originality Score', 'AI-Writing Likelihood', 'Passage-by-Passage Suggestions'],
             inputPlaceholder: 'Paste your text here (at least 50 characters), or upload a document...',
             actionButton: 'Pay ₹100 & Get Report',
@@ -646,7 +646,7 @@ export const DynamicPage: React.FC = () => {
                                             className="w-full rounded-lg border border-gray-200 p-3 text-sm outline-none focus:border-[#fea520]" />
                                         <input type="tel" inputMode="tel" value={buyerPhone} onChange={e => setBuyerPhone(e.target.value)} placeholder="Phone number *" aria-label="Phone number" autoComplete="tel"
                                             className="w-full rounded-lg border border-gray-200 p-3 text-sm outline-none focus:border-[#fea520]" />
-                                        <p className="text-xs text-gray-500 sm:col-span-2">The report costs <strong className="text-[#000a1e]">₹100</strong> and unlocks as soon as your payment is confirmed. It is an AI estimate, not a Turnitin report.</p>
+                                        <p className="text-xs text-gray-500 sm:col-span-2">The report costs <strong className="text-[#000a1e]">₹100</strong> and unlocks as soon as your payment is confirmed.</p>
                                     </div>
                                 )}
 
