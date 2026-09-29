@@ -27,6 +27,20 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
   const writerSignedIn = useStore(state => Boolean(state.writer));
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
+  // Height left below the header, so the mobile menu can scroll within the screen.
+  const navRef = React.useRef<HTMLElement>(null);
+  const [menuMaxHeight, setMenuMaxHeight] = useState<number | undefined>(undefined);
+  React.useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const measure = () => {
+      const bottom = navRef.current?.getBoundingClientRect().bottom ?? 0;
+      setMenuMaxHeight(Math.max(200, window.innerHeight - bottom));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    window.addEventListener('scroll', measure, { passive: true });
+    return () => { window.removeEventListener('resize', measure); window.removeEventListener('scroll', measure); };
+  }, [mobileMenuOpen]);
   const [searchText, setSearchText] = useState('');
 
   const activeOrderCount = orders ? orders.filter(o => o.status !== 'Completed' && o.status !== 'Cancelled').length : 0;
@@ -49,7 +63,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
   ];
 
   return (
-    <nav className={`w-full z-50 transition-all duration-300 sticky top-0 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-[0_2px_16px_rgba(30,58,95,0.08)] py-3 border-b border-[#e5e7eb]/60' : 'bg-white py-4 border-b border-[#f0f2f5]'}`}>
+    <nav ref={navRef} className={`w-full z-50 transition-all duration-300 sticky top-0 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-[0_2px_16px_rgba(30,58,95,0.08)] py-3 border-b border-[#e5e7eb]/60' : 'bg-white py-4 border-b border-[#f0f2f5]'}`}>
       <div className="w-full pl-2 pr-4 md:pl-4 md:pr-8 2xl:pl-6 2xl:pr-12 flex items-center justify-between gap-4">
 
         {/* Logo */}
@@ -295,7 +309,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
             exit={{ opacity: 0, height: 0 }}
             className="xl:hidden absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 overflow-hidden"
           >
-            <div className="flex flex-col p-4 gap-4">
+            {/* Scrolls inside itself: the menu sits under the sticky header and can be taller than the screen. */}
+            <div className="flex flex-col p-4 gap-4 overflow-y-auto overscroll-contain" style={{ maxHeight: menuMaxHeight }}>
               {navLinks.map((link, idx) => (
                 <div key={idx} className="flex flex-col border-b border-gray-100">
                   <div
