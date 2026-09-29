@@ -7,6 +7,7 @@ import { BillingToggle } from '../../components/writer/MembershipBits';
 import { Spinner } from '../../components/writer/WriterBits';
 import { inputClass } from '../../components/writer/FormKit';
 import { api } from '../../lib/api';
+import { usePageMeta } from '../../lib/usePageMeta';
 import { formatMoney, currencyName } from '../../lib/money';
 import { useMarketplaceContent } from '../../lib/marketplaceContent';
 import type { BillingPeriod, PublicPlan } from '../../lib/membershipTypes';
@@ -20,6 +21,7 @@ type Catalogue = { plans: PublicPlan[]; currencies: string[]; suggestedCurrency:
 // catalogue (Admin → Memberships → Plans); headings, taglines, notes and FAQ from
 // Admin → Site Content. Prices are for display: checkout re-prices on the server.
 export default function WriterPricing() {
+    usePageMeta('/writer-membership');
     const isWriter = useStore(s => Boolean(s.writer));
     const { data: content } = useMarketplaceContent();
     const [catalogue, setCatalogue] = useState<Catalogue | null>(null);

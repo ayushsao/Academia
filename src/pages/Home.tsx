@@ -6,6 +6,7 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { lazyPage } from '../lib/lazyPage';
+import { usePageMeta } from '../lib/usePageMeta';
 import { Calculator } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { ScrollReveal } from '../components/ScrollReveal';
@@ -45,6 +46,7 @@ const DisciplineModal = lazyPage(() => import('../components/DisciplineModal').t
 const SignInModal = lazyPage(() => import('../components/SignInModal').then(m => ({ default: m.SignInModal })));
 
 export default function App() {
+  usePageMeta('/');
   // Modal & Drawer visibility states
   const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
   const [orderModalOpen, setOrderModalOpen] = useState<boolean>(false);

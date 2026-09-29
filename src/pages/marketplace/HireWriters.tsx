@@ -4,6 +4,7 @@ import { Search, Star, FileText, MapPin, SlidersHorizontal, BadgeCheck, ArrowRig
 import { MarketplaceNavbar as Navbar } from '../../components/writer/MarketplaceNavbar';
 import { Footer } from '../../components/Footer';
 import { api } from '../../lib/api';
+import { usePageMeta } from '../../lib/usePageMeta';
 import type { PublicWriter } from '../../lib/writerTypes';
 import { ACADEMIC_LEVELS, PREDEFINED_SKILLS, SUGGESTED_SUBJECTS, countryName } from '../../lib/writerOptions';
 import { CountrySelect, inputClass } from '../../components/writer/FormKit';
@@ -64,6 +65,7 @@ function WriterCard({ w }: { w: PublicWriter }) {
 }
 
 export default function HireWriters() {
+    usePageMeta('/hire-writers');
     const [writers, setWriters] = useState<PublicWriter[]>([]);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);

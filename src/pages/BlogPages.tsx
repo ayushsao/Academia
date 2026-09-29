@@ -42,12 +42,13 @@ function usePageMeta(title: string | null, description = '') {
         meta.content = description;
         let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
         const ownCanonical = !canonical;
+        const previousCanonical = canonical?.href || '';
         if (!canonical) { canonical = document.createElement('link'); canonical.rel = 'canonical'; document.head.appendChild(canonical); }
-        canonical.href = window.location.origin + window.location.pathname;
+        canonical.href = 'https://www.assignmentminds.com' + window.location.pathname;
         return () => {
             document.title = previous;
             if (created) meta!.remove(); else meta!.content = previousDescription;
-            if (ownCanonical) canonical!.remove();
+            if (ownCanonical) canonical!.remove(); else canonical!.href = previousCanonical;
         };
     }, [title, description]);
 }

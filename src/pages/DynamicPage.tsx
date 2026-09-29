@@ -9,6 +9,7 @@ import { Calculator, ArrowRight, CheckCircle2, FileText, Lock, Award } from 'luc
 import { API, api } from '../lib/api';
 import { coverSrc, type BlogCard, type BlogList } from '../lib/blog';
 import { openRazorpayCheckout } from '../lib/razorpay';
+import { usePageMeta } from '../lib/usePageMeta';
 
 export const DynamicPage: React.FC = () => {
     const { slug } = useParams<{ slug: string }>();
@@ -293,6 +294,7 @@ export const DynamicPage: React.FC = () => {
             desc: fallbackDesc,
             benefits: ['Guaranteed A+ Quality', 'Under 24-Hour Delivery Available', 'Direct Communication with Experts']
         };
+    usePageMeta(`/p/${slug}`, { title: `${content.title} | AssignmentMinds`, description: content.desc });
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'instant' });

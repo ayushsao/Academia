@@ -7,6 +7,7 @@ import {
 import { MarketplaceNavbar as Navbar } from '../../components/writer/MarketplaceNavbar';
 import { Footer } from '../../components/Footer';
 import { PREDEFINED_SKILLS } from '../../lib/writerOptions';
+import { usePageMeta } from '../../lib/usePageMeta';
 import { useStore } from '../../store/useStore';
 import { useMarketplaceContent, DEFAULT_MARKETPLACE_CONTENT, type JourneyStep } from '../../lib/marketplaceContent';
 import { Spinner } from '../../components/writer/WriterBits';
@@ -21,6 +22,7 @@ const DOCUMENT_ICONS = [FileText, Award, PenLine, FolderOpen];
 const pick = <T,>(list: T[], i: number) => list[i % list.length];
 
 export default function BecomeWriter() {
+    usePageMeta('/become-a-writer');
     const isWriter = useStore(s => Boolean(s.writer));
     const { data, error } = useMarketplaceContent();
     const primaryHref = isWriter ? '/writer/onboarding' : '/writer/register';

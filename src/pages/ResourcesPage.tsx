@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
+import { usePageMeta } from '../lib/usePageMeta';
 import { OrderModal } from '../components/OrderModal';
 import { SignInModal } from '../components/SignInModal';
 import { FileText, CheckCircle, ShieldCheck, BookOpen, ChevronRight, Eye } from 'lucide-react';
@@ -46,6 +47,7 @@ Remarks: This thesis has been fully vetted against 99+ billion active and archiv
 ];
 
 export const ResourcesPage = () => {
+    usePageMeta('/resources');
     const [isOrderModalOpen, setOrderModalOpen] = useState(false);
     const [isSignInModalOpen, setSignInModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('essay');

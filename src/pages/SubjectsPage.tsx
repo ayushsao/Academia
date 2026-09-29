@@ -7,6 +7,7 @@ import { OrderModal } from '../components/OrderModal';
 import { SignInModal } from '../components/SignInModal';
 import { SideDrawer } from '../components/SideDrawer';
 import { SubjectGrid, useCatalogTree } from '../components/catalog/SubjectsDirectory';
+import { usePageMeta } from '../lib/usePageMeta';
 
 // /subjects — every published subject, straight from the admin catalogue.
 export function SubjectsPage() {
@@ -16,11 +17,7 @@ export function SubjectsPage() {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const subjects = tree?.subjects || [];
 
-    useEffect(() => {
-        const prevTitle = document.title;
-        document.title = 'Subjects | AssignmentMinds';
-        return () => { document.title = prevTitle; };
-    }, []);
+    usePageMeta('/subjects');
 
     return (
         <div className="flex min-h-screen flex-col bg-gray-50 font-sans">

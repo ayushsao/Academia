@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MarketplaceNavbar as Navbar } from '../components/writer/MarketplaceNavbar';
 import { Footer } from '../components/Footer';
+import { usePageMeta } from '../lib/usePageMeta';
 
 
 // About Us and the customer policies linked from the footer.
@@ -117,7 +118,7 @@ export const POLICIES: Record<string, PolicyDoc> = {
 export default function PolicyPage() {
     const { pathname } = useLocation();
     const doc = POLICIES[pathname];
-    useEffect(() => { if (doc) document.title = `${doc.title} | AssignmentMinds`; }, [doc]);
+    usePageMeta(pathname, doc ? { title: `${doc.title} | AssignmentMinds`, description: doc.intro } : undefined);
     useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, [pathname]);
     if (!doc) return null;
     const isAbout = pathname === '/about';

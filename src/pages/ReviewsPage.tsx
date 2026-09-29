@@ -9,6 +9,7 @@ import {
   Star, ShieldCheck, CheckCircle2, Search, Filter, ThumbsUp, MessageSquarePlus, Award, GraduationCap, MapPin, Calendar, FileText, Check, X, ChevronDown, ArrowRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { usePageMeta } from '../lib/usePageMeta';
 
 const SUBJECT_CATEGORIES = [
     'All Subjects',
@@ -38,6 +39,7 @@ const SERVICE_TYPES = [
 ];
 
 export const ReviewsPage: React.FC = () => {
+    usePageMeta('/reviews');
     const [orderModalOpen, setOrderModalOpen] = useState(false);
     const [signInModalOpen, setSignInModalOpen] = useState(false);
     const [reviewsList, setReviewsList] = useState<Review[]>(REVIEWS);
