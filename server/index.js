@@ -38,7 +38,7 @@ import { startAssignmentScheduler } from './services/assignmentService.js';
 import { startMembershipScheduler } from './services/membershipService.js';
 import { ensureDefaultPlans } from './services/membershipSettings.js';
 import { isRedisAvailable, cacheStats } from './services/cache.js';
-import { storageMode } from './services/fileStore.js';
+import { storageMode, storageCheck } from './services/fileStore.js';
 
 
 const app = express();
@@ -132,6 +132,7 @@ app.get('/api/health', (req, res) =>
         timestamp: new Date().toISOString(),
         // Where uploaded files are kept ('local' means they're lost on redeploy).
         storage: storageMode,
+        storageCheck,
         redis: {
             connected: isRedisAvailable(),
             stats: cacheStats,

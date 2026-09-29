@@ -161,3 +161,33 @@ export async function sendStoredFile(res, area, name, { contentType, notFoundMes
     stream.on('error', () => { if (!res.headersSent) res.status(500).json({ error: 'Could not load file.' }); else res.destroy(); });
     stream.pipe(res);
 }
+
+// Start-up self-test for cloud storage: saves a tiny file, reads it back and
+// deletes it. The result appears in /api/health so a broken setup is visible
+// without digging through logs. It never includes keys or file contents.
+export const storageCheck = { status: storageMode === 'local' ? 'skipped' : 'pending' };
+async function selfTest() {
+    const name = `selftest-${Date.now()}.txt`;
+    const temp = path.join(LOCAL_DIRS.deliveries, `tmp-${name}`);
+    const text = `storage check ${new Date().toISOString()}`;
+    let step = 'upload';
+    try {
+        await fs.promises.writeFile(temp, text);
+        await saveFile(temp, 'deliveries', name, 'text/plain');
+        step = 'download';
+        const stream = await openFile('deliveries', name);
+        if (!stream) throw new Error('file not found after upload');
+        const chunks = [];
+        for await (const c of stream) chunks.push(Buffer.from(c));
+        if (Buffer.concat(chunks).toString() !== text) throw new Error('downloaded content differs');
+        step = 'delete';
+        await removeFile('deliveries', name);
+        storageCheck.status = 'ok';
+    } catch (err) {
+        await fs.promises.unlink(temp).catch(() => {});
+        storageCheck.status = `${step} failed: ${String(err?.message || err?.error?.message || err).replace(/api_key\s*\S+/gi, 'api_key').slice(0, 160)}`;
+        console.error(`[Files] storage self-test ${storageCheck.status}`);
+    }
+    storageCheck.at = new Date().toISOString();
+}
+if (storageMode !== 'local') setTimeout(() => { selfTest(); }, 3000);
