@@ -7,7 +7,7 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { lazyPage } from '../lib/lazyPage';
 import { usePageMeta } from '../lib/usePageMeta';
-import { Calculator } from 'lucide-react';
+import { Calculator, Smartphone } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { ScrollReveal } from '../components/ScrollReveal';
 import { Hero } from '../components/Hero';
@@ -170,9 +170,7 @@ export default function App() {
       {/* Mobile rotate barrier */}
       <div className="hidden max-[768px]:landscape:flex fixed inset-0 z-[999] bg-[#000a1e] text-white flex-col items-center justify-center p-6 text-center">
         <div className="animate-bounce mb-4 text-[#fea520]">
-          <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-          </svg>
+          <Smartphone className="w-12 h-12" strokeWidth={1.75} aria-hidden="true" />
         </div>
         <h2 className="text-xl font-bold mb-2">Please Rotate Your Device</h2>
         <p className="text-sm text-gray-300">This website is best viewed in portrait mode on mobile devices.</p>

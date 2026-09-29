@@ -351,7 +351,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BadgeCheck } from 'lucide-react';
+import { BadgeCheck, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import type { PublicWriter } from '../../lib/writerTypes';
 import { WriterAvatar } from './WriterBits';
@@ -706,9 +706,9 @@ export function SampleWriterDialog({
                         type="button"
                         onClick={onClose}
                         aria-label="Close"
-                        className="absolute right-4 top-3 rounded-full bg-white/10 px-2.5 py-1 text-white/80 hover:bg-white/20 hover:text-white"
+                        className="absolute right-4 top-3 rounded-full bg-white/10 p-1.5 text-white/80 transition hover:bg-white/20 hover:text-white"
                     >
-                        ✕
+                        <X className="w-4 h-4" aria-hidden="true" />
                     </button>
 
                     <img

@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Star, GraduationCap } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface CtaBannerProps {
@@ -58,14 +58,14 @@ export const CtaBanner: React.FC<CtaBannerProps> = ({ onOrderClick }) => {
                     animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 4 }}
                     className="absolute top-[30%] left-[26%] bg-white w-10 h-10 rounded-full flex items-center justify-center shadow-sm"
                 >
-                    <span className="text-[#ffcb05] text-xl font-bold">★</span>
+                    <Star className="w-5 h-5 text-[#ffcb05]" fill="currentColor" strokeWidth={1.5} aria-hidden="true" />
                 </motion.div>
 
                 <motion.div
                     animate={{ y: [0, 8, 0] }} transition={{ repeat: Infinity, duration: 3.5, delay: 1 }}
                     className="absolute bottom-[20%] left-[5%] text-[#6272a4] opacity-70 w-12 h-12"
                 >
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L1 9L12 15L21 10.09V17H23V9M5 13.18V17.18L12 21L19 17.18V13.18L12 17L5 13.18Z" /></svg>
+                    <GraduationCap className="w-full h-full" strokeWidth={1.75} aria-hidden="true" />
                 </motion.div>
             </div>
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../../../../lib/api';
+import { X } from 'lucide-react';
 import { fromMinor } from '../../../../lib/money';
 import { ACADEMIC_LEVELS } from '../../../../lib/writerOptions';
 import { CountrySelect, inputClass } from '../../../../components/writer/FormKit';
@@ -107,7 +108,7 @@ export default function AssignmentForm({ token, existing, currencies, onSaved, o
                 <label><Label hint="overrides default">Min rating</Label><input className={cn(inputClass, 'py-2')} inputMode="decimal" value={f.minRating} onChange={x => set('minRating', x.target.value.replace(/[^\d.]/g, ''))} /></label>
                 <div className="sm:col-span-2"><Label hint="optional; leave empty for any">Restrict to countries</Label>
                     <div className="flex flex-wrap items-center gap-2">
-                        {f.allowedCountries.map(c => <button key={c} onClick={() => set('allowedCountries', f.allowedCountries.filter(x => x !== c))} className="rounded-lg bg-gray-100 px-2 py-1 text-xs font-semibold">{c} ✕</button>)}
+                        {f.allowedCountries.map(c => <button key={c} onClick={() => set('allowedCountries', f.allowedCountries.filter(x => x !== c))} aria-label={`Remove ${c}`} className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-1 text-xs font-semibold transition hover:bg-gray-200">{c} <X className="w-3 h-3" aria-hidden="true" /></button>)}
                         <div className="w-56"><CountrySelect value="" placeholder="Add country" onChange={c => c && !f.allowedCountries.includes(c) && set('allowedCountries', [...f.allowedCountries, c])} /></div>
                     </div>
                 </div>

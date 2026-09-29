@@ -20,6 +20,7 @@ const currencySymbolOf = (code: string) => {
 };
 import { api } from '../lib/api';
 import type { Coupon } from '../lib/charges';
+import { Stars } from './ui/Stars';
 
 interface HeroProps {
   onOpenOrder: (prefill?: {
@@ -421,7 +422,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     </p>
                   </div>
                   <span className="text-[11.5px] font-medium text-[#6b7280] bg-white px-2 py-0.5 rounded-full border border-[#e5e7eb] shrink-0 text-[#eb6200]">
-                    ★★★★★ Verified Student
+                    <span className="inline-flex items-center gap-1"><Stars className="w-3 h-3" /> Verified Student</span>
                   </span>
                 </div>
 
@@ -740,7 +741,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 {/* 7. Footer Rating & CTA */}
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 shrink-0 pt-2 border-t border-white/20">
                   <div className="flex items-center gap-2 text-center sm:text-left">
-                    <div className="flex text-[#ffcb05] text-[15px]">★★★★★</div>
+                    <div className="flex text-[#ffcb05]"><Stars className="w-4 h-4" /></div>
                     <div>
                       <div className="text-[13px] font-bold text-white">4.95/5 Rating</div>
                       <div className="text-[11.5px] text-white/80">Over 100,000+ UK student assignments completed</div>

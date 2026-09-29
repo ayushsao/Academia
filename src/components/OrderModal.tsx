@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Loader2,
   MessageCircle,
+    Check
 } from 'lucide-react';
 import { ServiceType, SubjectType } from '../types';
 import { useStore } from '../store/useStore';
@@ -696,7 +697,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
           <div className="bg-[#eef4ff] px-4 sm:px-8 py-3.5 border-b border-[#d1e4ff] flex justify-between items-center gap-2 text-xs font-semibold text-[#44474e]">
             <div className={`flex items-center gap-2 ${step === 1 ? 'text-[#000a1e] font-bold' : 'text-emerald-700'}`}>
               <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 1 ? 'bg-[#000a1e] text-white' : 'bg-emerald-600 text-white'}`}>
-                {step > 1 ? '✓' : '1'}
+                {step > 1 ? <Check className="w-4 h-4" strokeWidth={3} aria-hidden="true" /> : '1'}
               </span>
               <span>1. Order Details</span>
             </div>
@@ -992,7 +993,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold ${turnitinReport ? 'bg-[#000a1e] text-white' : 'border border-[#d1e4ff]'}`}>
-                        {turnitinReport && '✓'}
+                        {turnitinReport && <Check className="w-3 h-3" strokeWidth={3.5} aria-hidden="true" />}
                       </div>
                       <div>
                         <span className="text-xs font-bold text-[#000a1e] block">Plagiarism Report</span>
@@ -1009,7 +1010,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold ${topExpert ? 'bg-[#000a1e] text-white' : 'border border-[#d1e4ff]'}`}>
-                        {topExpert && '✓'}
+                        {topExpert && <Check className="w-3 h-3" strokeWidth={3.5} aria-hidden="true" />}
                       </div>
                       <div>
                         <span className="text-xs font-bold text-[#000a1e] block">Premium Writer Match</span>
@@ -1025,7 +1026,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold ${abstractPage ? 'bg-[#000a1e] text-white' : 'border border-[#d1e4ff]'}`}>
-                        {abstractPage && '✓'}
+                        {abstractPage && <Check className="w-3 h-3" strokeWidth={3.5} aria-hidden="true" />}
                       </div>
                       <div>
                         <span className="text-xs font-bold text-[#000a1e] block">Summary & Abstract</span>

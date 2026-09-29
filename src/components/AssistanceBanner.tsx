@@ -1,5 +1,6 @@
 import React from 'react';
 import { DIAL_CODES, POPULAR_DIAL_CODES, dialLabel, countryName } from '../lib/countryCodes';
+import { Smartphone } from 'lucide-react';
 
 // The promo shown in the deal card; checked and applied by the order form.
 const PROMO = { code: 'NEWONE', percent: 10 };
@@ -66,7 +67,7 @@ export const AssistanceBanner: React.FC<AssistanceBannerProps> = ({ onOpenOrder 
                                 {/* Transparent bottom-border form */}
                                 <div className="flex-1 border-b border-[#333]/30 flex items-center pb-2 w-full">
                                     <div className="flex items-center gap-1.5 pr-3 border-r border-[#333]/30 mr-4 whitespace-nowrap">
-                                        <svg className="w-5 h-5 text-[#333] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2" ry="2" strokeWidth="2" /><path d="M12 18h.01" strokeWidth="2" strokeLinecap="round" /></svg>
+                                        <Smartphone className="w-5 h-5 text-[#333] shrink-0" aria-hidden="true" />
                                         <select value={dialCode} onChange={(e) => setDialCode(e.target.value)} aria-label="Country code"
                                             className="bg-transparent font-bold text-[14.5px] text-[#222] outline-none cursor-pointer">
                                             <optgroup label="Popular">

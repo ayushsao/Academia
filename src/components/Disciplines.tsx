@@ -1,92 +1,15 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ListChecks } from 'lucide-react';
+import {
+  ListChecks, Workflow, Cpu, Plane, Handshake, Landmark, Scale, TrendingUp, ScrollText,
+  BriefcaseBusiness, Stethoscope, Brain, Database,
+} from 'lucide-react';
 
-const CustomIcons = {
-  Ops: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-[28px] h-[28px]">
-      <path d="M12 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" />
-      <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
-      <circle cx="18" cy="8" r="2.5" />
-      <path d="M19 8v3l1.5 1.5" />
-    </svg>
-  ),
-  IT: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-[28px] h-[28px]">
-      <rect x="7" y="7" width="10" height="10" rx="1.5" />
-      <path d="M12 2v5M12 17v5M2 12h5M17 12h5M5 5l3 3M19 19l-3-3M5 19l3-3M19 5l-3 3" />
-    </svg>
-  ),
-  Travel: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-[28px] h-[28px]">
-      <rect x="3" y="10" width="18" height="10" rx="3" />
-      <path d="M8 10V8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-      <path d="M3 15h18" />
-      <circle cx="7" cy="18.5" r="1.5" /><circle cx="17" cy="18.5" r="1.5" />
-    </svg>
-  ),
-  CRM: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className="w-[28px] h-[28px]">
-      <rect x="2" y="3" width="20" height="13" rx="2" />
-      <path d="M8 20h8M12 16v4" />
-      <circle cx="12" cy="8" r="2.5" />
-      <path d="M8.5 13a3.5 3.5 0 0 1 7 0" />
-    </svg>
-  ),
-  PolSci: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-[28px] h-[28px]">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  ),
-  Law: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-[28px] h-[28px]">
-      <path d="M12 3v18M8 6h8M6 10l-1 5a2 2 0 0 0 2 2h2M18 10l1 5a2 2 0 0 1-2 2h-2" />
-      <path d="M3 21h18" />
-    </svg>
-  ),
-  Finance: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-[28px] h-[28px]">
-      <rect x="2" y="6" width="20" height="12" rx="2.5" />
-      <circle cx="12" cy="12" r="3.5" />
-      <path d="M4 17l5-5 4 4 7-7" />
-    </svg>
-  ),
-  History: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-[28px] h-[28px]">
-      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-      <path d="M3 3v5h5" />
-      <path d="M12 7v5l3 3" />
-    </svg>
-  ),
-  MBA: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-[28px] h-[28px]">
-      <path d="M2 3h20v14H2zM8 21h8M12 17v4M6 13l4-4 4 4 4-4" />
-    </svg>
-  ),
-  Nursing: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-[28px] h-[28px]">
-      <path d="M12 2v20M2 12h20M7 7h10v10H7z" />
-      <path d="M10 12h4M12 10v4" />
-    </svg>
-  ),
-  Psychology: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-[28px] h-[28px]">
-      <path d="M2 12C2 6.48 6.48 2 12 2C17.52 2 22 6.48 22 12C22 17.52 17.52 22 12 22" />
-      <path d="M12 6a4 4 0 0 0-4 4v2h8v-2a4 4 0 0 0-4-4z" />
-      <path d="M12 12v6" />
-    </svg>
-  ),
-  Database: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-[26px] h-[26px]">
-      <ellipse cx="12" cy="5" rx="9" ry="3" />
-      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-      <path d="M12 12l4-4-4-4-4 4z" />
-    </svg>
-  )
+// One Lucide icon per subject, chosen for what the subject is about.
+const SubjectIcon = {
+  Ops: Workflow, IT: Cpu, Travel: Plane, CRM: Handshake, PolSci: Landmark, Law: Scale,
+  Finance: TrendingUp, History: ScrollText, MBA: BriefcaseBusiness, Nursing: Stethoscope,
+  Psychology: Brain, Database: Database,
 };
 
 interface DisciplinesProps {
@@ -97,21 +20,21 @@ interface DisciplinesProps {
 export const Disciplines: React.FC<DisciplinesProps> = ({ onSelectDiscipline }) => {
 
   const col1Modules = [
-    { title: 'Operation Management', icon: CustomIcons.Ops, iconColor: 'text-[#f5a623]', bgColor: 'bg-[#fff7e6]' },
-    { title: 'Travel & Tourism', icon: CustomIcons.Travel, iconColor: 'text-[#4a90e2]', bgColor: 'bg-[#eef5fd]' },
-    { title: 'Political Science', icon: CustomIcons.PolSci, iconColor: 'text-[#f76b6b]', bgColor: 'bg-[#fdeaea]' },
-    { title: 'Finance', icon: CustomIcons.Finance, iconColor: 'text-[#fea520]', bgColor: 'bg-[#fce8ed]' },
-    { title: 'MBA', icon: CustomIcons.MBA, iconColor: 'text-[#4ed572]', bgColor: 'bg-[#f0fcf3]' },
-    { title: 'Psychology', icon: CustomIcons.Psychology, iconColor: 'text-[#f89b4b]', bgColor: 'bg-[#fff6ef]' },
+    { title: 'Operation Management', icon: SubjectIcon.Ops, iconColor: 'text-[#f5a623]', bgColor: 'bg-[#fff7e6]' },
+    { title: 'Travel & Tourism', icon: SubjectIcon.Travel, iconColor: 'text-[#4a90e2]', bgColor: 'bg-[#eef5fd]' },
+    { title: 'Political Science', icon: SubjectIcon.PolSci, iconColor: 'text-[#f76b6b]', bgColor: 'bg-[#fdeaea]' },
+    { title: 'Finance', icon: SubjectIcon.Finance, iconColor: 'text-[#fea520]', bgColor: 'bg-[#fce8ed]' },
+    { title: 'MBA', icon: SubjectIcon.MBA, iconColor: 'text-[#4ed572]', bgColor: 'bg-[#f0fcf3]' },
+    { title: 'Psychology', icon: SubjectIcon.Psychology, iconColor: 'text-[#f89b4b]', bgColor: 'bg-[#fff6ef]' },
   ];
 
   const col2Modules = [
-    { title: 'Information Technology', icon: CustomIcons.IT, iconColor: 'text-[#fea520]', bgColor: 'bg-[#fce8ed]' },
-    { title: 'CRM', icon: CustomIcons.CRM, iconColor: 'text-[#6c757d]', bgColor: 'bg-[#f1f3f5]' },
-    { title: 'Law', icon: CustomIcons.Law, iconColor: 'text-[#ff8a65]', bgColor: 'bg-[#fff3f0]' },
-    { title: 'History', icon: CustomIcons.History, iconColor: 'text-[#f07b5a]', bgColor: 'bg-[#fff3f0]' },
-    { title: 'Nursing', icon: CustomIcons.Nursing, iconColor: 'text-[#64b5f6]', bgColor: 'bg-[#eff7ff]' },
-    { title: 'Database', icon: CustomIcons.Database, iconColor: 'text-[#ffb74d]', bgColor: 'bg-[#fff8f0]' },
+    { title: 'Information Technology', icon: SubjectIcon.IT, iconColor: 'text-[#fea520]', bgColor: 'bg-[#fce8ed]' },
+    { title: 'CRM', icon: SubjectIcon.CRM, iconColor: 'text-[#6c757d]', bgColor: 'bg-[#f1f3f5]' },
+    { title: 'Law', icon: SubjectIcon.Law, iconColor: 'text-[#ff8a65]', bgColor: 'bg-[#fff3f0]' },
+    { title: 'History', icon: SubjectIcon.History, iconColor: 'text-[#f07b5a]', bgColor: 'bg-[#fff3f0]' },
+    { title: 'Nursing', icon: SubjectIcon.Nursing, iconColor: 'text-[#64b5f6]', bgColor: 'bg-[#eff7ff]' },
+    { title: 'Database', icon: SubjectIcon.Database, iconColor: 'text-[#ffb74d]', bgColor: 'bg-[#fff8f0]' },
   ];
 
   // Helper to render columns
@@ -132,7 +55,7 @@ export const Disciplines: React.FC<DisciplinesProps> = ({ onSelectDiscipline }) 
               >
                 <div className={`w-[54px] h-[54px] rounded-[16px] flex items-center justify-center shrink-0 ${mod.bgColor} group-hover:scale-110 transition-transform duration-300`}>
                   <div className={`${mod.iconColor}`}>
-                    <Icon />
+                    <Icon className="w-[26px] h-[26px]" strokeWidth={1.6} aria-hidden="true" />
                   </div>
                 </div>
                 <h4 className="font-bold text-[#353535] text-[15.5px] leading-tight pr-2">

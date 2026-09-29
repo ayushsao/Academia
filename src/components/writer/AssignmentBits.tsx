@@ -5,6 +5,7 @@ import { kindLabel } from '../../lib/submissionKinds';
 import { openProtectedFile } from '../../lib/api';
 import { formatBytes } from './WriterBits';
 import { cn } from '../../lib/utils';
+import { Stars } from '../ui/Stars';
 
 export function AssignmentBadge({ status, className }: { status: AssignmentStatus; className?: string }) {
     const m = ASSIGNMENT_STATUS_META[status] || { label: status, className: 'bg-slate-100 text-slate-600 ring-slate-200' };
@@ -48,7 +49,7 @@ export function StarRow({ label, value }: { label: string; value: number }) {
         <div className="flex items-center justify-between gap-3 text-sm">
             <span className="text-slate-600">{label}</span>
             <span className="flex items-center gap-2">
-                <span className="flex" aria-hidden>{[1, 2, 3, 4, 5].map(i => <span key={i} className={cn('text-base leading-none', i <= Math.round(value) ? 'text-[#f39200]' : 'text-slate-200')}>★</span>)}</span>
+                <span className="flex text-[#f39200]" aria-hidden><Stars value={value} className="w-4 h-4" emptyClassName="text-slate-200" /></span>
                 <span className="w-8 text-right font-semibold tabular-nums text-[#0b1b33]">{value.toFixed(value % 1 ? 2 : 0)}</span>
             </span>
         </div>

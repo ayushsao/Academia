@@ -503,9 +503,10 @@ export const ReviewsPage: React.FC = () => {
                                                     type="button"
                                                     key={star}
                                                     onClick={() => setFormData({ ...formData, rating: star })}
-                                                    className={`p-1 text-lg transition ${star <= formData.rating ? 'text-amber-500' : 'text-slate-300'}`}
+                                                    aria-label={`${star} star${star > 1 ? 's' : ''}`}
+                                                    className={`p-1 transition hover:scale-110 ${star <= formData.rating ? 'text-amber-500' : 'text-slate-300'}`}
                                                 >
-                                                    ★
+                                                    <Star className="w-5 h-5" fill={star <= formData.rating ? 'currentColor' : 'none'} strokeWidth={1.5} aria-hidden="true" />
                                                 </button>
                                             ))}
                                         </div>

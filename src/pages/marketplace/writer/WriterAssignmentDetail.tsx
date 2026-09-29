@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Upload, X, Check, MessageSquareWarning } from 'lucide-react';
+import { ArrowLeft, Upload, X, Check, MessageSquareWarning, CircleCheck, CircleX } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { formatDate, formatMoney } from '../../../lib/money';
 import { EARNING_STATUS_LABEL, type Earning, type Offer, type Rating, type Submission, type WriterAssignment } from '../../../lib/assignmentTypes';
@@ -116,7 +116,7 @@ function SubmitForm({ detail, onSubmitted }: { detail: Detail; onSubmitted: () =
                 {SUBMISSION_KINDS.map(k => (
                     <li key={k.kind} className="flex items-center justify-between">
                         <span className="text-slate-700">{k.short}</span>
-                        {picked[k.field] ? <span className="font-semibold text-emerald-700">✓ Attached</span> : <span className="font-semibold text-red-600">✗ Required</span>}
+                        {picked[k.field] ? <span className="inline-flex items-center gap-1 font-semibold text-emerald-700"><CircleCheck className="w-4 h-4" aria-hidden="true" /> Attached</span> : <span className="inline-flex items-center gap-1 font-semibold text-red-600"><CircleX className="w-4 h-4" aria-hidden="true" /> Required</span>}
                     </li>
                 ))}
             </ul>

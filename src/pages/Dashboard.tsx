@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, LayoutDashboard, List, Coins, Layers, Plus, Wallet, Bell, MessageCircle, ChevronRight, User, FileText, CheckCircle, Clock, Home, Paperclip, Download, Star, Send, ArrowDown, Eye, Package } from 'lucide-react';
+import { LogOut, LayoutDashboard, List, Coins, Layers, Plus, Wallet, Bell, MessageCircle, ChevronRight, User, FileText, CheckCircle, Clock, Home, Paperclip, Download, Star, Send, ArrowDown, Eye, Package, Check } from 'lucide-react';
 import { OrderModal } from '../components/OrderModal';
 import { WhatsAppPaymentReference } from '../components/WhatsAppPaymentReference';
 import { byKind, kindLabel } from '../lib/submissionKinds';
@@ -41,7 +41,7 @@ function OrderProgress({ status }: { status: string }) {
                         <div className={`flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-black transition-all ${
                             done ? (isCurrent ? 'bg-[#e37e25] text-white ring-2 ring-[#e37e25]/30' : 'bg-emerald-500 text-white') : 'bg-slate-200 text-slate-400'
                         }`}>
-                            {done && !isCurrent ? '✓' : i + 1}
+                            {done && !isCurrent ? <Check className="w-3.5 h-3.5" strokeWidth={3} aria-hidden="true" /> : i + 1}
                         </div>
                         {i < PROGRESS_STEPS.length - 1 && (
                             <div className={`flex-1 h-0.5 rounded ${i < currentIdx ? 'bg-emerald-400' : 'bg-slate-200'}`} />

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, ArrowUp } from 'lucide-react';
+import { ChevronRight, ChevronLeft, ArrowUp, Star } from 'lucide-react';
 import { REVIEWS } from '../data/mockData';
 
 // Three reviews at a time from the same list as the /reviews page; the arrows page through them.
@@ -66,7 +66,7 @@ export const ReviewsSection: React.FC = () => {
                   {/* Star Rating */}
                   <div className="flex gap-0.5 text-[#ff8c00] mb-3" aria-label={`${review.rating} out of 5`}>
                     {[...Array(review.rating)].map((_, i) => (
-                      <span key={i} className="text-[18px] leading-none">★</span>
+                      <Star key={i} className="w-[18px] h-[18px]" fill="currentColor" strokeWidth={1.5} aria-hidden="true" />
                     ))}
                   </div>
 

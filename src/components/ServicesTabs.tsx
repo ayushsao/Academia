@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileEdit, BookOpen, PenTool, LayoutTemplate, GraduationCap, CheckCircle2 } from 'lucide-react';
+import { FileEdit, BookOpen, PenTool, LayoutTemplate, GraduationCap, CheckCircle2, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const ServicesTabs: React.FC = () => {
@@ -157,10 +157,7 @@ export const ServicesTabs: React.FC = () => {
 
                         {/* Background Sketch Image (Pencil) */}
                         <div className="absolute -bottom-10 -right-4 opacity-5 pointer-events-none transform -rotate-12 w-64 h-64">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full text-[#000]">
-                                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                                <path d="m15 5 4 4" />
-                            </svg>
+                            <Pencil className="w-full h-full text-[#000]" strokeWidth={1} aria-hidden="true" />
                         </div>
 
                         <AnimatePresence mode="wait">

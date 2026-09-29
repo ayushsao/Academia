@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, ChevronLeft, Paperclip } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Paperclip, PenLine } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface SamplesShowcaseProps {
@@ -145,9 +145,7 @@ export const SamplesShowcase: React.FC<SamplesShowcaseProps> = ({ onOpenAction }
                                                 <path d="M5,25 Q15,10 25,25 T45,25 T65,25 T85,25" />
                                             </svg>
                                             <div className="transform rotate-[-30deg] text-[#1e5eb8] translate-y-1">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-                                                    <path d="M12 20h9" stroke="none" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                                                </svg>
+                                                <PenLine className="w-5 h-5" strokeWidth={1.75} aria-hidden="true" />
                                             </div>
                                         </div>
                                     </div>

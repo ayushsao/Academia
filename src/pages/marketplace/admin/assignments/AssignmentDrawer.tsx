@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { X, Upload, Trash2, Send, RefreshCw, Info } from 'lucide-react';
+import { X, Upload, Trash2, Send, RefreshCw, Info, Star } from 'lucide-react';
 import { api } from '../../../../lib/api';
 import { formatDate, formatMoney } from '../../../../lib/money';
 import { AssignmentBadge, FileList, StarRow } from '../../../../components/writer/AssignmentBits';
@@ -154,7 +154,7 @@ function RatingPanel({ a, token, onChanged }: { a: AdminAssignment; token: strin
             <span className="capitalize text-gray-600">{k}</span>
             <span className="flex gap-1" role="radiogroup" aria-label={k}>
                 {[1, 2, 3, 4, 5].map(i => <button key={i} type="button" role="radio" aria-checked={s[k] === i} aria-label={`${i} star${i > 1 ? 's' : ''}`} onClick={() => setS(x => ({ ...x, [k]: i }))}
-                    className={cn('text-2xl leading-none', i <= s[k] ? 'text-[#f39200]' : 'text-gray-200 hover:text-gray-300')}>★</button>)}
+                    className={cn('transition hover:scale-110', i <= s[k] ? 'text-[#f39200]' : 'text-gray-200 hover:text-gray-300')}><Star className="w-6 h-6" fill="currentColor" strokeWidth={1.5} aria-hidden="true" /></button>)}
             </span>
         </div>
     );

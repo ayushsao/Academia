@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../../lib/api';
 import { formatDate, formatMoney } from '../../../lib/money';
@@ -60,7 +61,7 @@ export default function WriterHistory() {
                                             <p className="text-sm text-slate-500">{i.assignment.ref} · {i.assignment.subject} · {formatDate(i.at)}{i.reason ? ` · ${i.reason}` : ''}</p>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            {i.rating != null && <span className="text-sm font-semibold text-[#0b1b33]">★ {i.rating.toFixed(2)}</span>}
+                                            {i.rating != null && <span className="inline-flex items-center gap-1 text-sm font-semibold text-[#0b1b33]"><Star className="w-3.5 h-3.5 text-[#f39200]" fill="currentColor" strokeWidth={1.5} aria-hidden="true" /> {i.rating.toFixed(2)}</span>}
                                             <span className="text-sm tabular-nums text-slate-600">{formatMoney(i.assignment.payout.amountMinor, i.assignment.payout.currency)}</span>
                                             <span className={cn('rounded-full px-2.5 py-1 text-xs font-semibold', OUTCOME[i.outcome].className)}>{OUTCOME[i.outcome].label}</span>
                                         </div>

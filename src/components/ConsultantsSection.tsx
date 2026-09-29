@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, NotebookText } from 'lucide-react';
 import { Consultant } from '../types';
+import { Stars } from './ui/Stars';
 
 interface ConsultantsSectionProps {
   onConsult: (consultant: Consultant) => void;
@@ -138,18 +139,14 @@ export const ConsultantsSection: React.FC<ConsultantsSectionProps> = ({ onConsul
                   <div className="bg-[#f8f9fa] rounded-lg p-3 flex justify-between items-center mb-5 w-full">
                     <div className="text-left">
                       <div className="flex mb-1">
-                        {[...Array(5)].map((_, i) => (
-                          <svg key={i} className={`w-4 h-4 ${i < writer.rating ? 'text-[#ffcb05]' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                        ))}
+                        <span className="text-[#ffcb05]"><Stars value={writer.rating} className="w-4 h-4" emptyClassName="text-gray-300" /></span>
                       </div>
                       <span className="text-[11px] text-gray-500 font-medium">{writer.rating} Star Rating</span>
                     </div>
                     <div className="text-right flex flex-col items-end">
                       <div className="flex items-center gap-1 text-[#fea520] font-bold text-sm mb-0.5">
                         {/* Book Icon Match */}
-                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M4 4v16a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2H6a2 2 0 00-2 2zm14 0v16H8V4h10z" /><path d="M10 6h6v2h-6zM10 10h6v2h-6zM10 14h6v2h-6zM6 4h1v16H6z" /></svg>
+                        <NotebookText className="w-3.5 h-3.5" aria-hidden="true" />
                         {writer.orders}
                       </div>
                       <span className="text-[11px] text-gray-500 font-medium">Order Completed</span>
