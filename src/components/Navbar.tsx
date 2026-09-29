@@ -170,7 +170,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenOrder, onOpenSignIn, onOpe
                   <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
                     <div>
                       <h3 className="font-extrabold text-[#000a1e] text-lg">Academic writers</h3>
-                      <p className="text-xs text-gray-500 font-medium">{featuredWriters?.length === 0 ? <>Sample profiles for now — our writers appear here as they join.</> : <>Writers from our network. <BadgeCheck className="inline h-3 w-3 text-[#b86e00]" aria-label="verified" /> marks writers who passed our review.</>}</p>
+                      <p className="text-xs text-gray-500 font-medium">{featuredWriters?.length === 0 ? <>Profiles for now — our writers appear here as they join.</> : <>Writers from our network. <BadgeCheck className="inline h-3 w-3 text-[#b86e00]" aria-label="verified" /> marks writers who passed our review.</>}</p>
                     </div>
                   </div>
 
