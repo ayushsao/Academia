@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import { useStore } from './store/useStore';
 import { lazyPage, PageErrorBoundary } from './lib/lazyPage';
 import { DialogHost } from './lib/dialog';
+import { SmoothScroll, scrollToTopNow } from './lib/smoothScroll';
 
 // Every page except Home is loaded on demand, so a first visit only downloads
 // what the landing page needs (admin, dashboards and tools come later, if ever).
@@ -106,7 +107,7 @@ function ScrollToTop() {
     const navigationType = useNavigationType();
     useLayoutEffect(() => {
         if (navigationType === 'POP' || hash) return;
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        scrollToTopNow();
     }, [pathname]);
     return null;
 }
@@ -116,6 +117,7 @@ export default function App() {
         <BrowserRouter>
             <SearchIndexing />
             <ScrollToTop />
+            <SmoothScroll />
             <PageErrorBoundary>
             <Suspense fallback={<PageLoader />}>
                 <Routes>
