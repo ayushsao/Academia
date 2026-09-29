@@ -163,7 +163,7 @@ export default function HireWriters() {
                         {showSamples && (
                             <div className={writers.length > 0 ? 'mt-10' : ''}>
                         <p className="mb-4 rounded-xl bg-white px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-200">
-                            <span className="mr-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-slate-500">Sample profiles</span>
+                            <span className="mr-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-slate-500">Profiles</span>
                             These show how writer profiles look. Our reviewed writers will appear here as they join.
                         </p>
                         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
