@@ -778,7 +778,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                     <label htmlFor="order-std-currency" className="block text-xs font-bold text-[#44474e] uppercase mb-1.5">Currency</label>
                     <select id="order-std-currency" value={quoteCurrency} onChange={(e) => setQuoteCurrency(e.target.value)}
                       className="w-full bg-[#eef4ff] border border-[#d1e4ff] rounded-xl p-3 text-sm font-semibold text-[#000a1e]">
-                      {ORDER_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                      {(ORDER_CURRENCIES.includes(quoteCurrency) ? ORDER_CURRENCIES : [...ORDER_CURRENCIES, quoteCurrency]).map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                 </div>

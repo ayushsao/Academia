@@ -105,7 +105,11 @@ async function fetchLiveRates() {
         const data = await res.json();
         const rates = data?.rates;
         if (!res.ok || !rates || !Object.keys(SUPPORTED_CURRENCIES).every(c => c === 'INR' || Number(rates[c]) > 0)) throw new Error('bad FX response');
-        const picked = Object.fromEntries(Object.keys(SUPPORTED_CURRENCIES).map(c => [c, c === 'INR' ? 1 : Number(rates[c])]));
+        // Every currency the source quotes, so customers can be priced in their own
+        // currency (the main ones above must be present).
+        const picked = Object.fromEntries(Object.entries(rates)
+            .filter(([c, r]) => /^[A-Z]{3}$/.test(c) && Number(r) > 0)
+            .map(([c, r]) => [c, c === 'INR' ? 1 : Number(r)]));
         return { rates: picked, at: new Date(), source: 'live' };
     } finally { clearTimeout(timer); }
 }
@@ -131,7 +135,7 @@ export async function getInrRates() {
 export async function inrRate(currency) {
     const fx = await getInrRates();
     const rate = fx.rates[currency];
-    if (!(rate > 0)) throw new WordPricingError('That currency is not supported.');
+    if (!(rate > 0)) throw new WordPricingError(`Prices in ${currency} aren’t available right now. Please choose another currency.`);
     return { rate, fx };
 }
 
@@ -175,7 +179,7 @@ export async function quoteByWords({ words, spacing, deadlineAt, currency }, { n
     if (w > MAX_WORDS) throw new WordPricingError(`Orders are limited to ${MAX_WORDS.toLocaleString('en-GB')} words.`);
     const sp = SPACING[spacing] ? spacing : DEFAULT_SPACING;
     const cur = String(currency || 'INR').toUpperCase();
-    if (!SUPPORTED_CURRENCIES[cur]) throw new WordPricingError('That currency is not supported.');
+    if (!/^[A-Z]{3}$/.test(cur)) throw new WordPricingError('That currency is not supported.');
     const due = new Date(deadlineAt);
     if (Number.isNaN(due.getTime())) throw new WordPricingError('Choose a deadline.');
     const hours = (due.getTime() - now.getTime()) / 3600000;
@@ -222,7 +226,7 @@ export function publicQuote(q, input = {}) {
         deliveryLabel: DELIVERY_LABELS[q.deliveryType],
         deadlineAt: q.deadlineAt,
         currency: q.currency,
-        symbol: SUPPORTED_CURRENCIES[q.currency],
+        symbol: SUPPORTED_CURRENCIES[q.currency] || q.currency,
         total: q.total,
     };
 }

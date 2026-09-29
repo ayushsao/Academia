@@ -5,8 +5,19 @@ import {
   ArrowRight, PlayCircle, Calculator, Minus, Plus, Calendar, ChevronDown, CheckCircle2, FileSearch, PenTool, CheckSquare, Crown, Paperclip, ShieldCheck, Clock, X, GraduationCap, Award, Zap, Star, BookOpen, Users, Check
 } from 'lucide-react';
 import { ServiceType, SubjectType } from '../types';
-import { useOrderQuote, fetchOrderQuote, CURRENCY_BY_SYMBOL, SPACING_OPTIONS, DEFAULT_SPACING, pagesFor, deadlineAtFrom, type OrderQuote, type Spacing, localDateString } from '../lib/orderQuote';
-import { DIAL_CODES, POPULAR_DIAL_CODES, dialLabel, countryName } from '../lib/countryCodes';
+import { useOrderQuote, fetchOrderQuote, SPACING_OPTIONS, DEFAULT_SPACING, pagesFor, deadlineAtFrom, type OrderQuote, type Spacing, localDateString } from '../lib/orderQuote';
+import { DIAL_CODES, POPULAR_DIAL_CODES, dialLabel, countryName, currencyForDial } from '../lib/countryCodes';
+
+// The currencies always offered in the calculator; the customer's own is added when different.
+const MAIN_CURRENCIES = ['INR', 'GBP', 'USD', 'EUR', 'AUD', 'CAD'];
+const SYMBOLS: Record<string, string> = { INR: '₹', GBP: '£', USD: '$', EUR: '€', AUD: 'A$', CAD: 'C$' };
+const currencySymbolOf = (code: string) => {
+  if (SYMBOLS[code]) return SYMBOLS[code];
+  try {
+    const sym = new Intl.NumberFormat('en', { style: 'currency', currency: code, currencyDisplay: 'narrowSymbol' }).formatToParts(0).find(p => p.type === 'currency')?.value;
+    return sym && sym !== code ? sym : `${code} `;
+  } catch { return `${code} `; }
+};
 import { api } from '../lib/api';
 import type { Coupon } from '../lib/charges';
 
@@ -48,7 +59,8 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
   const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState<boolean>(true);
-  const [currency, setCurrency] = useState<'₹' | '£' | '$' | '€' | 'A$' | 'C$'>('₹');
+  // Currency code (ISO 4217). It follows the phone country code; the customer can still pick another.
+  const [currency, setCurrency] = useState<string>('INR');
   const [showDetailsSection, setShowDetailsSection] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -119,11 +131,17 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
 
   // Price comes from the server quote (the same one the order form and the order use).
   const orderService: ServiceType = (service as ServiceType) || (selectedTrack === 'Technical' ? 'Programming Assignment Help' : selectedTrack === 'Online Class' ? 'Take My Online Class' : 'Academic Writing');
-  const quoteInput = { words, spacing, deadlineAt: deadlineAtFrom(deadline, deadlineTime), currency: CURRENCY_BY_SYMBOL[currency] };
+  const quoteInput = { words, spacing, deadlineAt: deadlineAtFrom(deadline, deadlineTime), currency };
   const { quote, lastQuote, ensure, error: quoteError } = useOrderQuote(quoteInput, { enabled: words > 0 });
   const shownQuote = quote || lastQuote;
 
   const calculatedPrice = words === 0 ? 0 : shownQuote?.total ?? 0;
+  const currencySymbol = currencySymbolOf(currency);
+  const currencyOptions = MAIN_CURRENCIES.includes(currency) ? MAIN_CURRENCIES : [...MAIN_CURRENCIES, currency];
+  // No live rate for the customer's own currency: fall back to US dollars.
+  useEffect(() => {
+    if (quoteError && /available right now/.test(quoteError) && !MAIN_CURRENCIES.includes(currency)) setCurrency('USD');
+  }, [quoteError, currency]);
   const originalCatalogPrice = Math.round(calculatedPrice * 2.04);
 
   // Coupon: checked by the server here and again when the order is placed.
@@ -946,7 +964,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                   <div className={`flex rounded-[6px] overflow-hidden border ${contactErrors.phone ? 'border-red-500' : 'border-[#d1d5db]'} bg-white focus-within:border-[#eb6200] focus-within:shadow-[0_0_0_3px_rgba(235,98,0,0.10)] transition-all`}>
                     <select
                       value={countryCode}
-                      onChange={(e) => setCountryCode(e.target.value)}
+                      onChange={(e) => { setCountryCode(e.target.value); setCurrency(currencyForDial(e.target.value)); }}
                       className="bg-transparent px-2 py-[10px] text-sm font-medium text-[#374151] outline-none border-r border-[#d1d5db] cursor-pointer"
                     >
                       <optgroup label="Popular">
@@ -1210,14 +1228,15 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-black text-[#000a1e] uppercase tracking-wide">ESTIMATED COST</span>
                   <div className="flex items-center gap-1 bg-gray-100/70 p-0.5 rounded-full text-[13px] font-bold text-gray-600">
-                    {(['₹', '£', '$', '€', 'A$', 'C$'] as const).map((curr) => (
+                    {currencyOptions.map((curr) => (
                       <button
                         key={curr}
                         type="button"
+                        title={curr}
                         onClick={() => setCurrency(curr)}
                         className={`px-2 py-0.5 rounded-full transition-all cursor-pointer ${currency === curr ? 'bg-[#eb6200] text-white shadow-sm' : 'hover:text-[#eb6200]'}`}
                       >
-                        {curr}
+                        {currencySymbolOf(curr)}
                       </button>
                     ))}
                   </div>
@@ -1227,7 +1246,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                   <div className="flex flex-col gap-1">
                     {calculatedPrice > 0 && (
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[13px] text-gray-400 line-through font-semibold">{currency}{originalCatalogPrice}</span>
+                        <span className="text-[13px] text-gray-400 line-through font-semibold">{currencySymbol}{originalCatalogPrice}</span>
                         <span className="text-xs font-extrabold bg-[#fea520]/20 text-[#c85600] px-2 py-0.5 rounded-full">
                           Save 51%
                         </span>
@@ -1245,7 +1264,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     )}
                   </div>
                   <div className="flex items-start text-[#1a1a2e]">
-                    <span className="text-[24px] font-black mt-1 mr-1">{currency}</span>
+                    <span className="text-[24px] font-black mt-1 mr-1">{currencySymbol}</span>
                     <span className="text-[46px] font-black tracking-tighter leading-none">
                       {animatedPrice}
                     </span>
@@ -1268,4 +1287,4 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
     </section>
   );
 };
-
+
