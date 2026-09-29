@@ -40,10 +40,22 @@ const r2 = usingR2
     })
     : null;
 
-const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
-export const usingCloudinary = !usingR2 && Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET);
-if (usingCloudinary)
-    cloudinary.config({ cloud_name: CLOUDINARY_CLOUD_NAME, api_key: CLOUDINARY_API_KEY, api_secret: CLOUDINARY_API_SECRET, secure: true });
+// Either the three CLOUDINARY_* values or a single CLOUDINARY_URL
+// (cloudinary://<key>:<secret>@<cloud name>) as shown on the API Keys page.
+const env = (name) => (process.env[name] || '').trim();
+const cldFromUrl = (() => {
+    const m = /^cloudinary:\/\/([^:]+):([^@]+)@(.+)$/.exec(env('CLOUDINARY_URL'));
+    return m ? { api_key: m[1], api_secret: m[2], cloud_name: m[3] } : null;
+})();
+const cldConfig = env('CLOUDINARY_CLOUD_NAME') && env('CLOUDINARY_API_KEY') && env('CLOUDINARY_API_SECRET')
+    ? { cloud_name: env('CLOUDINARY_CLOUD_NAME'), api_key: env('CLOUDINARY_API_KEY'), api_secret: env('CLOUDINARY_API_SECRET') }
+    : cldFromUrl;
+const CLOUDINARY_CLOUD_NAME = cldConfig?.cloud_name;
+export const usingCloudinary = !usingR2 && Boolean(cldConfig);
+if (usingCloudinary) cloudinary.config({ ...cldConfig, secure: true });
+
+/** Where uploads are kept: 'r2', 'cloudinary' or 'local' (lost on redeploy). */
+export const storageMode = usingR2 ? 'r2' : usingCloudinary ? 'cloudinary' : 'local';
 // Stored as private raw files: nothing is reachable without a signed request.
 const CLD = { resource_type: 'raw', type: 'private' };
 const publicIdOf = (area, name) => `assignmentminds/${keyOf(area, name)}`;
@@ -64,7 +76,11 @@ export async function saveFile(tempPath, area, name, contentType = 'application/
         return;
     }
     if (usingCloudinary) {
-        await cloudinary.uploader.upload(tempPath, { ...CLD, public_id: publicIdOf(area, name), overwrite: true, invalidate: true });
+        await cloudinary.uploader.upload(tempPath, { ...CLD, public_id: publicIdOf(area, name), overwrite: true, invalidate: true })
+            .catch(err => {
+                console.error(`[Files] Cloudinary upload failed for ${publicIdOf(area, name)}:`, err?.message || err?.error?.message || err);
+                throw err;
+            });
         await fs.promises.unlink(tempPath).catch(() => {});
         return;
     }
@@ -88,8 +104,11 @@ export async function openFile(area, name) {
             ...CLD, expires_at: Math.floor(Date.now() / 1000) + 300,
         });
         const res = await fetch(url);
-        if (res.status === 404) return null;
-        if (!res.ok) throw new Error(`Cloudinary download failed (${res.status}).`);
+        if (res.status === 404) { console.warn(`[Files] not in Cloudinary: ${publicIdOf(area, name)}`); return null; }
+        if (!res.ok) {
+            console.error(`[Files] Cloudinary download failed (${res.status}) for ${publicIdOf(area, name)}: ${(await res.text().catch(() => '')).slice(0, 200)}`);
+            throw new Error(`Cloudinary download failed (${res.status}).`);
+        }
         return Readable.fromWeb(res.body);
     }
     try {
