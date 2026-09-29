@@ -358,7 +358,8 @@ const OrderDetailDrawer = ({
             }, token);
             onUpdate(data.order);
             setSaved(true);
-            setTimeout(() => setSaved(false), 2500);
+            // Show the confirmation briefly, then close the drawer.
+            setTimeout(onClose, 700);
         } catch (e: any) { showAlert(e.message); }
         finally { setSaving(false); }
     };
