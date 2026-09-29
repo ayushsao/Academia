@@ -16,14 +16,16 @@ function Shell({ children }: { children: (openOrder: () => void) => React.ReactN
     const [orderOpen, setOrderOpen] = useState(false);
     const [signInOpen, setSignInOpen] = useState(false);
     const [drawerOpen, setDrawerOpen] = useState(false);
-    const openOrder = () => setOrderOpen(true);
+    const [orderConfig, setOrderConfig] = useState<React.ComponentProps<typeof OrderModal>['initialConfig']>({});
+    const openOrder = () => { setOrderConfig({}); setOrderOpen(true); };
+    const orderFromDrawer = (cfg: React.ComponentProps<typeof OrderModal>['initialConfig']) => { setOrderConfig(cfg || {}); setOrderOpen(true); };
     return (
         <div className="flex min-h-screen flex-col bg-white font-sans">
             <Navbar onOpenOrder={openOrder} onOpenSignIn={() => setSignInOpen(true)} onOpenDrawer={() => setDrawerOpen(true)} activeSection="" onNavigate={() => { }} />
             <main className="flex-grow">{children(openOrder)}</main>
             <Footer onOpenOrder={openOrder} onOpenSignIn={() => setSignInOpen(true)} onNavigate={() => { }} />
-            <SideDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} onProceedToOrder={openOrder} />
-            <OrderModal isOpen={orderOpen} onClose={() => setOrderOpen(false)} />
+            <SideDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} onProceedToOrder={orderFromDrawer} />
+            <OrderModal isOpen={orderOpen} onClose={() => setOrderOpen(false)} initialConfig={orderConfig} />
             <SignInModal isOpen={signInOpen} onClose={() => setSignInOpen(false)} />
         </div>
     );

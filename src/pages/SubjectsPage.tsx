@@ -15,6 +15,7 @@ export function SubjectsPage() {
     const [orderOpen, setOrderOpen] = useState(false);
     const [signInOpen, setSignInOpen] = useState(false);
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [orderConfig, setOrderConfig] = useState<React.ComponentProps<typeof OrderModal>['initialConfig']>({});
     const subjects = tree?.subjects || [];
 
     usePageMeta('/subjects');
@@ -44,8 +45,8 @@ export function SubjectsPage() {
                 </div>
             </main>
             <Footer onOpenOrder={() => setOrderOpen(true)} onOpenSignIn={() => setSignInOpen(true)} onNavigate={() => { }} />
-            <SideDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} onProceedToOrder={() => setOrderOpen(true)} />
-            <OrderModal isOpen={orderOpen} onClose={() => setOrderOpen(false)} />
+            <SideDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} onProceedToOrder={(cfg) => { setOrderConfig(cfg); setOrderOpen(true); }} />
+            <OrderModal isOpen={orderOpen} onClose={() => { setOrderOpen(false); setOrderConfig({}); }} initialConfig={orderConfig} />
             <SignInModal isOpen={signInOpen} onClose={() => setSignInOpen(false)} />
         </div>
     );

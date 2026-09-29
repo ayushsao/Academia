@@ -7,17 +7,9 @@ import {
 import { ServiceType, SubjectType } from '../types';
 import { useOrderQuote, fetchOrderQuote, SPACING_OPTIONS, DEFAULT_SPACING, pagesFor, deadlineAtFrom, type OrderQuote, type Spacing, localDateString } from '../lib/orderQuote';
 import { DIAL_CODES, POPULAR_DIAL_CODES, dialLabel, countryName, currencyForDial } from '../lib/countryCodes';
+import { MAIN_CURRENCIES, currencySymbolOf } from '../lib/currencyDisplay';
 
 // The currencies always offered in the calculator; the customer's own is added when different.
-const MAIN_CURRENCIES = ['INR', 'GBP', 'USD', 'EUR', 'AUD', 'CAD'];
-const SYMBOLS: Record<string, string> = { INR: '₹', GBP: '£', USD: '$', EUR: '€', AUD: 'A$', CAD: 'C$' };
-const currencySymbolOf = (code: string) => {
-  if (SYMBOLS[code]) return SYMBOLS[code];
-  try {
-    const sym = new Intl.NumberFormat('en', { style: 'currency', currency: code, currencyDisplay: 'narrowSymbol' }).formatToParts(0).find(p => p.type === 'currency')?.value;
-    return sym && sym !== code ? sym : `${code} `;
-  } catch { return `${code} `; }
-};
 import { api } from '../lib/api';
 import type { Coupon } from '../lib/charges';
 import { Stars } from './ui/Stars';

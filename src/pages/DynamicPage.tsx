@@ -16,6 +16,8 @@ import { Eyebrow } from '../components/ui/Eyebrow';
 
 export const DynamicPage: React.FC = () => {
     const { slug } = useParams<{ slug: string }>();
+    // What the Instant Quote drawer passes on to the order form (quote, contact details).
+    const [drawerOrderConfig, setDrawerOrderConfig] = useState<React.ComponentProps<typeof OrderModal>['initialConfig']>({});
     const navigate = useNavigate();
 
     // Modal & Drawer visibility states
@@ -1070,8 +1072,8 @@ export const DynamicPage: React.FC = () => {
                 </span>
             </button>
 
-            <SideDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} onProceedToOrder={() => setOrderModalOpen(true)} />
-            <OrderModal isOpen={orderModalOpen} onClose={() => setOrderModalOpen(false)} />
+            <SideDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} onProceedToOrder={(cfg) => { setDrawerOrderConfig(cfg); setOrderModalOpen(true); }} />
+            <OrderModal isOpen={orderModalOpen} onClose={() => { setOrderModalOpen(false); setDrawerOrderConfig({}); }} initialConfig={drawerOrderConfig} />
             <SignInModal isOpen={signInModalOpen} onClose={() => setSignInModalOpen(false)} />
         </div>
     );

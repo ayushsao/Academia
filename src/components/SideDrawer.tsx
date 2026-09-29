@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   X,
   Calculator,
@@ -9,10 +9,14 @@ import {
   ArrowRight,
   Minus,
   Plus,
-  Check
+  Check,
+  Mail,
+  Phone
 } from 'lucide-react';
 import { ServiceType, SubjectType } from '../types';
 import { useOrderQuote, deadlineAtFrom, wordsPerPageFor, DEFAULT_SPACING, type OrderQuote, localDateString } from '../lib/orderQuote';
+import { DIAL_CODES, POPULAR_DIAL_CODES, dialLabel, countryName, currencyForDial } from '../lib/countryCodes';
+import { MAIN_CURRENCIES, currencySymbolOf } from '../lib/currencyDisplay';
 
 interface SideDrawerProps {
   isOpen: boolean;
@@ -23,6 +27,7 @@ interface SideDrawerProps {
     pages: number;
     deadline: string;
     quote?: OrderQuote;
+    instructions?: string;
   }) => void;
 }
 
@@ -42,6 +47,12 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
   const [selectedSubject, setSelectedSubject] = useState<SubjectType | ''>('');
   const [pages, setPages] = useState<number>(0);
   const [deadline, setDeadline] = useState<string>(getNextWeek());
+  // Contact details (required) — the phone's country sets the quote currency.
+  const [email, setEmail] = useState('');
+  const [countryCode, setCountryCode] = useState('IN(+91)');
+  const [phone, setPhone] = useState('');
+  const [currency, setCurrency] = useState('INR');
+  const [contactErrors, setContactErrors] = useState<{ email?: string; phone?: string }>({});
 
   const servicesList: { name: ServiceType; desc: string }[] = [
     { name: 'Academic Writing', desc: 'Original essays, research papers, and assignments' },
@@ -82,13 +93,22 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
 
   // Totals come from the server (priced by words and deadline); the same quote is handed to the order form.
   const words = pages * wordsPerPageFor(DEFAULT_SPACING);
-  const { quote, lastQuote, ensure } = useOrderQuote(
-    { words, spacing: DEFAULT_SPACING, deadlineAt: deadlineAtFrom(deadline, '10:00 PM'), currency: 'GBP' },
+  const { quote, lastQuote, ensure, error: quoteError } = useOrderQuote(
+    { words, spacing: DEFAULT_SPACING, deadlineAt: deadlineAtFrom(deadline, '10:00 PM'), currency },
     { enabled: isOpen && pages > 0 },
   );
   const totalPrice = pages > 0 ? (quote || lastQuote)?.total ?? 0 : 0;
+  // No live rate for the customer's own currency: fall back to US dollars.
+  useEffect(() => {
+    if (quoteError && /available right now/.test(quoteError) && !MAIN_CURRENCIES.includes(currency)) setCurrency('USD');
+  }, [quoteError, currency]);
 
   const handleProceed = async () => {
+    const errs: { email?: string; phone?: string } = {};
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) errs.email = email.trim() ? 'Enter a valid email address.' : 'Email is required.';
+    if (!/^\d{6,15}$/.test(phone.replace(/[\s()+-]/g, ''))) errs.phone = phone.trim() ? 'Enter a valid phone number.' : 'Phone number is required.';
+    setContactErrors(errs);
+    if (errs.email || errs.phone) return;
     let finalQuote: OrderQuote | undefined;
     if (pages > 0) { try { finalQuote = await ensure(); } catch { finalQuote = undefined; } }
     onProceedToOrder({
@@ -97,6 +117,7 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
       pages,
       deadline: `${deadline} (10:00 PM)`,
       quote: finalQuote,
+      instructions: `Contact: ${email.trim()} | Phone: ${countryCode} ${phone.trim()}`,
     });
     onClose();
   };
@@ -279,6 +300,50 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
             )}
           </nav>
 
+          {/* Contact details */}
+          <div className="bg-white/80 rounded-2xl p-4 border border-[#d1e4ff] mb-4 shadow-sm space-y-3">
+            <span className="text-xs font-bold text-[#44474e] uppercase">Your details</span>
+            <div>
+              <div className={`flex items-center gap-2 bg-[#eef4ff] rounded-xl px-3 border ${contactErrors.email ? 'border-red-500' : 'border-transparent'} focus-within:border-[#eb6200] transition-colors`}>
+                <Mail className="w-4 h-4 text-[#708ab5] shrink-0" aria-hidden="true" />
+                <input
+                  type="email" inputMode="email" autoComplete="email" placeholder="Email address *"
+                  aria-label="Email address (required)" aria-invalid={!!contactErrors.email} aria-required="true"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); if (contactErrors.email) setContactErrors(p => ({ ...p, email: undefined })); }}
+                  className="w-full bg-transparent py-2.5 text-sm text-[#000a1e] placeholder:text-[#9ca3af] outline-none"
+                />
+              </div>
+              {contactErrors.email && <p role="alert" className="mt-1 text-xs font-semibold text-red-600">{contactErrors.email}</p>}
+            </div>
+            <div>
+              <div className={`flex items-center bg-[#eef4ff] rounded-xl border ${contactErrors.phone ? 'border-red-500' : 'border-transparent'} focus-within:border-[#eb6200] transition-colors overflow-hidden`}>
+                <select
+                  value={countryCode}
+                  aria-label="Country code"
+                  onChange={(e) => { setCountryCode(e.target.value); setCurrency(currencyForDial(e.target.value)); }}
+                  className="bg-transparent pl-3 pr-1 py-2.5 text-sm font-semibold text-[#000a1e] outline-none border-r border-[#d1e4ff] cursor-pointer"
+                >
+                  <optgroup label="Popular">
+                    {POPULAR_DIAL_CODES.map(c => <option key={`p-${c[0]}`} value={dialLabel(c)} title={countryName(c[0])}>{dialLabel(c)}</option>)}
+                  </optgroup>
+                  <optgroup label="All countries">
+                    {DIAL_CODES.filter(c => !POPULAR_DIAL_CODES.some(p => p[0] === c[0])).map(c => <option key={c[0]} value={dialLabel(c)} title={countryName(c[0])}>{dialLabel(c)}</option>)}
+                  </optgroup>
+                </select>
+                <Phone className="w-4 h-4 text-[#708ab5] shrink-0 ml-2.5" aria-hidden="true" />
+                <input
+                  type="tel" inputMode="tel" autoComplete="tel-national" placeholder="Phone number *"
+                  aria-label="Phone number (required)" aria-invalid={!!contactErrors.phone} aria-required="true"
+                  value={phone}
+                  onChange={(e) => { setPhone(e.target.value.replace(/[^\d\s()+-]/g, '')); if (contactErrors.phone) setContactErrors(p => ({ ...p, phone: undefined })); }}
+                  className="w-full bg-transparent px-2 py-2.5 text-sm text-[#000a1e] placeholder:text-[#9ca3af] outline-none"
+                />
+              </div>
+              {contactErrors.phone && <p role="alert" className="mt-1 text-xs font-semibold text-red-600">{contactErrors.phone}</p>}
+            </div>
+          </div>
+
           {/* Length (Pages) adjuster */}
           <div className="bg-white/80 rounded-2xl p-4 border border-[#d1e4ff] mb-6 shadow-sm">
             <div className="flex justify-between items-center mb-2">
@@ -310,10 +375,10 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
             <div className="flex justify-between items-baseline mb-4 bg-white/70 p-3.5 rounded-xl border border-white">
               <div>
                 <span className="text-xs text-[#708ab5] font-semibold block uppercase">Estimated Quote</span>
-                <span className="text-[11px] text-[#6e6e73] font-medium">Includes Unlimited Revisions</span>
+                <span className="text-[11px] text-[#6e6e73] font-medium">Includes Unlimited Revisions · {currency}</span>
               </div>
               <span className="text-3xl font-extrabold text-[#000a1e]">
-                £ {totalPrice}
+                {currencySymbolOf(currency)}{totalPrice.toLocaleString()}
               </span>
             </div>
 
