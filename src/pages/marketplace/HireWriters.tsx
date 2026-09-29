@@ -28,7 +28,7 @@ function SampleWriterCard({ s, onOpen }: { s: SampleWriter; onOpen: () => void }
             <div className="mt-4 flex flex-wrap gap-1.5">
                 {s.subjects.map(x => <span key={x} className="rounded-md bg-[#002147]/[0.05] px-2 py-1 text-xs font-medium text-[#002147]">{x}</span>)}
             </div>
-            <span className="mt-auto inline-flex items-center gap-1 pt-5 text-sm font-semibold text-[#002147]">View sample profile <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" /></span>
+            <span className="mt-auto inline-flex items-center gap-1 pt-5 text-sm font-semibold text-[#002147]">View profile <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" /></span>
         </button>
     );
 }
