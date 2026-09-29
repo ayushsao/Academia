@@ -7,6 +7,7 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { API } from '../lib/api';
+import { Eyebrow } from './ui/Eyebrow';
 
 export const ContactSection: React.FC = () => {
     const formRef = useRef<HTMLFormElement>(null);
@@ -83,9 +84,7 @@ export const ContactSection: React.FC = () => {
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#fea520]/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3"></div>
 
             <div className="flex justify-center mb-6">
-                <span className="inline-block px-4 py-1 rounded-full bg-[#fea520]/10 text-[#e09510] font-bold text-xs tracking-wide uppercase">
-                    GET IN TOUCH
-                </span>
+                <Eyebrow>Get in touch</Eyebrow>
             </div>
 
             <ContactCard

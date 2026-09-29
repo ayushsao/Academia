@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePageMeta } from '../lib/usePageMeta';
+import { Eyebrow } from '../components/ui/Eyebrow';
 
 const SUBJECT_CATEGORIES = [
     'All Subjects',
@@ -141,10 +142,7 @@ export const ReviewsPage: React.FC = () => {
             <header className="relative bg-gradient-to-b from-[#000a1e] to-[#041a3a] text-white pt-16 pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
                 <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fea520_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
                 <div className="max-w-6xl mx-auto text-center relative z-10">
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 text-white/90 text-xs font-bold uppercase tracking-wider mb-6 border border-white/10">
-                        <ShieldCheck className="w-4 h-4 text-[#fea520]" />
-                        100% Verified Student Reviews
-                    </div>
+                    <Eyebrow tone="light" className="mb-6">Student reviews</Eyebrow>
 
                     <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight">
                         Real Feedback From <br className="hidden sm:inline" />
@@ -402,9 +400,7 @@ export const ReviewsPage: React.FC = () => {
                 {/* Trust Guarantee Banner */}
                 <div className="mt-16 bg-gradient-to-r from-[#000a1e] to-[#041a3a] rounded-3xl p-8 sm:p-12 text-white relative overflow-hidden shadow-xl">
                     <div className="relative z-10 max-w-3xl">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#fea520]/20 text-[#fea520] text-xs font-bold uppercase tracking-wider mb-4">
-                            <Award className="w-4 h-4" /> Guaranteed Excellence
-                        </div>
+                        <Eyebrow tone="light" className="mb-4">What every order includes</Eyebrow>
                         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
                             Every Paper Comes With Guaranteed Turnitin Clearance & Distinction Support
                         </h2>

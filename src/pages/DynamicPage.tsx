@@ -12,6 +12,7 @@ import { openRazorpayCheckout } from '../lib/razorpay';
 import { usePageMeta } from '../lib/usePageMeta';
 import { SERVICE_GUIDES } from '../data/serviceGuides';
 import { showPrompt } from '../lib/dialog';
+import { Eyebrow } from '../components/ui/Eyebrow';
 
 export const DynamicPage: React.FC = () => {
     const { slug } = useParams<{ slug: string }>();
@@ -531,9 +532,7 @@ export const DynamicPage: React.FC = () => {
                 {slug === 'blogs' ? (
                     <div className="w-full max-w-7xl">
                         <div className="text-center mb-16">
-                            <span className="inline-block px-4 py-1.5 rounded-full bg-[#fea520]/10 text-[#e37e25] font-bold text-sm tracking-wide mb-4 uppercase">
-                                Resources & Articles
-                            </span>
+                            <Eyebrow className="mb-4">Resources &amp; articles</Eyebrow>
                             <h1 className="text-4xl md:text-5xl font-black text-[#000a1e] mb-4">
                                 Assignment<span className="text-[#fea520]">Minds</span> Blog
                             </h1>
@@ -926,9 +925,7 @@ export const DynamicPage: React.FC = () => {
                 ) : (
                     <div className="w-full max-w-6xl flex flex-col items-center gap-16">
                         <div className="max-w-4xl w-full bg-white/80 backdrop-blur-xl rounded-3xl p-8 md:p-12 shadow-[0_20px_50px_rgba(0,10,30,0.05)] border border-white text-center mt-8">
-                            <span className="inline-block px-4 py-1.5 rounded-full bg-[#fea520]/10 text-[#e37e25] font-bold text-sm tracking-wide mb-4 uppercase">
-                                Premium Service
-                            </span>
+                            <Eyebrow className="mb-4">Academic writing service</Eyebrow>
                             <h1 className="text-4xl md:text-5xl font-black text-[#000a1e] mb-4 leading-tight">
                                 {content.title}
                             </h1>

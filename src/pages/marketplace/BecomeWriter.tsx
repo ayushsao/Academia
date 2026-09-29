@@ -11,6 +11,7 @@ import { usePageMeta } from '../../lib/usePageMeta';
 import { useStore } from '../../store/useStore';
 import { useMarketplaceContent, DEFAULT_MARKETPLACE_CONTENT, type JourneyStep } from '../../lib/marketplaceContent';
 import { Spinner } from '../../components/writer/WriterBits';
+import { Eyebrow } from '../../components/ui/Eyebrow';
 
 const STEP_ICONS: Record<JourneyStep['key'], React.ElementType> = {
     REGISTER: UserRound, PROFILE: ClipboardCheck, APPROVAL: BadgeCheck,
@@ -39,9 +40,7 @@ export default function BecomeWriter() {
                 <section className="mx-auto grid max-w-7xl items-start gap-12 px-4 py-6 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:py-8">
                     <div className="lg:self-center">
                         {r.hero.eyebrow && (
-                            <p className="inline-flex items-center gap-2 rounded-full border border-[#002147]/10 bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-[#002147]">
-                                <span className="h-1.5 w-1.5 rounded-full bg-[#fea520]" /> {r.hero.eyebrow}
-                            </p>
+                            <Eyebrow>{r.hero.eyebrow}</Eyebrow>
                         )}
                         <h1 className="mt-6 text-4xl font-extrabold leading-[1.05] tracking-tight text-[#0b1b33] sm:text-6xl">
                             {r.hero.title}
