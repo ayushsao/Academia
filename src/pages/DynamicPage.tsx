@@ -10,6 +10,7 @@ import { API, api } from '../lib/api';
 import { coverSrc, type BlogCard, type BlogList } from '../lib/blog';
 import { openRazorpayCheckout } from '../lib/razorpay';
 import { usePageMeta } from '../lib/usePageMeta';
+import { SERVICE_GUIDES } from '../data/serviceGuides';
 
 export const DynamicPage: React.FC = () => {
     const { slug } = useParams<{ slug: string }>();
@@ -294,6 +295,7 @@ export const DynamicPage: React.FC = () => {
             desc: fallbackDesc,
             benefits: ['Guaranteed A+ Quality', 'Under 24-Hour Delivery Available', 'Direct Communication with Experts']
         };
+    const guide = slug ? SERVICE_GUIDES[slug] : undefined;
     usePageMeta(`/p/${slug}`, { title: `${content.title} | AssignmentMinds`, description: content.desc });
 
     useEffect(() => {
@@ -1008,6 +1010,47 @@ export const DynamicPage: React.FC = () => {
                                 </button>
                             </div>
                         </div>
+
+                        {guide && (
+                            <article className="w-full max-w-4xl px-4 md:px-0 pb-16 text-left">
+                                <h2 className="text-3xl md:text-4xl font-black text-[#000a1e] mb-6 leading-tight">{guide.heading}</h2>
+                                {guide.intro.map((para, i) => (
+                                    <p key={i} className="text-base md:text-lg text-gray-600 leading-relaxed mb-4">{para}</p>
+                                ))}
+                                {guide.sections.map(section => (
+                                    <section key={section.title} className="mt-10">
+                                        <h2 className="text-2xl md:text-3xl font-bold text-[#000a1e] mb-4">{section.title}</h2>
+                                        {section.body.map((para, i) => (
+                                            <p key={i} className="text-base md:text-lg text-gray-600 leading-relaxed mb-4">{para}</p>
+                                        ))}
+                                        {section.points && (
+                                            <ul className="grid gap-3 sm:grid-cols-2">
+                                                {section.points.map(point => (
+                                                    <li key={point} className="flex items-start gap-3 rounded-2xl bg-white border border-gray-100 p-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+                                                        <CheckCircle2 className="w-5 h-5 text-[#eb6200] shrink-0 mt-0.5" />
+                                                        <span className="text-[15px] text-[#1d1d1f] leading-snug">{point}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </section>
+                                ))}
+                                <section className="mt-12">
+                                    <h2 className="text-2xl md:text-3xl font-bold text-[#000a1e] mb-5">Frequently asked questions</h2>
+                                    <div className="space-y-3">
+                                        {guide.faqs.map(faq => (
+                                            <details key={faq.question} className="group rounded-2xl bg-white border border-gray-100 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+                                                <summary className="cursor-pointer list-none flex items-center justify-between gap-4 font-bold text-[#000a1e]">
+                                                    <h3 className="text-base md:text-lg">{faq.question}</h3>
+                                                    <span className="text-[#eb6200] text-xl transition-transform group-open:rotate-45">+</span>
+                                                </summary>
+                                                <p className="mt-3 text-gray-600 leading-relaxed">{faq.answer}</p>
+                                            </details>
+                                        ))}
+                                    </div>
+                                </section>
+                            </article>
+                        )}
                     </div>
                 )}
             </main>
