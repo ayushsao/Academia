@@ -30,7 +30,7 @@
       "destination": "https://academia-iw7x.onrender.com/api/catalog/sitemap.xml"
     },
     {
-      "source": "/((?!assets/).*)",
+      "source": "/((?!assets/|_vercel/).*)",
       "destination": "/index.html"
     }
   ]

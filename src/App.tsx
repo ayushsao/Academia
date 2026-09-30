@@ -5,6 +5,7 @@ import { useStore } from './store/useStore';
 import { lazyPage, PageErrorBoundary } from './lib/lazyPage';
 import { DialogHost } from './lib/dialog';
 import { SmoothScroll, scrollToTopNow } from './lib/smoothScroll';
+import { Analytics } from '@vercel/analytics/react';
 
 // Every page except Home is loaded on demand, so a first visit only downloads
 // what the landing page needs (admin, dashboards and tools come later, if ever).
@@ -196,6 +197,7 @@ export default function App() {
             </PageErrorBoundary>
             <DeferredChatWidget />
             <DialogHost />
+            <Analytics />
         </BrowserRouter>
     );
 }
