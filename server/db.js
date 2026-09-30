@@ -918,6 +918,21 @@ export const AssignmentSubmission = mongoose.model('AssignmentSubmission', assig
 export const WriterEarning = mongoose.model('WriterEarning', writerEarningSchema);
 export const AssignmentRating = mongoose.model('AssignmentRating', assignmentRatingSchema);
 export const Message = mongoose.model('Message', messageSchema);
+// Customer ↔ support chat. A thread is either the customer's general support
+// chat (threadKey "g:<userId>") or one order's chat ("o:<orderId>").
+const supportMessageSchema = new mongoose.Schema({
+  threadKey: { type: String, required: true },
+  userId: { type: ObjectId, ref: 'User', required: true, index: true },   // the customer
+  orderId: { type: String, default: null },
+  sender: { type: String, required: true, enum: ['CUSTOMER', 'ADMIN'] },
+  senderName: { type: String, default: '' },
+  body: { type: String, required: true, maxlength: 2000 },
+  readByAdminAt: { type: Date, default: null },
+  readByCustomerAt: { type: Date, default: null },
+}, { timestamps: true });
+supportMessageSchema.index({ threadKey: 1, createdAt: 1 });
+supportMessageSchema.index({ createdAt: -1 });
+export const SupportMessage = mongoose.model('SupportMessage', supportMessageSchema);
 export const Notification = mongoose.model('Notification', notificationSchema);
 export const AuditLog = mongoose.model('AuditLog', auditLogSchema);
 export const NotificationPreference = mongoose.model('NotificationPreference', notificationPreferenceSchema);

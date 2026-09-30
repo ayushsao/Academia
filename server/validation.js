@@ -441,6 +441,12 @@ export const validateInput = (schema, source = 'body') => (req, res, next) => {
     next();
 };
 
+// Support chat messages. `thread` is "general" or an order ID (customer side only).
+export const supportMessageSchema = z.object({
+    thread: z.string().trim().max(40).optional(),
+    body: z.string().trim().min(1, 'Type a message.').max(2000, 'Messages can be up to 2,000 characters.'),
+});
+
 // A writer deleting their own account types DELETE to confirm.
 export const writerDeleteAccountSchema = z.object({
     confirm: z.literal('DELETE', { message: 'Type DELETE to confirm.' }),

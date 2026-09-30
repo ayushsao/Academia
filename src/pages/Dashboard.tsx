@@ -7,9 +7,10 @@ import { WhatsAppPaymentReference } from '../components/WhatsAppPaymentReference
 import { byKind, kindLabel } from '../lib/submissionKinds';
 import { AcademiaLogo } from '../components/AcademiaLogo';
 
-import { API } from '../lib/api';
+import { API, api } from '../lib/api';
 import { formatOrderTotal } from '../lib/money';
 import { showAlert, showConfirm } from '../lib/dialog';
+import { CustomerMessages } from '../components/support/CustomerMessages';
 
 // Normalise legacy/new status values for display
 const normaliseStatus = (s: string): string => {
@@ -70,7 +71,16 @@ export const Dashboard: React.FC = () => {
     const { user, token, orders, logout, setOrders } = useStore();
     const navigate = useNavigate();
     const [orderModalOpen, setOrderModalOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'loyalty' | 'resources'>('orders');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'loyalty' | 'resources' | 'messages'>('orders');
+    // Support chat: which conversation to open, and unread replies for the badge.
+    const [chatThread, setChatThread] = useState<string | undefined>(undefined);
+    const [unreadMessages, setUnreadMessages] = useState(0);
+    const openChat = (thread: string) => { setChatThread(thread); setActiveTab('messages'); };
+    useEffect(() => {
+        api<{ threads: { unread: number }[] }>('/support/threads')
+            .then(d => setUnreadMessages(d.threads.reduce((n, t) => n + t.unread, 0)))
+            .catch(() => { /* the badge is optional */ });
+    }, []);
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
     const [uploadingForOrder, setUploadingForOrder] = useState<string | null>(null);
     const studentFileInputRefs = React.useRef<Record<string, HTMLInputElement | null>>({});
@@ -275,6 +285,14 @@ export const Dashboard: React.FC = () => {
                         <Layers className="w-5 h-5" />
                         <span className={`text-xs ${activeTab === 'resources' ? 'font-bold' : 'font-semibold'}`}>Resources</span>
                     </button>
+                    <button
+                        onClick={() => setActiveTab('messages')}
+                        className={`relative flex flex-col items-center gap-1 transition-colors ${activeTab === 'messages' ? 'text-white border-b-2 border-white pb-1 pt-1' : 'hover:text-white opacity-60 pt-1 pb-1 border-b-2 border-transparent'}`}
+                    >
+                        <MessageCircle className="w-5 h-5" />
+                        <span className={`text-xs ${activeTab === 'messages' ? 'font-bold' : 'font-semibold'}`}>Messages</span>
+                        {unreadMessages > 0 && <span className="absolute -top-1 right-0 min-w-[18px] rounded-full bg-[#fea520] px-1 text-center text-[10px] font-bold leading-[18px] text-[#000a1e]">{unreadMessages}</span>}
+                    </button>
                 </div>
 
                 {/* Mobile Bottom Navigation Bar (Fixed) */}
@@ -294,6 +312,11 @@ export const Dashboard: React.FC = () => {
                     <button onClick={() => setActiveTab('loyalty')} className={`flex flex-col items-center gap-1 text-[#fea520] transition-opacity ${activeTab === 'loyalty' ? 'opacity-100' : 'opacity-70'}`}>
                         <Coins className="w-5 h-5" />
                         <span className="text-[10px] font-bold">Loyalty</span>
+                    </button>
+                    <button onClick={() => setActiveTab('messages')} className={`relative flex flex-col items-center gap-1 text-white transition-opacity ${activeTab === 'messages' ? 'opacity-100' : 'opacity-70'}`}>
+                        <MessageCircle className="w-5 h-5" />
+                        <span className="text-[10px] font-bold">Messages</span>
+                        {unreadMessages > 0 && <span className="absolute -top-1.5 -right-1 min-w-[16px] rounded-full bg-[#fea520] px-1 text-center text-[9px] font-bold leading-[16px] text-[#000a1e]">{unreadMessages}</span>}
                     </button>
                 </div>
 
@@ -337,6 +360,9 @@ export const Dashboard: React.FC = () => {
 
                 {/* Left Side Main Content Base on Tab */}
                 <div className="flex-1 w-full space-y-6">
+                    {activeTab === 'messages' && (
+                        <CustomerMessages initialThread={chatThread} onUnreadChange={setUnreadMessages} />
+                    )}
                     {activeTab === 'dashboard' && (
                         <div>
                             <div className="mb-6">
@@ -432,6 +458,9 @@ export const Dashboard: React.FC = () => {
                                                         <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                                                             <td className="py-4 px-4 sm:px-6">
                                                                 <div className="font-bold text-[#000a1e] text-xs sm:text-sm">{oid}</div>
+                                                                <button type="button" onClick={() => openChat(oid)} className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-[#c2570c] hover:underline">
+                                                                    <MessageCircle className="w-3.5 h-3.5" aria-hidden="true" /> Message support
+                                                                </button>
                                                                 <span className={`inline-block mt-1 text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase ${(STATUS_CONFIG[normaliseStatus(order.status)] || STATUS_CONFIG.pending).bgColor} ${(STATUS_CONFIG[normaliseStatus(order.status)] || STATUS_CONFIG.pending).color}`}>
                                                                     {(STATUS_CONFIG[normaliseStatus(order.status)] || STATUS_CONFIG.pending).label}
                                                                 </span>

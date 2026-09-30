@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    LayoutDashboard, ShoppingBag, Users, MessageSquare, LogOut,
+    LayoutDashboard, ShoppingBag, Users, MessageSquare, LogOut, Headset,
     Search, RefreshCw, Trash2, ChevronDown, X, Check, Eye,
     TrendingUp, AlertCircle, Clock, CheckCircle2, XCircle,
     Shield, Mail, DollarSign, FileText, Menu, Award,
@@ -32,6 +32,7 @@ import { formatOrderTotal, formatMoney } from '../lib/money';
 import { chargeRows, paymentState, type Charges } from '../lib/charges';
 import { byKind, kindLabel, SUBMISSION_KINDS } from '../lib/submissionKinds';
 import { showAlert, showConfirm, showPrompt } from '../lib/dialog';
+import SupportTab from './marketplace/admin/SupportTab';
 
 // Payment status for admins: Paid, Failed or Pending.
 const PAYMENT_BADGE = {
@@ -1410,7 +1411,7 @@ const SettingsTab = ({ token }: { token: string }) => {
 };
 
 // ─── Main Admin Panel ─────────────────────────────────────────────────────────
-type TabId = 'dashboard' | 'overview' | 'orders' | 'users' | 'writers' | 'applications' | 'assignments' | 'memberships' | 'recruitment' | 'catalog' | 'content' | 'blog' | 'bidding' | 'trust' | 'audit' | 'contacts' | 'analytics' | 'settings' | 'admins';
+type TabId = 'dashboard' | 'overview' | 'orders' | 'users' | 'writers' | 'applications' | 'assignments' | 'memberships' | 'recruitment' | 'catalog' | 'content' | 'blog' | 'bidding' | 'trust' | 'audit' | 'contacts' | 'support' | 'analytics' | 'settings' | 'admins';
 
 // Each tab lists the permissions that unlock it (any one is enough). The server
 // enforces the same permissions; this only keeps the navigation honest.
@@ -1429,6 +1430,7 @@ const NAV: { id: TabId; label: string; title: string; icon: React.ReactNode; per
     { id: 'blog', label: 'Blog', title: 'Blog', icon: <Newspaper className="w-5 h-5" />, perms: ['blog.manage'] },
     { id: 'bidding', label: 'Writer Bidding', title: 'Writer Bidding', icon: <Gavel className="w-5 h-5" />, perms: ['bidding.manage', 'orders.write'] },
     { id: 'trust', label: 'Trust & Safety', title: 'Trust & Safety', icon: <ShieldAlert className="w-5 h-5" />, perms: ['risk.review'] },
+    { id: 'support', label: 'Support Chat', title: 'Support Chat', icon: <Headset className="w-5 h-5" />, perms: ['orders.read'] },
     { id: 'contacts', label: 'Messages', title: 'Contact Messages', icon: <MessageSquare className="w-5 h-5" />, perms: ['leads.manage'] },
     { id: 'analytics', label: 'Analytics', title: 'Traffic & Analytics', icon: <BarChart2 className="w-5 h-5" />, perms: ['analytics.read'] },
     { id: 'audit', label: 'Audit Logs', title: 'Audit Logs', icon: <History className="w-5 h-5" />, perms: ['audit.read'] },
@@ -1572,6 +1574,7 @@ export const AdminPanel: React.FC = () => {
                     {current?.id === 'recruitment' && <RecruitmentTab token={token} canSeeLeads={hasPermission(access, 'leads.manage')} onOpenLeads={() => setTab('contacts')} />}
                     {current?.id === 'audit' && <AdminAuditLogsTab token={token} />}
                     {current?.id === 'contacts' && <ContactsTab token={token} />}
+                    {current?.id === 'support' && <SupportTab token={token} canReply={hasPermission(access, 'orders.write')} />}
                     {current?.id === 'analytics' && <AnalyticsTab token={token} />}
                     {current?.id === 'settings' && <SettingsTab token={token} />}
                     {current?.id === 'admins' && <AdminTeamTab token={token} />}
