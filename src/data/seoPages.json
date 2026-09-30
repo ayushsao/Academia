@@ -154,5 +154,37 @@
     "/p/referencing-tool": {
         "title": "Free Referencing Generator – APA, Harvard, MLA | AssignmentMinds",
         "description": "Create APA, Harvard, MLA and Chicago references and citations for free."
+    },
+    "/p/assignment-help": {
+        "title": "Assignment Help Online by Subject Experts | AssignmentMinds",
+        "description": "Online assignment help from qualified subject experts: essays, reports, case studies and more, written to your brief and deadline. See your price instantly."
+    },
+    "/p/uk-assignment-help": {
+        "title": "UK Assignment Help for University Students | AssignmentMinds",
+        "description": "Assignment help for UK university students, written in British English to UK marking criteria and referencing styles such as Harvard and OSCOLA. Prices in GBP."
+    },
+    "/p/college-assignment-help": {
+        "title": "College Assignment Help Online | AssignmentMinds",
+        "description": "College assignment help for essays, coursework, reports and problem sets, from subject experts who explain the approach. Clear prices in your currency."
+    },
+    "/p/masters-dissertation-help": {
+        "title": "Master's Dissertation Help from PhD Experts | AssignmentMinds",
+        "description": "Master's dissertation help at every stage: proposal, literature review, methodology, data analysis and editing, by PhD-qualified experts. MBA, MSc, MA and LLM."
+    },
+    "/p/assignment-help-university-of-salford": {
+        "title": "Assignment Help for University of Salford Students | AssignmentMinds",
+        "description": "Independent assignment and dissertation help for University of Salford students, written to your module brief and referencing style. Not affiliated with the university."
+    },
+    "/p/assignment-help-university-of-east-london": {
+        "title": "Assignment Help for University of East London Students | AssignmentMinds",
+        "description": "Independent assignment and dissertation help for University of East London students, written to your module brief and referencing style. Not affiliated with the university."
+    },
+    "/p/assignment-help-university-of-west-london": {
+        "title": "Assignment Help for University of West London Students | AssignmentMinds",
+        "description": "Independent assignment and dissertation help for University of West London students, written to your module brief and referencing style. Not affiliated with the university."
+    },
+    "/p/assignment-help-university-of-bedfordshire": {
+        "title": "Assignment Help for University of Bedfordshire Students | AssignmentMinds",
+        "description": "Independent assignment and dissertation help for University of Bedfordshire students, written to your module brief and referencing style. Not affiliated with the university."
     }
 }

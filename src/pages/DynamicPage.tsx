@@ -65,6 +65,46 @@ export const DynamicPage: React.FC = () => {
         outputMessage?: string,
         supportText?: string
     }> = {
+        'assignment-help': {
+            title: "Online Assignment Help",
+            desc: "Get expert help with any assignment: essays, reports, case studies and projects, written to your brief, rubric and deadline by qualified subject specialists.",
+            benefits: ["Matched to Your Subject", "Written to Your Rubric", "Similarity Report Included"]
+        },
+        'uk-assignment-help': {
+            title: "UK Assignment Help",
+            desc: "Assignment help for UK students, written in British English to UK grade bands, learning outcomes and referencing styles such as Harvard and OSCOLA.",
+            benefits: ["British English & UK Marking", "Harvard, APA & OSCOLA", "Prices in Pounds"]
+        },
+        'college-assignment-help': {
+            title: "College Assignment Help",
+            desc: "Help with college essays, coursework, reports and problem sets from subject experts who explain the approach, so the next assignment is easier.",
+            benefits: ["College & Further Education", "Worked Steps Explained", "Clear Upfront Pricing"]
+        },
+        'masters-dissertation-help': {
+            title: "Master's Dissertation Help",
+            desc: "Support for your Master's dissertation at every stage, from the proposal and literature review to methodology, analysis and final editing, by PhD-qualified experts.",
+            benefits: ["PhD-Qualified Experts", "Chapter-by-Chapter Support", "Built Around Supervisor Feedback"]
+        },
+        'assignment-help-university-of-salford': {
+            title: "Assignment Help for University of Salford Students",
+            desc: "Independent support with essays, reports and dissertations, written to your module brief and referencing style. AssignmentMinds is not affiliated with the University of Salford.",
+            benefits: ["Written to Your Module Brief", "Your Referencing Style", "Independent & Confidential"]
+        },
+        'assignment-help-university-of-east-london': {
+            title: "Assignment Help for University of East London Students",
+            desc: "Independent support with essays, reports and dissertations, written to your module brief and referencing style. AssignmentMinds is not affiliated with the University of East London.",
+            benefits: ["Written to Your Module Brief", "Your Referencing Style", "Independent & Confidential"]
+        },
+        'assignment-help-university-of-west-london': {
+            title: "Assignment Help for University of West London Students",
+            desc: "Independent support with essays, reports and dissertations, written to your module brief and referencing style. AssignmentMinds is not affiliated with the University of West London.",
+            benefits: ["Written to Your Module Brief", "Your Referencing Style", "Independent & Confidential"]
+        },
+        'assignment-help-university-of-bedfordshire': {
+            title: "Assignment Help for University of Bedfordshire Students",
+            desc: "Independent support with essays, reports and dissertations, written to your module brief and referencing style. AssignmentMinds is not affiliated with the University of Bedfordshire.",
+            benefits: ["Written to Your Module Brief", "Your Referencing Style", "Independent & Confidential"]
+        },
         'essay-editing-service': {
             title: 'Professional Essay Editing Service',
             desc: 'Transform your rough drafts into polished masterpieces. Our PhD editors will refine your tone, structure, and academic phrasing to guarantee top distinction grades.',
@@ -286,11 +326,11 @@ export const DynamicPage: React.FC = () => {
         : `Looking for exceptional ${fallbackTitle.toLowerCase()}? Our academic team provides flawlessly researched, 100% original content matched perfectly to your strict university requirements and grading rubrics.`;
 
     const step1Title = isProblemSolving ? "Submit Your Task" : "Share Your Prompt";
-    const step1Desc = isProblemSolving ? "Upload your problem statements, syllabus rubric, or live exam dates." : "Use our simple order form to share your rubric, total length, and topic.";
+    const step1Desc = isProblemSolving ? "Upload your brief, marking rubric and deadline." : "Use our simple order form to share your rubric, total length, and topic.";
     const step2Title = isProblemSolving ? "Match with a Tutor" : "Secure Your Writer";
     const step2Desc = isProblemSolving ? "We assign a PhD specialist holding expertise exactly in your STEM or specific module." : "Process a safe payment while we assign a dedicated, discipline-specific academic author.";
     const step3Title = isProblemSolving ? "Score Top Grades" : "Download Masterpiece";
-    const step3Desc = isProblemSolving ? "Sit back as we execute your proxy exam or complex homework with perfect precision." : "Your highly polished, plagiarism-free document arrives securely before the deadline.";
+    const step3Desc = isProblemSolving ? "Receive worked, referenced solutions with explanations, before your deadline." : "Your highly polished, plagiarism-free document arrives securely before the deadline.";
 
     const content = slug && serviceContent[slug]
         ? serviceContent[slug]

@@ -285,7 +285,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 {/* 2. Main Headline & Subtitle */}
                 <div className="my-1 shrink-0">
                   <h1 className="text-xl sm:text-2xl md:text-[27px] lg:text-[29px] font-black leading-[1.2] tracking-tight">
-                    <span className="text-[#eb6200]">Your Path to</span> <span className="text-[#1e3a5f]">Academic Excellence</span> <span className="text-[#eb6200]">Starts from Here</span>
+                    <span className="text-[#eb6200]">Assignment &amp; Dissertation Help</span> <span className="text-[#1e3a5f]">for Academic Excellence</span> <span className="text-[#eb6200]">Starts Here</span>
                   </h1>
                   <p className="text-[13px] sm:text-[15px] text-[#4b5563] font-normal mt-1 leading-relaxed">
                     Bespoke dissertations, essays, research coursework & data modeling tailored to UK university grading rubrics by verified Oxford & Russell Group scholars.

@@ -25,6 +25,7 @@ const SOCIAL_LINKS = {
 };
 
 const SERVICE_LINKS = [
+  { label: 'Assignment Help', to: '/p/assignment-help' },
   { label: 'Do My Assignment', to: '/p/do-my-assignment' },
   { label: 'Essay Writing Services', to: '/p/essay-help' },
   { label: 'University Assignment', to: '/p/university-assignment-help' },
@@ -33,6 +34,8 @@ const SERVICE_LINKS = [
   { label: 'Write My Assignment', to: '/p/write-my-assignment' },
   { label: 'Coursework Help', to: '/p/coursework-help' },
   { label: 'Thesis Help', to: '/p/thesis-help' },
+  { label: "Master's Dissertation Help", to: '/p/masters-dissertation-help' },
+  { label: 'College Assignment Help', to: '/p/college-assignment-help' },
 ];
 
 const COMPANY_LINKS = [
@@ -46,11 +49,20 @@ const COMPANY_LINKS = [
 ];
 
 const COUNTRY_LINKS = [
+  { label: 'United Kingdom', to: '/p/uk-assignment-help' },
   { label: 'United States', to: '/p/assignment-help-usa' },
   { label: 'Malaysia', to: '/p/assignment-help-malaysia' },
   { label: 'Canada', to: '/p/assignment-help-canada' },
   { label: 'New Zealand', to: '/p/assignment-help-new-zealand' },
   { label: 'United Arab Emirates', to: '/p/assignment-help-uae' },
+];
+
+// Student guides for individual universities (independent; not affiliated).
+const UNIVERSITY_LINKS = [
+  { label: 'University of Salford', to: '/p/assignment-help-university-of-salford' },
+  { label: 'University of East London', to: '/p/assignment-help-university-of-east-london' },
+  { label: 'University of West London', to: '/p/assignment-help-university-of-west-london' },
+  { label: 'University of Bedfordshire', to: '/p/assignment-help-university-of-bedfordshire' },
 ];
 
 const POLICY_LINKS = [
@@ -105,6 +117,10 @@ export const Footer: React.FC<FooterProps> = () => {
             <h4 className="font-bold text-white text-[15px] uppercase tracking-wide mb-6">Assignment by Countries</h4>
             <ul className="flex flex-col gap-3.5 text-[13.5px] font-medium">
               {COUNTRY_LINKS.map(l => <li key={l.to}><Link className={linkClass} to={l.to}>{l.label}</Link></li>)}
+            </ul>
+            <h4 className="font-bold text-white text-[15px] uppercase tracking-wide mt-8 mb-4">Popular Universities</h4>
+            <ul className="flex flex-col gap-3.5 text-[13.5px] font-medium">
+              {UNIVERSITY_LINKS.map(l => <li key={l.to}><Link className={linkClass} to={l.to}>{l.label}</Link></li>)}
             </ul>
           </div>
 
