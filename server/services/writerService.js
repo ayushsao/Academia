@@ -6,7 +6,8 @@ import { notify } from './notifications.js';
 // (new ones are marked unverified) except accounts that were rejected,
 // suspended or deactivated. Only ACTIVE writers can access the job board;
 // approved writers can manage availability and subscribe.
-export const PUBLIC_WRITER_STATUSES = ['PENDING', 'UNDER_REVIEW', 'APPROVED', 'ACTIVE'];
+// Only writers an admin has approved appear in the public directory and profile pages.
+export const PUBLIC_WRITER_STATUSES = ['APPROVED', 'ACTIVE'];
 export const JOB_ACCESS_STATUSES = ['ACTIVE'];
 export const WORKING_WRITER_STATUSES = ['APPROVED', 'ACTIVE'];
 

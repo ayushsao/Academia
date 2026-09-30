@@ -9,8 +9,7 @@ import { remember, cacheDel, cacheDelPattern } from '../services/cache.js';
 import { can } from '../permissions.js';
 import {
     validateInput, phoneField, writerRegisterSchema, writerPhoneUpdateSchema, otpVerifySchema, writerProfileSchema,
-    writerSkillsSchema, writerSettingsSchema, writerAvailabilitySchema, writerSubmitSchema, documentMetaSchema, documentVisibilitySchema,
-} from '../validation.js';
+    writerSkillsSchema, writerSettingsSchema, writerAvailabilitySchema, writerSubmitSchema, documentMetaSchema, documentVisibilitySchema, writerDeleteAccountSchema } from '../validation.js';
 import { PREDEFINED_SKILLS, MAX_DOCUMENTS_PER_WRITER, slugify } from '../writerConstants.js';
 import { prefixTerms, scheduleDirectoryRefresh } from '../services/writerDirectory.js';
 import {
@@ -24,6 +23,7 @@ import {
     loadWriterBundle, toOwnerView, toPublicView, computeOnboarding, canEditProfile, isPubliclyVisible,
     membershipEligibility, PUBLIC_WRITER_STATUSES, WORKING_WRITER_STATUSES, WriterError,
 } from '../services/writerService.js';
+import { deleteWriterAccount } from '../services/writerDeletion.js';
 
 const router = Router();
 
@@ -119,6 +119,15 @@ router.post('/register', registerLimiter, validateInput(writerRegisterSchema), a
 
 router.get('/me', authenticateUser, requireWriterAccount, (req, res) => {
     res.json({ writer: toOwnerView(req.bundle) });
+});
+
+// POST /api/writers/account/delete  { confirm: 'DELETE' } — the writer erases their own account.
+router.post('/account/delete', authenticateUser, requireWriterAccount, validateInput(writerDeleteAccountSchema), async (req, res) => {
+    try {
+        await deleteWriterAccount(req.bundle);
+        clearUserSession(res, WRITER_COOKIE);
+        res.json({ message: 'Your account has been deleted.' });
+    } catch (err) { handleError(res, err, 'Could not delete your account.'); }
 });
 
 // Signs out the writer portal only; a customer session in the same browser stays signed in.

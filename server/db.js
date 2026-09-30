@@ -356,6 +356,7 @@ const writerSchema = new mongoose.Schema({
     refreshedAt: { type: Date },
   },
   searchKeys: { type: [String], default: [] },   // admin-only search words: name words, email, email local part
+  deletedAt: { type: Date, default: null },      // set when the writer deleted their own account (personal data erased)
 }, { timestamps: true });
 // A phone number can only be verified on one writer account.
 writerSchema.index({ phoneE164: 1 }, { unique: true, partialFilterExpression: { phoneVerified: true } });

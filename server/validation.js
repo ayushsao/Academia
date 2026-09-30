@@ -441,6 +441,11 @@ export const validateInput = (schema, source = 'body') => (req, res, next) => {
     next();
 };
 
+// A writer deleting their own account types DELETE to confirm.
+export const writerDeleteAccountSchema = z.object({
+    confirm: z.literal('DELETE', { message: 'Type DELETE to confirm.' }),
+});
+
 // ── Admin: customer orders and enquiries ─────────────────────────────────────
 // Only these fields can be changed from the order drawer; anything else is dropped.
 export const ORDER_STATUS_VALUES = ['pending', 'available', 'assigned', 'in_progress', 'submitted', 'revision_required', 'completed', 'cancelled',
