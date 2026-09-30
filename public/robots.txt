@@ -23,6 +23,7 @@ Disallow: /writer/history
 Disallow: /writer/earnings
 Disallow: /writer/messages
 Disallow: /writer/notifications
+Disallow: /writer/support
 Disallow: /writer/profile
 Disallow: /writer/documents
 Disallow: /writer/settings

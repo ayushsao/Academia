@@ -1,15 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, FileText, Headset, Search } from 'lucide-react';
+import { ArrowLeft, FileText, Headset, PenTool, Search } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { useLiveEvents } from '../../../lib/useLiveEvents';
 import { cn } from '../../../lib/utils';
 import { ChatWindow, type ChatMessage } from '../../../components/support/ChatWindow';
 
 type Thread = {
-    thread: string; orderId: string | null; customerId: string; customerName: string; customerEmail: string;
-    lastBody: string; lastSender: 'CUSTOMER' | 'ADMIN'; lastAt: string; unread: number;
+    thread: string; kind: 'CUSTOMER' | 'WRITER'; orderId: string | null; customerId: string; customerName: string; customerEmail: string;
+    lastBody: string; lastSender: 'CUSTOMER' | 'WRITER' | 'ADMIN'; lastAt: string; unread: number;
 };
-type Conversation = { thread: string; orderId: string | null; customer: { id: string; name: string; email: string }; messages: ChatMessage[] };
+type Conversation = { thread: string; kind: 'CUSTOMER' | 'WRITER'; canReply: boolean; orderId: string | null; customer: { id: string; name: string; email: string }; messages: ChatMessage[] };
 
 const ago = (d: string) => {
     const s = Math.max(0, (Date.now() - new Date(d).getTime()) / 1000);
@@ -20,7 +20,7 @@ const ago = (d: string) => {
 };
 
 // Admin console: every customer conversation, answered live.
-export default function SupportTab({ token, canReply }: { token: string; canReply: boolean }) {
+export default function SupportTab({ token }: { token: string }) {
     const [threads, setThreads] = useState<Thread[]>([]);
     const [active, setActive] = useState<string | null>(null);
     const [conversation, setConversation] = useState<Conversation | null>(null);
@@ -55,7 +55,7 @@ export default function SupportTab({ token, canReply }: { token: string; canRepl
                 if (m.sender === 'CUSTOMER') loadConversation(active, true);   // marks it read
             }
             loadThreads();
-        } else if (type === 'read' && data?.by === 'CUSTOMER' && data.thread === active) {
+        } else if (type === 'read' && data?.by === 'USER' && data.thread === active) {
             const now = new Date().toISOString();
             setConversation(c => c && { ...c, messages: c.messages.map(m => (m.sender === 'ADMIN' && !m.readByCustomerAt ? { ...m, readByCustomerAt: now } : m)) });
         }
@@ -100,15 +100,16 @@ export default function SupportTab({ token, canReply }: { token: string; canRepl
                             <li key={t.thread}>
                                 <button onClick={() => setActive(t.thread)}
                                     className={cn('flex w-full items-start gap-3 px-3 py-3 text-left transition hover:bg-gray-50', active === t.thread && 'bg-[#fff5e8]')}>
-                                    <span className={cn('mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full', t.orderId ? 'bg-gray-100 text-gray-600' : 'bg-[#fff1e0] text-[#eb6200]')}>
-                                        {t.orderId ? <FileText className="h-4 w-4" aria-hidden="true" /> : <Headset className="h-4 w-4" aria-hidden="true" />}
+                                    <span className={cn('mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
+                                        t.kind === 'WRITER' ? 'bg-[#eef3fb] text-[#1e3a5f]' : t.orderId ? 'bg-gray-100 text-gray-600' : 'bg-[#fff1e0] text-[#eb6200]')}>
+                                        {t.kind === 'WRITER' ? <PenTool className="h-4 w-4" aria-hidden="true" /> : t.orderId ? <FileText className="h-4 w-4" aria-hidden="true" /> : <Headset className="h-4 w-4" aria-hidden="true" />}
                                     </span>
                                     <span className="min-w-0 flex-1">
                                         <span className="flex items-center justify-between gap-2">
                                             <span className={cn('truncate text-sm', t.unread ? 'font-bold text-[#000a1e]' : 'font-semibold text-gray-800')}>{t.customerName}</span>
                                             <span className="shrink-0 text-[11px] text-gray-400">{ago(t.lastAt)}</span>
                                         </span>
-                                        <span className="block truncate text-[11px] font-semibold text-gray-500">{t.orderId ? `Order ${t.orderId}` : 'General support'}</span>
+                                        <span className="block truncate text-[11px] font-semibold text-gray-500">{t.kind === 'WRITER' ? 'Writer' : t.orderId ? `Order ${t.orderId}` : 'Customer · General support'}</span>
                                         <span className="flex items-center justify-between gap-2">
                                             <span className="truncate text-xs text-gray-500">{t.lastSender === 'ADMIN' ? 'You: ' : ''}{t.lastBody}</span>
                                             {t.unread > 0 && <span className="shrink-0 rounded-full bg-[#eb6200] px-1.5 py-0.5 text-[10px] font-bold text-white">{t.unread}</span>}
@@ -124,7 +125,7 @@ export default function SupportTab({ token, canReply }: { token: string; canRepl
                     {active ? (
                         <ChatWindow
                             me="ADMIN" live={live} loading={loading} messages={conversation?.messages || []}
-                            onSend={canReply ? send : async () => { throw new Error('Your role can read conversations but not reply.'); }}
+                            onSend={conversation?.canReply ? send : async () => { throw new Error('Your admin role can read this conversation but not reply.'); }}
                             header={(
                                 <div className="flex items-center gap-2">
                                     <button onClick={() => setActive(null)} className="rounded-lg p-1 text-gray-500 hover:bg-gray-100 md:hidden" aria-label="Back to conversations">
@@ -133,7 +134,7 @@ export default function SupportTab({ token, canReply }: { token: string; canRepl
                                     <div className="min-w-0">
                                         <p className="truncate text-sm font-bold text-[#000a1e]">{conversation?.customer.name || '…'}</p>
                                         <p className="truncate text-xs text-gray-500">
-                                            {conversation?.customer.email}{conversation?.orderId ? ` · Order ${conversation.orderId}` : ' · General support'}
+                                            {conversation?.customer.email}{conversation?.kind === 'WRITER' ? ' · Writer' : conversation?.orderId ? ` · Order ${conversation.orderId}` : ' · General support'}
                                         </p>
                                     </div>
                                 </div>

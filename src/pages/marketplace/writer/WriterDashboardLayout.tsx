@@ -1,7 +1,7 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { Outlet, NavLink, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { MarketplaceNavbar as Navbar } from '../../../components/writer/MarketplaceNavbar';
-import { LayoutDashboard, Briefcase, DollarSign, MessageSquare, Bell, UserCircle, Settings, LogOut, FolderOpen, Lock, ExternalLink, Crown, Inbox, History, Gavel } from 'lucide-react';
+import { LayoutDashboard, Briefcase, DollarSign, MessageSquare, Bell, UserCircle, Settings, LogOut, FolderOpen, Lock, ExternalLink, Crown, Inbox, History, Gavel, Headset } from 'lucide-react';
 import { useStore } from '../../../store/useStore';
 import { api } from '../../../lib/api';
 import type { WriterMe } from '../../../lib/writerTypes';
@@ -24,6 +24,7 @@ const NAV_ITEMS = [
     { path: '/writer/earnings', label: 'Earnings', icon: DollarSign },
     { path: '/writer/messages', label: 'Messages', icon: MessageSquare, memberOnly: true },
     { path: '/writer/notifications', label: 'Notifications', icon: Bell },
+    { path: '/writer/support', label: 'Support', icon: Headset },
     { path: '/writer/profile', label: 'My Profile', icon: UserCircle },
     { path: '/writer/documents', label: 'Documents', icon: FolderOpen },
     { path: '/writer/settings', label: 'Settings', icon: Settings },
@@ -65,20 +66,20 @@ function AvailabilityToggle({ writer, onUpdate }: { writer: WriterMe; onUpdate: 
     );
 }
 
-// Unread notification count for the nav badge: refreshed on navigation, every
-// minute, and whenever the notifications page reports a change.
-function useUnreadCount(enabled: boolean) {
+// Unread count for a nav badge (notifications or support chat): refreshed on
+// navigation, every minute, and whenever its page reports a change.
+function useUnreadCount(enabled: boolean, path = '/notifications/unread-count', changeEvent = 'notifications-changed') {
     const [unread, setUnread] = useState(0);
     const location = useLocation();
     useEffect(() => {
         if (!enabled) return;
         let live = true;
-        const load = () => api<{ unread: number }>('/notifications/unread-count').then(d => live && setUnread(d.unread)).catch(() => {});
+        const load = () => api<{ unread: number }>(path).then(d => live && setUnread(d.unread)).catch(() => {});
         load();
         const timer = window.setInterval(load, 60_000);
-        window.addEventListener('notifications-changed', load);
-        return () => { live = false; window.clearInterval(timer); window.removeEventListener('notifications-changed', load); };
-    }, [enabled, location.pathname]);
+        window.addEventListener(changeEvent, load);
+        return () => { live = false; window.clearInterval(timer); window.removeEventListener(changeEvent, load); };
+    }, [enabled, location.pathname, path, changeEvent]);
     return unread;
 }
 
@@ -89,6 +90,7 @@ function LayoutInner() {
     const logout = useStore(s => s.logoutWriter);
     const navigate = useNavigate();
     const unread = useUnreadCount(Boolean(writer));
+    const supportUnread = useUnreadCount(Boolean(writer), '/writers/support/unread', 'support-changed');
 
     const handleLogout = async () => {
         try { await api('/writers/logout', { method: 'POST' }); } catch { /* signing out locally regardless */ }
@@ -129,6 +131,7 @@ function LayoutInner() {
                                     <item.icon className="h-[18px] w-[18px]" /> <span className="flex-1">{item.label}</span>
                                     {item.locked && <Lock className="h-3.5 w-3.5" />}
                                     {item.path === '/writer/notifications' && <Badge n={unread} />}
+                                    {item.path === '/writer/support' && <Badge n={supportUnread} />}
                                 </NavLink>
                             </li>
                         ))}
@@ -161,6 +164,7 @@ function LayoutInner() {
                             <NavLink key={item.path} to={item.path} className={linkClass(item.locked)} aria-disabled={item.locked}>
                                 <item.icon className="h-4 w-4" /> {item.label}
                                 {item.path === '/writer/notifications' && <Badge n={unread} />}
+                                    {item.path === '/writer/support' && <Badge n={supportUnread} />}
                             </NavLink>
                         ))}
                         <button onClick={handleLogout} className="flex items-center gap-2 whitespace-nowrap rounded-xl px-3.5 py-2.5 text-sm font-semibold text-red-600"><LogOut className="h-4 w-4" /> Sign out</button>

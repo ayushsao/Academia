@@ -43,6 +43,7 @@ const WriterAssignmentDetail = lazyPage(() => import('./pages/marketplace/writer
 const WriterHistory = lazyPage(() => import('./pages/marketplace/writer/WriterHistory'));
 const WriterEarnings = lazyPage(() => import('./pages/marketplace/writer/WriterEarnings'));
 const WriterNotifications = lazyPage(() => import('./pages/marketplace/writer/WriterNotifications'));
+const WriterSupport = lazyPage(() => import('./pages/marketplace/writer/WriterSupport'));
 const WriterSettings = lazyPage(() => import('./pages/marketplace/writer/WriterSettings'));
 const WriterProfileEdit = lazyPage(() => import('./pages/marketplace/writer/WriterProfileEdit'));
 const WriterDocuments = lazyPage(() => import('./pages/marketplace/writer/WriterDocuments'));
@@ -82,7 +83,7 @@ const ProtectedRoute = ({ children, area = 'customer' }: { children: React.React
 // Search engines: account areas (admin, customer dashboard, writer portal) are
 // "noindex"; public pages get a canonical URL (pages with their own SEO, like
 // catalogue and blog pages, update the same tag). Matches public/robots.txt.
-const PRIVATE_PATH = /^\/(admin|dashboard)(\/|$)|^\/writer\/(login|register|onboarding|verify|dashboard|membership|opportunities|bidding|bids|orders|assignments|history|earnings|messages|notifications|profile|documents|settings|jobs|active-jobs)(\/|$)/;
+const PRIVATE_PATH = /^\/(admin|dashboard)(\/|$)|^\/writer\/(login|register|onboarding|verify|dashboard|membership|opportunities|bidding|bids|orders|assignments|history|earnings|messages|notifications|support|profile|documents|settings|jobs|active-jobs)(\/|$)/;
 function SearchIndexing() {
     const { pathname } = useLocation();
     useEffect(() => {
@@ -184,6 +185,7 @@ export default function App() {
                         <Route path="membership/checkout" element={<MembershipCheckout />} />
                         <Route path="orders" element={<WriterOrders />} />
                         <Route path="notifications" element={<WriterNotifications />} />
+                        <Route path="support" element={<WriterSupport />} />
                         <Route path="settings" element={<WriterSettings />} />
                     </Route>
 

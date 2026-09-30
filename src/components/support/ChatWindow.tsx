@@ -3,7 +3,7 @@ import { Send, Loader2, CheckCheck, Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export type ChatMessage = {
-    id: string; thread: string; orderId: string | null; sender: 'CUSTOMER' | 'ADMIN'; senderName: string;
+    id: string; thread: string; orderId: string | null; sender: 'CUSTOMER' | 'WRITER' | 'ADMIN'; senderName: string;
     body: string; createdAt: string; readByAdminAt: string | null; readByCustomerAt: string | null;
 };
 
@@ -15,7 +15,7 @@ const day = (d: string) => new Date(d).toLocaleDateString([], { weekday: 'short'
 export function ChatWindow({ header, messages, me, loading, onSend, live, emptyText }: {
     header: React.ReactNode;
     messages: ChatMessage[];
-    me: 'CUSTOMER' | 'ADMIN';
+    me: 'CUSTOMER' | 'WRITER' | 'ADMIN';
     loading?: boolean;
     onSend: (body: string) => Promise<void>;
     live?: boolean;
@@ -60,7 +60,7 @@ export function ChatWindow({ header, messages, me, loading, onSend, live, emptyT
                     const own = m.sender === me;
                     const d = day(m.createdAt);
                     const showDay = d !== lastDay; lastDay = d;
-                    const read = me === 'CUSTOMER' ? m.readByAdminAt : m.readByCustomerAt;
+                    const read = me === 'ADMIN' ? m.readByCustomerAt : m.readByAdminAt;
                     return (
                         <React.Fragment key={m.id}>
                             {showDay && <p className="py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-400">{d}</p>}

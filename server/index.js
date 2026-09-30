@@ -17,7 +17,7 @@ import toolsRouter from './routes/tools.js';
 import adminRouter from './routes/admin.js';
 import agentRouter from './routes/agent.js';
 import writersRouter from './routes/writers.js';
-import { supportRouter, supportAdminRouter } from './routes/support.js';
+import { supportRouter, supportAdminRouter, writerSupportRouter } from './routes/support.js';
 import writerAdminRouter from './routes/writerAdmin.js';
 import membershipRouter from './routes/membership.js';
 import membershipAdminRouter from './routes/membershipAdmin.js';
@@ -118,6 +118,7 @@ app.use('/api/admin/catalog', catalogContentAdminRouter); // content blocks, FAQ
 app.use('/api/admin/blog', blogAdminRouter); // must precede the generic /api/admin router
 app.use('/api/admin/support', supportAdminRouter); // likewise
 app.use('/api/admin', adminRouter);
+app.use('/api/writers/support', writerSupportRouter); // must precede the /api/writers router
 app.use('/api/writers', writersRouter);
 app.use('/api/support', supportRouter);
 app.use('/api/membership', membershipRouter);

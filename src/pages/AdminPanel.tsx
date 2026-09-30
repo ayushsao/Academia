@@ -1430,7 +1430,7 @@ const NAV: { id: TabId; label: string; title: string; icon: React.ReactNode; per
     { id: 'blog', label: 'Blog', title: 'Blog', icon: <Newspaper className="w-5 h-5" />, perms: ['blog.manage'] },
     { id: 'bidding', label: 'Writer Bidding', title: 'Writer Bidding', icon: <Gavel className="w-5 h-5" />, perms: ['bidding.manage', 'orders.write'] },
     { id: 'trust', label: 'Trust & Safety', title: 'Trust & Safety', icon: <ShieldAlert className="w-5 h-5" />, perms: ['risk.review'] },
-    { id: 'support', label: 'Support Chat', title: 'Support Chat', icon: <Headset className="w-5 h-5" />, perms: ['orders.read'] },
+    { id: 'support', label: 'Support Chat', title: 'Support Chat', icon: <Headset className="w-5 h-5" />, perms: ['orders.read', 'writers.read'] },
     { id: 'contacts', label: 'Messages', title: 'Contact Messages', icon: <MessageSquare className="w-5 h-5" />, perms: ['leads.manage'] },
     { id: 'analytics', label: 'Analytics', title: 'Traffic & Analytics', icon: <BarChart2 className="w-5 h-5" />, perms: ['analytics.read'] },
     { id: 'audit', label: 'Audit Logs', title: 'Audit Logs', icon: <History className="w-5 h-5" />, perms: ['audit.read'] },
@@ -1574,7 +1574,7 @@ export const AdminPanel: React.FC = () => {
                     {current?.id === 'recruitment' && <RecruitmentTab token={token} canSeeLeads={hasPermission(access, 'leads.manage')} onOpenLeads={() => setTab('contacts')} />}
                     {current?.id === 'audit' && <AdminAuditLogsTab token={token} />}
                     {current?.id === 'contacts' && <ContactsTab token={token} />}
-                    {current?.id === 'support' && <SupportTab token={token} canReply={hasPermission(access, 'orders.write')} />}
+                    {current?.id === 'support' && <SupportTab token={token} />}
                     {current?.id === 'analytics' && <AnalyticsTab token={token} />}
                     {current?.id === 'settings' && <SettingsTab token={token} />}
                     {current?.id === 'admins' && <AdminTeamTab token={token} />}
