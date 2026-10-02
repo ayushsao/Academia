@@ -19,6 +19,8 @@ const router = Router();
 const actionLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60, message: { error: 'Too many requests. Please slow down.' } });
 
 function handleError(res, err, fallback) {
+    // A file the storage can't take (too large): the message says what to do.
+    if (err?.status === 413) return res.status(413).json({ error: err.message });
     if (err instanceof AssignmentError || err instanceof UploadError) return res.status(err.status).json({ error: err.message });
     console.error(`[Assignments] ${fallback}:`, err);
     res.status(500).json({ error: fallback });

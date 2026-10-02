@@ -7,7 +7,7 @@ import { WhatsAppPaymentReference } from '../components/WhatsAppPaymentReference
 import { byKind, kindLabel } from '../lib/submissionKinds';
 import { AcademiaLogo } from '../components/AcademiaLogo';
 
-import { API, api } from '../lib/api';
+import { API, api, downloadFile } from '../lib/api';
 import { formatOrderTotal } from '../lib/money';
 import { showAlert, showConfirm } from '../lib/dialog';
 import { CustomerMessages } from '../components/support/CustomerMessages';
@@ -90,22 +90,9 @@ export const Dashboard: React.FC = () => {
 
     const handleDownload = async (fileName: string) => {
         try {
-            const fileUrl = `${API}/orders/files/${encodeURIComponent(fileName)}`;
-            const headers: Record<string, string> = {};
-            if (token) headers['Authorization'] = `Bearer ${token}`;
-            const resp = await fetch(fileUrl, { headers, credentials: 'include' });
-            if (!resp.ok) throw new Error("Could not download file.");
-            const blob = await resp.blob();
-            const localUrl = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = localUrl;
-            a.download = fileName.replace(/^[0-9a-f]{32}-/, '');
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(localUrl);
-        } catch {
-            showAlert("Failed to download file.");
+            await downloadFile(`/orders/files/${encodeURIComponent(fileName)}`, fileName.replace(/^[0-9a-f]{32}-/, ''), token || undefined);
+        } catch (e) {
+            showAlert((e as Error).message);
         }
     };
 
@@ -213,17 +200,7 @@ export const Dashboard: React.FC = () => {
     const handleDeliveryDownload = async (orderId: string, fileId: string, fileName: string) => {
         setDownloadingFile(fileId);
         try {
-            const headers: Record<string, string> = {};
-            if (token) headers.Authorization = `Bearer ${token}`;
-            const res = await fetch(`${API}/order-workflow/client/download/${orderId}/${fileId}`, { headers, credentials: 'include' });
-            if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Download failed.'); }
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = fileName;
-            document.body.appendChild(a); a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            await downloadFile(`/order-workflow/client/download/${encodeURIComponent(orderId)}/${fileId}`, fileName, token || undefined);
         } catch (e: any) { showAlert(e.message || 'Download failed.'); }
         finally { setDownloadingFile(null); }
     };

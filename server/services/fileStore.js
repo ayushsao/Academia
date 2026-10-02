@@ -67,6 +67,18 @@ else if (process.env.NODE_ENV === 'production')
     console.warn('[Files] Cloud storage is not configured: uploads are kept on this server’s disk and are lost when it redeploys.');
 
 const localPath = (area, name) => path.join(LOCAL_DIRS[area], path.basename(String(name)));
+
+// Largest file the storage accepts. Cloudinary's free plan stores raw files of
+// up to 10 MB (set CLOUDINARY_MAX_MB on a paid plan); R2 and disk have no
+// practical limit here.
+const MB = 1024 * 1024;
+export const MAX_STORED_BYTES = usingCloudinary ? (Number(process.env.CLOUDINARY_MAX_MB) || 10) * MB : Infinity;
+
+/** A file the storage can't take (too large). `status` 413; the message is safe to show. */
+export class StorageLimitError extends Error {
+    constructor(message) { super(message); this.status = 413; }
+}
+const tooLarge = () => new StorageLimitError(`Files can be up to ${Math.round(MAX_STORED_BYTES / MB)} MB. Please upload a smaller file (or compress or split it).`);
 const notFound = (err) => err?.name === 'NoSuchKey' || err?.name === 'NotFound' || err?.$metadata?.httpStatusCode === 404;
 
 /** Moves an uploaded temp file into storage as `area/name`. */
@@ -76,9 +88,14 @@ export async function saveFile(tempPath, area, name, contentType = 'application/
         return;
     }
     if (usingCloudinary) {
+        const { size } = await fs.promises.stat(tempPath);
+        if (size > MAX_STORED_BYTES) { await fs.promises.unlink(tempPath).catch(() => {}); throw tooLarge(); }
         await cloudinary.uploader.upload(tempPath, { ...CLD, public_id: publicIdOf(area, name), overwrite: true, invalidate: true })
-            .catch(err => {
-                console.error(`[Files] Cloudinary upload failed for ${publicIdOf(area, name)}:`, err?.message || err?.error?.message || err);
+            .catch(async err => {
+                const message = err?.message || err?.error?.message || String(err);
+                console.error(`[Files] Cloudinary upload failed for ${publicIdOf(area, name)}:`, message);
+                await fs.promises.unlink(tempPath).catch(() => {});
+                if (/file size too large|too large/i.test(message)) throw tooLarge();
                 throw err;
             });
         await fs.promises.unlink(tempPath).catch(() => {});
@@ -107,7 +124,7 @@ export async function openFile(area, name) {
         if (res.status === 404) { console.warn(`[Files] not in Cloudinary: ${publicIdOf(area, name)}`); return null; }
         if (!res.ok) {
             console.error(`[Files] Cloudinary download failed (${res.status}) for ${publicIdOf(area, name)}: ${(await res.text().catch(() => '')).slice(0, 200)}`);
-            throw new Error(`Cloudinary download failed (${res.status}).`);
+            throw Object.assign(new Error(`Cloudinary download failed (${res.status}).`), { storageStatus: res.status });
         }
         return Readable.fromWeb(res.body);
     }
@@ -162,32 +179,47 @@ export async function sendStoredFile(res, area, name, { contentType, notFoundMes
     stream.pipe(res);
 }
 
-// Start-up self-test for cloud storage: saves a tiny file, reads it back and
-// deletes it. The result appears in /api/health so a broken setup is visible
-// without digging through logs. It never includes keys or file contents.
+// Start-up self-test for cloud storage: saves, reads back and deletes a small
+// text file, PDF and ZIP (DOCX files are ZIPs; Cloudinary can block PDF/ZIP
+// delivery on new accounts). The result appears in /api/health so a broken
+// setup is visible without digging through logs. It never includes keys.
 export const storageCheck = { status: storageMode === 'local' ? 'skipped' : 'pending' };
-async function selfTest() {
-    const name = `selftest-${Date.now()}.txt`;
+const SAMPLES = {
+    txt: { type: 'text/plain', body: () => Buffer.from(`storage check ${new Date().toISOString()}`) },
+    pdf: { type: 'application/pdf', body: () => Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n') },
+    // An empty ZIP archive: the end-of-central-directory record only.
+    zip: { type: 'application/zip', body: () => Buffer.concat([Buffer.from([0x50, 0x4b, 0x05, 0x06]), Buffer.alloc(18)]) },
+};
+async function checkOne(ext) {
+    const name = `selftest-${Date.now()}.${ext}`;
     const temp = path.join(LOCAL_DIRS.deliveries, `tmp-${name}`);
-    const text = `storage check ${new Date().toISOString()}`;
+    const body = SAMPLES[ext].body();
     let step = 'upload';
     try {
-        await fs.promises.writeFile(temp, text);
-        await saveFile(temp, 'deliveries', name, 'text/plain');
+        await fs.promises.writeFile(temp, body);
+        await saveFile(temp, 'deliveries', name, SAMPLES[ext].type);
         step = 'download';
         const stream = await openFile('deliveries', name);
         if (!stream) throw new Error('file not found after upload');
         const chunks = [];
         for await (const c of stream) chunks.push(Buffer.from(c));
-        if (Buffer.concat(chunks).toString() !== text) throw new Error('downloaded content differs');
+        if (!Buffer.concat(chunks).equals(body)) throw new Error('downloaded content differs');
         step = 'delete';
         await removeFile('deliveries', name);
-        storageCheck.status = 'ok';
+        return 'ok';
     } catch (err) {
         await fs.promises.unlink(temp).catch(() => {});
-        storageCheck.status = `${step} failed: ${String(err?.message || err?.error?.message || err).replace(/api_key\s*\S+/gi, 'api_key').slice(0, 160)}`;
-        console.error(`[Files] storage self-test ${storageCheck.status}`);
+        await removeFile('deliveries', name).catch(() => {});
+        return `${step} failed: ${String(err?.message || err?.error?.message || err).replace(/api_key\s*\S+/gi, 'api_key').slice(0, 160)}`;
     }
+}
+async function selfTest() {
+    const files = {};
+    for (const ext of Object.keys(SAMPLES)) files[ext] = await checkOne(ext);
+    const failed = Object.entries(files).filter(([, r]) => r !== 'ok');
+    storageCheck.status = failed.length ? `problems: ${failed.map(([e, r]) => `${e} ${r}`).join('; ')}` : 'ok';
+    storageCheck.files = files;
     storageCheck.at = new Date().toISOString();
+    if (failed.length) console.error(`[Files] storage self-test ${storageCheck.status}`);
 }
 if (storageMode !== 'local') setTimeout(() => { selfTest(); }, 3000);

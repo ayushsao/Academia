@@ -22,6 +22,7 @@ const origin = (req) => `${req.protocol}://${req.get('host')}`;
 
 function handle(res, err, fallback) {
     if (err instanceof ContentError || err instanceof MediaError) return res.status(err.status).json({ error: err.message });
+    if (err?.status === 413) return res.status(413).json({ error: err.message });
     if (err?.code === 11000) return res.status(409).json({ error: 'That slug is already used here. Choose another.' });
     console.error(`[Content] ${fallback}:`, err);
     return res.status(500).json({ error: fallback });

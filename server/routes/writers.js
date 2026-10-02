@@ -35,6 +35,8 @@ const uploadLimiter = limiter(15, 40, 'Too many uploads. Please try again later.
 
 // Maps known error types to HTTP responses; everything else is a 500 with no detail.
 function handleError(res, err, fallback) {
+    // A file the storage can't take (too large): the message says what to do.
+    if (err?.status === 413) return res.status(413).json({ error: err.message });
     if (err instanceof OtpError) return res.status(err.status).json({ error: err.message, ...err.extra });
     if (err instanceof WriterError || err instanceof UploadError || err instanceof AbuseError) return res.status(err.status).json({ error: err.message });
     if (err instanceof DeliveryUnavailableError) return res.status(503).json({ error: 'Verification messages cannot be sent right now. Please try again later.' });

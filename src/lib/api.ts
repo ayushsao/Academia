@@ -36,12 +36,38 @@ export async function api<T = any>(path: string, { method = 'GET', body, token, 
     return data as T;
 }
 
+// The server's reason for a failed file request, so people see what actually went wrong.
+async function fileError(res: Response): Promise<ApiError> {
+    const data = await res.json().catch(() => null);
+    const fallback = res.status === 404 ? 'This file is no longer available. Please contact support.'
+        : res.status === 401 || res.status === 403 ? 'Please sign in again to open this file.'
+        : 'Could not open the file. Please try again in a moment.';
+    return new ApiError(data?.error || fallback, res.status, data);
+}
+
 // Fetches a protected file with auth headers and returns an object URL.
 // Callers must URL.revokeObjectURL() it when done.
 export async function fetchFileUrl(path: string, token?: string): Promise<string> {
     const res = await fetch(`${API}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-    if (!res.ok) throw new ApiError('Could not open file.', res.status, null);
+    if (!res.ok) throw await fileError(res);
     return URL.createObjectURL(await res.blob());
+}
+
+/** Downloads a protected file (an API path or full URL) and saves it as `fileName`. */
+export async function downloadFile(pathOrUrl: string, fileName: string, token?: string) {
+    const url = pathOrUrl.startsWith('http') ? pathOrUrl : `${API}${pathOrUrl}`;
+    let res: Response;
+    try { res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} }); }
+    catch { throw new ApiError('Network error. Check your connection and try again.', 0, null); }
+    if (!res.ok) throw await fileError(res);
+    const blobUrl = URL.createObjectURL(await res.blob());
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 10_000);
 }
 
 export async function openProtectedFile(path: string, token?: string) {

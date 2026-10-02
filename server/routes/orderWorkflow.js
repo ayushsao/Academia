@@ -246,6 +246,7 @@ router.post('/writer/submission/:orderId/:kind', authenticateUser, requireWriter
         res.json({ draftDelivery: draftView(order.draftDelivery) });
     } catch (err) {
         await discard();
+        if (err?.status === 413) return res.status(413).json({ error: err.message });
         console.error('[OrderWorkflow] submission upload error:', err.message);
         res.status(500).json({ error: 'Could not upload the file.' });
     }
@@ -367,6 +368,7 @@ router.post('/admin/upload/:orderId', authenticateAdmin, requirePermission('orde
         res.json({ order: { ...order.toObject(), status: normaliseStatus(order.status) } });
     } catch (err) {
         await discard();
+        if (err?.status === 413) return res.status(413).json({ error: err.message });
         console.error('[OrderWorkflow] admin upload error:', err.message);
         res.status(500).json({ error: 'Could not upload files.' });
     }

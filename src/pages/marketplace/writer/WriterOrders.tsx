@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { api, API } from '../../../lib/api';
+import { api, API, downloadFile } from '../../../lib/api';
 import { useStore } from '../../../store/useStore';
 import { Inbox, Clock, CheckCircle2, AlertTriangle, Upload, Eye, FileText, Calendar, DollarSign, BookOpen, ArrowRight, RefreshCw, Crown } from 'lucide-react';
 import { FinalSubmission, type DraftFile } from '../../../components/writer/FinalSubmission';
@@ -139,18 +139,8 @@ export default function WriterOrdersPage() {
 
     const handleDownloadRef = async (orderId: string, fileName: string) => {
         try {
-            const headers: Record<string, string> = {};
-            if (token) headers.Authorization = `Bearer ${token}`;
-            const res = await fetch(`${API}/order-workflow/writer/files/${encodeURIComponent(orderId)}/${encodeURIComponent(fileName)}`, { headers, credentials: 'include' });
-            if (!res.ok) throw new Error('Download failed.');
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = fileName.replace(/^[0-9a-f]{32}-/, '');
-            document.body.appendChild(a); a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        } catch { showAlert('Failed to download file.'); }
+            await downloadFile(`/order-workflow/writer/files/${encodeURIComponent(orderId)}/${encodeURIComponent(fileName)}`, fileName.replace(/^[0-9a-f]{32}-/, ''), token || undefined);
+        } catch (e) { showAlert((e as Error).message); }
     };
 
     const orders = tab === 'available' ? availableOrders : myOrders;

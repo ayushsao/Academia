@@ -27,7 +27,7 @@ import { Newspaper, Gavel } from 'lucide-react';
 import AdminPasswordDialog from './marketplace/admin/AdminPasswordDialog';
 import { AdminLogin, AdminSecurityDialog, restoreAdminSession, signOutAdmin } from './marketplace/admin/AdminAuth';
 
-import { API } from '../lib/api';
+import { API, downloadFile } from '../lib/api';
 import { formatOrderTotal, formatMoney } from '../lib/money';
 import { chargeRows, paymentState, type Charges } from '../lib/charges';
 import { byKind, kindLabel, SUBMISSION_KINDS } from '../lib/submissionKinds';
@@ -367,20 +367,10 @@ const OrderDetailDrawer = ({
 
     const handleForceDownload = async (fileUrl: string, fileName: string) => {
         try {
-            // Order files are private: fetched with the admin token, never via a public URL.
-            const resp = await fetch(fileUrl, { headers: { Authorization: `Bearer ${token}` } });
-            if (!resp.ok) throw new Error("File not found");
-            const blob = await resp.blob();
-            const localUrl = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = localUrl;
-            a.download = fileName.replace(/^[0-9a-f]{32}-/, '');
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(localUrl);
+            // Order files are private: fetched with the admin session, never via a public URL.
+            await downloadFile(fileUrl, fileName.replace(/^[0-9a-f]{32}-/, ''), token);
         } catch (e) {
-            showAlert("This file couldn’t be downloaded. It may have been removed.");
+            showAlert((e as Error).message);
         }
     };
 
