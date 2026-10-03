@@ -14,13 +14,14 @@ import { UploadError } from '../services/writerFiles.js';
 import { effectiveAvailability, loadWriterBundle, computeOnboarding } from '../services/writerService.js';
 import { MEMBERSHIP_DISCLAIMER } from '../services/membershipSettings.js';
 import { canTakeOrders, OPEN_ORDER } from '../services/orderRelease.js';
+import { enforceUploadQuota } from '../services/uploadQuota.js';
 
 const router = Router();
 const actionLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60, message: { error: 'Too many requests. Please slow down.' } });
 
 function handleError(res, err, fallback) {
     // A file the storage can't take (too large): the message says what to do.
-    if (err?.status === 413) return res.status(413).json({ error: err.message });
+    if (err?.status === 413 || err?.status === 507) return res.status(err.status).json({ error: err.message });
     if (err instanceof AssignmentError || err instanceof UploadError) return res.status(err.status).json({ error: err.message });
     console.error(`[Assignments] ${fallback}:`, err);
     res.status(500).json({ error: fallback });
@@ -252,6 +253,7 @@ router.post('/writer/assignments/:ref/submissions', actionLimiter, authenticateU
         req.submissionRules = s;
         receiveSubmissionFiles(s.maxFileMB * 1024 * 1024)(req, res, next);
     },
+    enforceUploadQuota,
     async (req, res) => {
         const uploaded = Object.values(req.files || {}).flat();
         try {

@@ -12,6 +12,7 @@ import { quote, isLiveSelection, PricingError } from '../services/pricing.js';
 import { fromMinor, toMinor } from '../services/money.js';
 import { razorpayEnabled, razorpayKeyId, verifyRazorpaySignature, PaymentProviderError } from '../services/paymentProviders.js';
 import { createOrderRecord, startCheckout, completeCheckout, startUpiQr, settleUpiQr, recordCheckoutFailure } from '../services/orderCheckout.js';
+import { enforceUploadQuota } from '../services/uploadQuota.js';
 
 const router = Router();
 
@@ -300,7 +301,7 @@ router.get('/files/:name', authenticateUser, async (req, res) => {
 });
 
 // POST /api/orders/:id/files — customer attaching additional files to their order
-router.post('/:id/files', authenticateUser, receiveOrderFiles, async (req, res) => {
+router.post('/:id/files', authenticateUser, receiveOrderFiles, enforceUploadQuota, async (req, res) => {
     try {
         const order = await Order.findOne({ orderId: req.params.id, userId: req.user.id });
         if (!order) return res.status(404).json({ error: 'Order not found.' });

@@ -42,7 +42,7 @@ const isMissing = (err) => err?.name === 'NoSuchKey' || err?.name === 'NotFound'
 
 /** A file the storage can't take (too large). `status` 413; the message is safe to show. */
 export class StorageLimitError extends Error {
-    constructor(message) { super(message); this.status = 413; }
+    constructor(message, status = 413) { super(message); this.status = status; }
 }
 
 // ── Stores ────────────────────────────────────────────────────────────────────
@@ -192,12 +192,43 @@ console.log(`[Files] uploads are stored in ${primary === mongoStore ? 'MongoDB (
 if (primary === localStore && process.env.NODE_ENV === 'production')
     console.warn('[Files] Files are kept on this server’s disk and are lost when it redeploys.');
 
+// ── Database space ────────────────────────────────────────────────────────────
+// With MongoDB as file storage, files share the database's space with orders,
+// users and everything else. Uploads pause before it fills (DB_LIMIT_MB, default
+// 512 for Atlas's free tier; DB_UPLOAD_PAUSE_PERCENT, default 85) so the site
+// keeps working.
+const DB_LIMIT_BYTES = (Number(env('DB_LIMIT_MB')) || 512) * MB;
+const PAUSE_PERCENT = Math.min(99, Number(env('DB_UPLOAD_PAUSE_PERCENT')) || 85);
+let usageCache = { at: 0, value: null };
+
+/** { usedMB, limitMB, percent, uploadsPaused } for the database, or null when it can't be read. */
+export async function databaseUsage() {
+    if (Date.now() - usageCache.at < 60 * 1000) return usageCache.value;
+    let value = null;
+    try {
+        if (mongoose.connection.readyState === 1) {
+            const s = await mongoose.connection.db.stats();
+            const used = Math.max(s.storageSize || 0, s.dataSize || 0) + (s.indexSize || 0);
+            const percent = Math.round((used / DB_LIMIT_BYTES) * 1000) / 10;
+            value = { usedMB: Math.round(used / MB), limitMB: Math.round(DB_LIMIT_BYTES / MB), percent, pauseAtPercent: PAUSE_PERCENT, uploadsPaused: percent >= PAUSE_PERCENT };
+            if (value.uploadsPaused) console.error(`[Files] database is ${percent}% full (${value.usedMB}/${value.limitMB} MB): uploads are paused.`);
+            else if (percent >= 70) console.warn(`[Files] database is ${percent}% full (${value.usedMB}/${value.limitMB} MB).`);
+        }
+    } catch (err) { console.error('[Files] could not read database size:', err?.message); }
+    usageCache = { at: Date.now(), value };
+    return value;
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /** Moves an uploaded temp file into storage as `area/name`. */
 export async function saveFile(tempPath, area, name, contentType = 'application/octet-stream') {
     const { size } = await fs.promises.stat(tempPath);
     if (size > MAX_STORED_BYTES) { await fs.promises.unlink(tempPath).catch(() => {}); throw tooLarge(); }
+    if (primary === mongoStore && (await databaseUsage())?.uploadsPaused) {
+        await fs.promises.unlink(tempPath).catch(() => {});
+        throw new StorageLimitError('File uploads are paused for a short while because storage is nearly full. Please try again later or contact support.', 507);
+    }
     try { await primary.save(tempPath, area, name, contentType); }
     catch (err) { await fs.promises.unlink(tempPath).catch(() => {}); throw err; }
 }

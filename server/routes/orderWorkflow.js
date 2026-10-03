@@ -18,6 +18,7 @@ import { getRateCard } from '../services/orderPricing.js';
 import { issueReceipt } from '../services/receipts.js';
 import { BiddingError, setBidding, listForWriter, placeBid, withdrawBid, bidsForOrder, acceptBid } from '../services/orderBidding.js';
 import { releaseOrder, getOrderSettings, saveOrderSettings, canTakeOrders, clientOrderView, clientVisibleFiles, isCompleted, OPEN_ORDER, WRITER_HIDDEN_FIELDS } from '../services/orderRelease.js';
+import { enforceUploadQuota } from '../services/uploadQuota.js';
 
 const require = createRequire(import.meta.url);
 const multer = require('multer');
@@ -206,7 +207,7 @@ const SUBMITTABLE = ['in_progress', 'revision_required'];
 const draftView = (files) => (files || []).map(({ filePath, ...f }) => (typeof f.toObject === 'function' ? f.toObject() : f));
 
 // POST /api/order-workflow/writer/submission/:orderId/:kind — upload one required file (kind: final | plagiarism | ai-report)
-router.post('/writer/submission/:orderId/:kind', authenticateUser, requireWriter, deliveryUpload.single('file'), async (req, res) => {
+router.post('/writer/submission/:orderId/:kind', authenticateUser, requireWriter, deliveryUpload.single('file'), enforceUploadQuota, async (req, res) => {
     const discard = () => (req.file ? fs.promises.unlink(req.file.path).catch(() => {}) : Promise.resolve());
     try {
         const kind = kindFromSlug(req.params.kind);
@@ -246,7 +247,7 @@ router.post('/writer/submission/:orderId/:kind', authenticateUser, requireWriter
         res.json({ draftDelivery: draftView(order.draftDelivery) });
     } catch (err) {
         await discard();
-        if (err?.status === 413) return res.status(413).json({ error: err.message });
+        if (err?.status === 413 || err?.status === 507) return res.status(err.status).json({ error: err.message });
         console.error('[OrderWorkflow] submission upload error:', err.message);
         res.status(500).json({ error: 'Could not upload the file.' });
     }
@@ -368,7 +369,7 @@ router.post('/admin/upload/:orderId', authenticateAdmin, requirePermission('orde
         res.json({ order: { ...order.toObject(), status: normaliseStatus(order.status) } });
     } catch (err) {
         await discard();
-        if (err?.status === 413) return res.status(413).json({ error: err.message });
+        if (err?.status === 413 || err?.status === 507) return res.status(err.status).json({ error: err.message });
         console.error('[OrderWorkflow] admin upload error:', err.message);
         res.status(500).json({ error: 'Could not upload files.' });
     }

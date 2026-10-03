@@ -194,6 +194,7 @@ const ROUTE_PERMISSIONS = [
     ['*', /^\/contacts/, 'leads.manage'],
     ['*', /^\/managers/, 'admins.manage'],
     ['GET', /^\/analytics$/, 'analytics.read'],
+    ['GET', /^\/system$/, 'orders.read'],
     ['GET', /^\/audit$/, 'audit.read'],
     ['*', /^\/settings$/, 'settings.manage'],
 ];
@@ -208,6 +209,18 @@ router.use(async (req, res, next) => {
         const rule = ROUTE_PERMISSIONS.find(([m, rx]) => (m === '*' || m === req.method) && rx.test(req.path));
         if (!rule) return res.status(403).json({ error: 'Your admin role does not permit this action.' });
         return requirePermission(rule[2])(req, res, next);
+    });
+});
+
+// GET /api/admin/system — file storage self-test, database size and cache status.
+router.get('/system', async (req, res) => {
+    const { storageMode, storageCheck, databaseUsage, MAX_STORED_BYTES } = await import('../services/fileStore.js');
+    const { isRedisAvailable, cacheStats } = await import('../services/cache.js');
+    const { DAILY_UPLOAD_BYTES } = await import('../services/uploadQuota.js');
+    res.json({
+        storage: { mode: storageMode, check: storageCheck, maxFileMB: Number.isFinite(MAX_STORED_BYTES) ? Math.round(MAX_STORED_BYTES / 1048576) : null, dailyUploadMB: Math.round(DAILY_UPLOAD_BYTES / 1048576) },
+        database: await databaseUsage(),
+        cache: { connected: isRedisAvailable(), stats: cacheStats },
     });
 });
 

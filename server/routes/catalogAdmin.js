@@ -28,7 +28,7 @@ class CrmError extends Error { constructor(message, status = 400) { super(messag
 
 function handle(res, err, fallback) {
     if (err instanceof CrmError || err instanceof PricingError || err instanceof MediaError) return res.status(err.status).json({ error: err.message });
-    if (err?.status === 413) return res.status(413).json({ error: err.message });
+    if (err?.status === 413 || err?.status === 507) return res.status(err.status).json({ error: err.message });
     if (err?.code === 11000) return res.status(409).json({ error: 'That slug is already used here. Choose another.' });
     if (err?.name === 'CastError') return res.status(404).json({ error: 'Not found.' });
     console.error(`[Catalog] ${fallback}:`, err);

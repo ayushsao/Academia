@@ -1401,6 +1401,37 @@ const SettingsTab = ({ token }: { token: string }) => {
 };
 
 // ─── Main Admin Panel ─────────────────────────────────────────────────────────
+// Warns admins when file storage is failing or the database is filling up
+// (uploads pause automatically at the limit shown).
+function SystemHealthBanner({ token }: { token: string }) {
+    const [info, setInfo] = useState<{ storage: { check: { status: string } }; database: { usedMB: number; limitMB: number; percent: number; pauseAtPercent: number; uploadsPaused: boolean } | null } | null>(null);
+    useEffect(() => {
+        let live = true;
+        const load = () => apiFetch('/admin/system', {}, token).then(d => live && setInfo(d)).catch(() => {});
+        load();
+        const timer = window.setInterval(load, 5 * 60 * 1000);
+        return () => { live = false; window.clearInterval(timer); };
+    }, [token]);
+    if (!info) return null;
+    const db = info.database;
+    const storageBad = !['ok', 'pending', 'skipped'].includes(info.storage.check.status);
+    const dbWarn = db && db.percent >= 70;
+    if (!storageBad && !dbWarn) return null;
+    return (
+        <div role="alert" className={`mb-6 rounded-2xl border px-5 py-4 text-sm ${db?.uploadsPaused || storageBad ? 'border-red-200 bg-red-50 text-red-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+            {storageBad && <p><strong>File storage problem:</strong> {info.storage.check.status}. Uploads or downloads may fail.</p>}
+            {dbWarn && db && (
+                <p className={storageBad ? 'mt-1' : ''}>
+                    <strong>Database {db.percent}% full</strong> ({db.usedMB} of {db.limitMB} MB).{' '}
+                    {db.uploadsPaused
+                        ? 'File uploads are paused to keep the site running. Free up space or upgrade the MongoDB plan.'
+                        : `File uploads pause automatically at ${db.pauseAtPercent}%. Plan to upgrade the MongoDB plan or move files to another store.`}
+                </p>
+            )}
+        </div>
+    );
+}
+
 type TabId = 'dashboard' | 'overview' | 'orders' | 'users' | 'writers' | 'applications' | 'assignments' | 'memberships' | 'recruitment' | 'catalog' | 'content' | 'blog' | 'bidding' | 'trust' | 'audit' | 'contacts' | 'support' | 'analytics' | 'settings' | 'admins';
 
 // Each tab lists the permissions that unlock it (any one is enough). The server
@@ -1552,6 +1583,7 @@ export const AdminPanel: React.FC = () => {
 
                 {/* Page content */}
                 <main className="flex-1 min-h-0 overflow-y-auto p-6 lg:p-8">
+                    {hasPermission(access, 'orders.read') && <SystemHealthBanner token={token} />}
                     {!current && <p className="text-sm text-gray-500">Your role doesn’t have access to any console sections yet. Ask a Super Admin to update it.</p>}
                     {current?.id === 'dashboard' && <MarketplaceDashboard token={token} onNavigate={(t) => navItems.some(i => i.id === t) && setTab(t as TabId)} />}
                     {current?.id === 'overview' && <OverviewTab token={token} />}

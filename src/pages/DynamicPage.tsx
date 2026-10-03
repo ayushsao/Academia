@@ -13,6 +13,8 @@ import { usePageMeta } from '../lib/usePageMeta';
 import { SERVICE_GUIDES } from '../data/serviceGuides';
 import { showPrompt } from '../lib/dialog';
 import { Eyebrow } from '../components/ui/Eyebrow';
+// pdf.js worker served from this site (no third-party CDN, so the CSP stays strict).
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 export const DynamicPage: React.FC = () => {
     const { slug } = useParams<{ slug: string }>();
@@ -655,7 +657,7 @@ export const DynamicPage: React.FC = () => {
                                                     extractedText = await file.text();
                                                 } else if (fileExt === 'pdf') {
                                                     const pdfjsLib = await import('pdfjs-dist');
-                                                    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+                                                    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
                                                     const arrayBuffer = await file.arrayBuffer();
                                                     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -861,7 +863,7 @@ export const DynamicPage: React.FC = () => {
                                                                 extractedText = await file.text();
                                                             } else if (fileExt === 'pdf') {
                                                                 const pdfjsLib = await import('pdfjs-dist');
-                                                                pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+                                                                pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
                                                                 const arrayBuffer = await file.arrayBuffer();
                                                                 const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;

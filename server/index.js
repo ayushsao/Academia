@@ -39,7 +39,8 @@ import { startAssignmentScheduler } from './services/assignmentService.js';
 import { startMembershipScheduler } from './services/membershipService.js';
 import { ensureDefaultPlans } from './services/membershipSettings.js';
 import { isRedisAvailable, cacheStats } from './services/cache.js';
-import { storageMode, storageCheck } from './services/fileStore.js';
+import { storageCheck } from './services/fileStore.js';
+import { enforceUploadQuota } from './services/uploadQuota.js';
 
 
 const app = express();
@@ -92,7 +93,7 @@ app.use('/api', globalLimiter);
 // uploader, and never served statically: see GET /api/orders/files/:name and
 // GET /api/admin/orders/files/:name.
 const uploadLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, message: { error: 'Too many uploads. Please try again later.' } });
-app.post('/api/upload', uploadLimiter, authenticateUser, receiveOrderFiles, async (req, res) => {
+app.post('/api/upload', uploadLimiter, authenticateUser, receiveOrderFiles, enforceUploadQuota, async (req, res) => {
     try {
         const files = await storeOrderUploads(req.files || [], req.user.id);
         res.json({ files });
@@ -131,16 +132,12 @@ app.use('/api/order-workflow', orderWorkflowRouter);
 // Customer online payments: POST /api/orders/checkout and /api/orders/checkout/confirm (routes/orders.js).
 
 app.get('/api/health', (req, res) =>
+    // Public: just whether the service and its file storage work. Details
+    // (storage self-test, database size, cache) are at /api/admin/system.
     res.json({
         status: 'OK',
         timestamp: new Date().toISOString(),
-        // Where uploaded files are kept ('local' means they're lost on redeploy).
-        storage: storageMode,
-        storageCheck,
-        redis: {
-            connected: isRedisAvailable(),
-            stats: cacheStats,
-        },
+        storage: storageCheck.status === 'ok' || storageCheck.status === 'pending' ? storageCheck.status : 'problem',
     })
 );
 

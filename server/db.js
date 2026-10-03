@@ -939,6 +939,17 @@ export const NotificationPreference = mongoose.model('NotificationPreference', n
 export const RiskEvent = mongoose.model('RiskEvent', riskEventSchema);
 export const LoginThrottle = mongoose.model('LoginThrottle', loginThrottleSchema);
 export const UploadedFile = mongoose.model('UploadedFile', uploadedFileSchema);
+// Bytes each customer/writer uploaded per day, for the daily upload quota
+// (services/uploadQuota.js). Rows expire a few days later.
+const uploadUsageSchema = new mongoose.Schema({
+  key: { type: String, required: true },   // user id
+  day: { type: String, required: true },   // YYYY-MM-DD (UTC)
+  bytes: { type: Number, default: 0 },
+  expiresAt: { type: Date, required: true },
+});
+uploadUsageSchema.index({ key: 1, day: 1 }, { unique: true });
+uploadUsageSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+export const UploadUsage = mongoose.model('UploadUsage', uploadUsageSchema);
 export const WriterPerformance = mongoose.model('WriterPerformance', writerPerformanceSchema);
 
 // ── Marketplace model map ──────────────────────────────────────────────────────

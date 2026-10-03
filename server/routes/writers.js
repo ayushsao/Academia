@@ -24,6 +24,7 @@ import {
     membershipEligibility, PUBLIC_WRITER_STATUSES, WORKING_WRITER_STATUSES, WriterError,
 } from '../services/writerService.js';
 import { deleteWriterAccount } from '../services/writerDeletion.js';
+import { enforceUploadQuota } from '../services/uploadQuota.js';
 
 const router = Router();
 
@@ -36,7 +37,7 @@ const uploadLimiter = limiter(15, 40, 'Too many uploads. Please try again later.
 // Maps known error types to HTTP responses; everything else is a 500 with no detail.
 function handleError(res, err, fallback) {
     // A file the storage can't take (too large): the message says what to do.
-    if (err?.status === 413) return res.status(413).json({ error: err.message });
+    if (err?.status === 413 || err?.status === 507) return res.status(err.status).json({ error: err.message });
     if (err instanceof OtpError) return res.status(err.status).json({ error: err.message, ...err.extra });
     if (err instanceof WriterError || err instanceof UploadError || err instanceof AbuseError) return res.status(err.status).json({ error: err.message });
     if (err instanceof DeliveryUnavailableError) return res.status(503).json({ error: 'Verification messages cannot be sent right now. Please try again later.' });
@@ -254,7 +255,7 @@ router.patch('/settings', authenticateUser, requireWriterAccount, validateInput(
 
 // ── Profile photo ────────────────────────────────────────────────────────────
 
-router.post('/photo', uploadLimiter, authenticateUser, requireWriterAccount, requireEditable, receiveSingleFile, async (req, res) => {
+router.post('/photo', uploadLimiter, authenticateUser, requireWriterAccount, requireEditable, receiveSingleFile, enforceUploadQuota, async (req, res) => {
     try {
         const stored = await finalizeUpload(req.file, 'PHOTO');
         const previous = req.bundle.profile.profilePhoto;
@@ -281,7 +282,7 @@ router.get('/:writerId/photo', identifyPrincipal, async (req, res) => {
 
 // ── Documents ────────────────────────────────────────────────────────────────
 
-router.post('/documents', uploadLimiter, authenticateUser, requireWriterAccount, requireEditable, receiveSingleFile, async (req, res) => {
+router.post('/documents', uploadLimiter, authenticateUser, requireWriterAccount, requireEditable, receiveSingleFile, enforceUploadQuota, async (req, res) => {
     const meta = documentMetaSchema.safeParse(req.body);
     if (!meta.success) {
         if (req.file) await removeStoredFile(req.file.filename);
