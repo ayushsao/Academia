@@ -4,7 +4,7 @@ import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
 import { BrandLogo } from './AcademiaLogo';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGoogleLogin } from '@react-oauth/google';
+import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 import emailjs from '@emailjs/browser';
 
 import { API } from '../lib/api';
@@ -14,7 +14,15 @@ interface SignInModalProps {
   onClose: () => void;
 }
 
-export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => {
+// Google's sign-in script loads only while the modal is open (not on every page view).
+const googleClientId = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID || 'placeholder_client_id';
+export const SignInModal: React.FC<SignInModalProps> = (props) => (props.isOpen ? (
+  <GoogleOAuthProvider clientId={googleClientId}>
+    <SignInModalContent {...props} />
+  </GoogleOAuthProvider>
+) : null);
+
+const SignInModalContent: React.FC<SignInModalProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
   const [showEmailForm, setShowEmailForm] = useState<boolean>(false);
   const [isAuthenticating, setIsAuthenticating] = useState<boolean>(false);

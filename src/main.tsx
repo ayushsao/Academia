@@ -65,14 +65,8 @@ if (useStore.getState().writer)
   confirmSession('/writers/me', () => Boolean(useStore.getState().writerToken), () => useStore.setState({ writer: null }));
 localStorage.removeItem('ap_admin_token');   // admin sessions are cookie-based now
 
-import { GoogleOAuthProvider } from '@react-oauth/google';
-
-const clientId = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID || 'placeholder_client_id';
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <GoogleOAuthProvider clientId={clientId}>
-      <App />
-    </GoogleOAuthProvider>
+    <App />
   </StrictMode>,
 );

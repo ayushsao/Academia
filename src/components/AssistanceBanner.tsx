@@ -51,7 +51,7 @@ export const AssistanceBanner: React.FC<AssistanceBannerProps> = ({ onOpenOrder 
                         {/* Image placeholder */}
                         <div className="w-[80%] sm:w-[260px] h-[280px] relative flex-shrink-0 -mt-16 self-end sm:self-auto sm:-mt-[90px] sm:ml-4 z-10 transition-transform hover:scale-105 duration-500">
                             <img loading="lazy" decoding="async"
-                                src="https://images.pexels.com/photos/8372628/pexels-photo-8372628.jpeg?auto=compress&cs=tinysrgb&w=800"
+                                src="/hero/assistance-640.webp"
                                 alt="Student with phone"
                                 className="w-full h-full object-cover object-top object-[center_10%] drop-shadow-2xl translate-y-3"
                                 style={{ maskImage: 'linear-gradient(to top, transparent, black 12%)', WebkitMaskImage: 'linear-gradient(to top, transparent, black 12%)' }}

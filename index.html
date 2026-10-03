@@ -27,13 +27,19 @@
   </script>
   <!-- Meta Pixel Code -->
 <script>
+// Standard Meta Pixel stub: fbq() calls queue up straight away. The library
+// itself (~260 KB) loads on the first interaction or 8 s after the page
+// has loaded, so it doesn't slow the first paint on phones.
 !function(f,b,e,v,n,t,s)
 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
 n.callMethod.apply(n,arguments):n.queue.push(arguments)};
 if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
+n.queue=[];var load=function(){if(t)return;t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
+s.parentNode.insertBefore(t,s)};
+['pointerdown','touchstart','keydown','scroll'].forEach(function(x){f.addEventListener(x,load,{once:!0,passive:!0})});
+f.addEventListener('load',function(){setTimeout(load,8000)});
+}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
 fbq('init', '2397052827491113');
 fbq('init', '1563662191722672');

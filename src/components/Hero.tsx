@@ -66,11 +66,21 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
   const [deadline, setDeadline] = useState<string>(getNextWeek());
   const [animatedPrice, setAnimatedPrice] = useState<number>(0);
 
+  // The carousel advances every 5 s, only while it's on screen and the tab is
+  // visible (no off-screen re-renders on phones), and not for people who ask
+  // their system for reduced motion.
+  const carouselRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let onScreen = true;
+    const observer = typeof IntersectionObserver !== 'undefined' && carouselRef.current
+      ? new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; })
+      : null;
+    if (observer && carouselRef.current) observer.observe(carouselRef.current);
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % 3);
-    }, 3000);
-    return () => clearInterval(timer);
+      if (onScreen && document.visibilityState === 'visible') setCurrentSlide((prev) => (prev + 1) % 3);
+    }, 5000);
+    return () => { clearInterval(timer); observer?.disconnect(); };
   }, []);
 
 
@@ -258,8 +268,9 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
       <div className="max-w-[1280px] 2xl:max-w-[1440px] mx-auto px-4 sm:px-6 relative z-10 flex flex-col lg:flex-row items-stretch justify-between gap-6 lg:gap-8 2xl:gap-10">
 
         {/* LEFT: Dynamic Carousel Container */}
-        <div className="flex-1 w-full min-w-0 relative overflow-hidden rounded-[16px] shadow-[0_4px_24px_rgba(30,58,95,0.08)] bg-white min-h-[560px] lg:min-h-[560px]">
-          <AnimatePresence mode="wait">
+        <div ref={carouselRef} className="flex-1 w-full min-w-0 relative overflow-hidden rounded-[16px] shadow-[0_4px_24px_rgba(30,58,95,0.08)] bg-white min-h-[560px] lg:min-h-[560px]">
+          {/* initial={false}: the first slide shows straight away (no entrance animation delaying the first paint). */}
+          <AnimatePresence mode="wait" initial={false}>
             {/* SLIDE 0: Path to Academic Excellence */}
             {currentSlide === 0 && (
               <motion.div
@@ -298,7 +309,8 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                   <div className="sm:col-span-5 relative group">
                     <div className="relative w-full h-[180px] sm:h-full min-h-[175px] rounded-2xl overflow-hidden border-3 border-white shadow-md bg-slate-100">
                       <img
-                        src="https://images.pexels.com/photos/1462630/pexels-photo-1462630.jpeg?auto=compress&cs=tinysrgb&w=800"
+                        src="/hero/scholar-640.webp"
+                        width={640} height={426} fetchPriority="high" decoding="async"
                         alt="UK Academic Scholar"
                         className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                       />
@@ -502,7 +514,8 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                   <div className="sm:col-span-5 relative group">
                     <div className="w-full h-[180px] sm:h-full min-h-[175px] rounded-2xl overflow-hidden border-3 border-white shadow-md bg-slate-200 relative">
                       <img
-                        src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=800"
+                        src="/hero/students-640.webp"
+                        width={640} height={426} decoding="async"
                         alt="UK Students Collaborating"
                         className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                       />

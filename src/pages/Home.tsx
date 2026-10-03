@@ -9,41 +9,63 @@ import { lazyPage } from '../lib/lazyPage';
 import { usePageMeta } from '../lib/usePageMeta';
 import { Calculator, Smartphone } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
-import { ScrollReveal } from '../components/ScrollReveal';
+import { ScrollReveal, mountAllSections } from '../components/ScrollReveal';
 import { Hero } from '../components/Hero';
 import { StatsBar } from '../components/StatsBar';
-import { Disciplines } from '../components/Disciplines';
-import { TimelineJourney } from '../components/TimelineJourney';
-import { ConsultantsSection } from '../components/ConsultantsSection';
-import { WhyChooseUs } from '../components/WhyChooseUs';
-import { CtaBanner } from '../components/CtaBanner';
 import { AssistanceBanner } from '../components/AssistanceBanner';
-import { FaqSection } from '../components/FaqSection';
-import { ToolType } from '../components/AcademicToolsSection';
-import { ReviewsSection } from '../components/ReviewsSection';
-import { ContactSection } from '../components/ContactSection';
+import type { ToolType } from '../components/AcademicToolsSection';
 import { Footer } from '../components/Footer';
 import { SideDrawer } from '../components/SideDrawer';
-import { AcademicToolsSection } from '../components/AcademicToolsSection';
 import { TopUtilityBar } from '../components/TopUtilityBar';
-import { ServicesTabs } from '../components/ServicesTabs';
 import { SubjectsSection } from '../components/catalog/SubjectsDirectory';
-import { TrustLogosMarquee } from '../components/TrustLogosMarquee';
-import { SamplesShowcase } from '../components/SamplesShowcase';
-import { BlogGrid } from '../components/BlogGrid';
 import { FloatingElements } from '../components/FloatingElements';
 import { PopupFunnel } from '../components/PopupFunnel';
-import { JoinAsWriterSection } from '../components/JoinAsWriterSection';
 import { Consultant, Discipline, ServiceType, SubjectType } from '../types';
 import type { OrderQuote } from '../lib/orderQuote';
 import type { Coupon } from '../lib/charges';
 
 // Modals are only downloaded when first opened (they render nothing while closed).
+// Below-the-fold sections: their code loads when they come into view (see ScrollReveal).
+const ConsultantsSection = React.lazy(() => import('../components/ConsultantsSection').then(m => ({ default: m.ConsultantsSection })));
+const ServicesTabs = React.lazy(() => import('../components/ServicesTabs').then(m => ({ default: m.ServicesTabs })));
+const TimelineJourney = React.lazy(() => import('../components/TimelineJourney').then(m => ({ default: m.TimelineJourney })));
+const TrustLogosMarquee = React.lazy(() => import('../components/TrustLogosMarquee').then(m => ({ default: m.TrustLogosMarquee })));
+const SamplesShowcase = React.lazy(() => import('../components/SamplesShowcase').then(m => ({ default: m.SamplesShowcase })));
+const Disciplines = React.lazy(() => import('../components/Disciplines').then(m => ({ default: m.Disciplines })));
+const WhyChooseUs = React.lazy(() => import('../components/WhyChooseUs').then(m => ({ default: m.WhyChooseUs })));
+const BlogGrid = React.lazy(() => import('../components/BlogGrid').then(m => ({ default: m.BlogGrid })));
+const FaqSection = React.lazy(() => import('../components/FaqSection').then(m => ({ default: m.FaqSection })));
+const CtaBanner = React.lazy(() => import('../components/CtaBanner').then(m => ({ default: m.CtaBanner })));
+const ReviewsSection = React.lazy(() => import('../components/ReviewsSection').then(m => ({ default: m.ReviewsSection })));
+const JoinAsWriterSection = React.lazy(() => import('../components/JoinAsWriterSection').then(m => ({ default: m.JoinAsWriterSection })));
+const ContactSection = React.lazy(() => import('../components/ContactSection').then(m => ({ default: m.ContactSection })));
+const AcademicToolsSection = React.lazy(() => import('../components/AcademicToolsSection').then(m => ({ default: m.AcademicToolsSection })));
 const OrderModal = lazyPage(() => import('../components/OrderModal').then(m => ({ default: m.OrderModal })));
 const ConsultantModal = lazyPage(() => import('../components/ConsultantModal').then(m => ({ default: m.ConsultantModal })));
 const ToolModal = lazyPage(() => import('../components/ToolModal').then(m => ({ default: m.ToolModal })));
 const DisciplineModal = lazyPage(() => import('../components/DisciplineModal').then(m => ({ default: m.DisciplineModal })));
 const SignInModal = lazyPage(() => import('../components/SignInModal').then(m => ({ default: m.SignInModal })));
+
+// Renders every deferred section, waits for `id` to exist, then scrolls to it
+// (below the sticky header). Sections above may still be filling in, so the
+// position is corrected once more after they settle.
+function scrollToSection(id: string) {
+  mountAllSections();
+  const go = (smooth: boolean) => {
+    const el = document.getElementById(id);
+    if (!el) return false;
+    const header = (document.querySelector('.sticky.top-0') as HTMLElement | null)?.offsetHeight || 0;
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - header, behavior: smooth ? 'smooth' : 'auto' });
+    return true;
+  };
+  let tries = 0;
+  const timer = setInterval(() => {
+    if (go(true) || ++tries > 40) {
+      clearInterval(timer);
+      setTimeout(() => go(false), 900);
+    }
+  }, 75);
+}
 
 export default function App() {
   usePageMeta('/');
@@ -111,41 +133,24 @@ export default function App() {
   // that section once it has rendered; lazy sections can take a moment.
   const { hash } = useLocation();
   useEffect(() => {
-    if (!hash) return;
-    let tries = 0;
-    const timer = setInterval(() => {
-      const el = document.getElementById(decodeURIComponent(hash.slice(1)));
-      if (el || ++tries > 20) {
-        clearInterval(timer);
-        el?.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 150);
-    return () => clearInterval(timer);
+    if (hash) scrollToSection(decodeURIComponent(hash.slice(1)));
   }, [hash]);
 
-  const handleScrollToTimeline = () => {
-    const el = document.getElementById('how-it-works-section');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
+
+  const handleScrollToTimeline = () => scrollToSection('how-it-works-section');
 
   const handleNavigate = (sectionId: string) => {
     setActiveSection(sectionId);
     if (sectionId === 'academic-support') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (sectionId === 'technical-support') {
-      const el = document.getElementById('explore-disciplines');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      scrollToSection('explore-disciplines');
     } else if (sectionId === 'learning-support') {
-      const el = document.getElementById('elite-consultants');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      scrollToSection('elite-consultants');
     } else if (sectionId === 'academic-tools') {
-      const el = document.getElementById('academic-tools-section');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      scrollToSection('academic-tools-section');
     } else if (sectionId === 'elite-consultants') {
-      const el = document.getElementById('elite-consultants');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      scrollToSection('elite-consultants');
     }
   };
 
@@ -239,10 +244,7 @@ export default function App() {
         <ScrollReveal>
           <Disciplines
             onSelectDiscipline={(disc) => setSelectedDiscipline(disc)}
-            onViewAll={() => {
-              const el = document.getElementById('explore-disciplines');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }}
+            onViewAll={() => scrollToSection('explore-disciplines')}
           />
         </ScrollReveal>
 
