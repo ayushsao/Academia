@@ -32,6 +32,17 @@ function render(pagePath, { title, description }) {
     return html;
 }
 
+// Fallback for every other URL (blog posts, subjects, writer profiles…): the
+// same app without a canonical link or the home page's title, so search
+// engines never read those pages as copies of the home page. The page sets
+// its own title and canonical once it loads. vercel.json rewrites to it.
+const fallback = template
+    .replace(/<title>[\s\S]*?<\/title>/, '<title>AssignmentMinds</title>')
+    .replace(/\s*<link rel="canonical" href="[^"]*"\s*\/>/, '')
+    .replace(/\s*<meta property="og:url" content="[^"]*"\s*\/>/, '');
+if (fallback.includes('rel="canonical"')) throw new Error('prerender-meta: could not remove the canonical link from app.html');
+fs.writeFileSync(path.join(dist, 'app.html'), fallback);
+
 let count = 0;
 for (const [pagePath, meta] of Object.entries(pages)) {
     const file = pagePath === '/' ? path.join(dist, 'index.html') : path.join(dist, pagePath, 'index.html');

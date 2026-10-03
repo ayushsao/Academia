@@ -1,6 +1,6 @@
 {
     "/": {
-        "title": "Assignment Help & Dissertation Help by Expert Writers | AssignmentMinds",
+        "title": "AssignmentMinds – Assignment & Dissertation Help by Expert Writers",
         "description": "Online assignment help, dissertation help and essay writing support from qualified subject experts. Original work, on-time delivery and 24/7 support for UK, USA and worldwide students."
     },
     "/hire-writers": {
@@ -186,5 +186,29 @@
     "/p/assignment-help-university-of-bedfordshire": {
         "title": "Assignment Help for University of Bedfordshire Students | AssignmentMinds",
         "description": "Independent assignment and dissertation help for University of Bedfordshire students, written to your module brief and referencing style. Not affiliated with the university."
+    },
+    "/privacy-policy": {
+        "title": "Privacy Policy | AssignmentMinds",
+        "description": "How AssignmentMinds collects, uses and protects your personal information and files."
+    },
+    "/terms": {
+        "title": "Terms & Conditions | AssignmentMinds",
+        "description": "The terms for using AssignmentMinds academic support services, orders and payments."
+    },
+    "/refund-policy": {
+        "title": "Refund Policy | AssignmentMinds",
+        "description": "The AssignmentMinds refund policy for academic support orders."
+    },
+    "/cancellation-policy": {
+        "title": "Cancellation Policy | AssignmentMinds",
+        "description": "How and when AssignmentMinds orders can be cancelled."
+    },
+    "/usage-policy": {
+        "title": "Usage Policy | AssignmentMinds",
+        "description": "How work delivered by AssignmentMinds may be used, cited and shared."
+    },
+    "/writer-terms": {
+        "title": "Writer Terms | AssignmentMinds",
+        "description": "Terms for freelance academic writers working with AssignmentMinds."
     }
 }
