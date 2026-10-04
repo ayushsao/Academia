@@ -265,3 +265,10 @@ html {
 .section-white { background-color: #ffffff; }
 .section-light { background-color: #f4f7fc; }
 .section-lightgray { background-color: #f9fafb; }
+
+/* Phones with the bottom action bar (components/MobileActionBar.tsx):
+   keep the page end and the chat bubble clear of it. */
+@media (max-width: 767px) {
+  body.has-mobile-bar { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+  body.has-mobile-bar [data-chat-widget] { bottom: calc(84px + env(safe-area-inset-bottom)); }
+}

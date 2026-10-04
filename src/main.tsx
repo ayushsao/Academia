@@ -11,6 +11,7 @@ import { useStore } from './store/useStore';
 import { API } from './lib/api';
 import { ADMIN_COOKIE_SESSION, isWriterApi } from './lib/session';
 import { reloadForNewVersion } from './lib/lazyPage';
+import { installContactTracking } from './lib/track';
 
 // A file needed by the page is gone after a new deploy: load the new version.
 window.addEventListener('vite:preloadError', (event) => { if (reloadForNewVersion()) event.preventDefault(); });
@@ -64,6 +65,8 @@ if (useStore.getState().user)
 if (useStore.getState().writer)
   confirmSession('/writers/me', () => Boolean(useStore.getState().writerToken), () => useStore.setState({ writer: null }));
 localStorage.removeItem('ap_admin_token');   // admin sessions are cookie-based now
+
+installContactTracking();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

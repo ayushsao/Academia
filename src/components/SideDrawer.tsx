@@ -17,6 +17,7 @@ import { ServiceType, SubjectType } from '../types';
 import { useOrderQuote, deadlineAtFrom, wordsPerPageFor, DEFAULT_SPACING, type OrderQuote, localDateString } from '../lib/orderQuote';
 import { DIAL_CODES, POPULAR_DIAL_CODES, dialLabel, countryName, currencyForDial } from '../lib/countryCodes';
 import { MAIN_CURRENCIES, currencySymbolOf } from '../lib/currencyDisplay';
+import { trackEvent } from '../lib/track';
 
 interface SideDrawerProps {
   isOpen: boolean;
@@ -109,6 +110,7 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
     if (!/^\d{6,15}$/.test(phone.replace(/[\s()+-]/g, ''))) errs.phone = phone.trim() ? 'Enter a valid phone number.' : 'Phone number is required.';
     setContactErrors(errs);
     if (errs.email || errs.phone) return;
+    trackEvent('Lead', { content_name: 'Instant quote drawer' });
     let finalQuote: OrderQuote | undefined;
     if (pages > 0) { try { finalQuote = await ensure(); } catch { finalQuote = undefined; } }
     onProceedToOrder({

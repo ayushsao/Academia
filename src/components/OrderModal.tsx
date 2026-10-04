@@ -26,6 +26,7 @@ import { useOrderQuote, SPACING_OPTIONS, DEFAULT_SPACING, pagesFor, deadlineAtFr
 import { computeCharges, chargeRows, toMinor, TAX_PERCENT, type Charges, type Coupon, type PayChannel } from '../lib/charges';
 import { WhatsAppPaymentReference } from './WhatsAppPaymentReference';
 import { showAlert } from '../lib/dialog';
+import { trackEvent } from '../lib/track';
 
 // Orders arranged on WhatsApp go to this number (no tax; the team confirms payment there).
 const WHATSAPP_NUMBER = '919263606941';
@@ -191,6 +192,9 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       setStep(1);
     }
   }, [isOpen, initialConfig]);
+
+  // Opening the order form starts checkout.
+  React.useEffect(() => { if (isOpen) trackEvent('InitiateCheckout', { content_name: catalog ? 'Catalogue order' : 'Order form' }); }, [isOpen]);
 
   // A coupon code handed in (e.g. from the promo popup) is checked and applied.
   React.useEffect(() => {
@@ -524,6 +528,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
             if (!confirm.res.ok) throw new Error(confirm.data.error || 'We could not confirm your payment.');
             setIsPaymentVerified(true);
             setTransactionId(payment.razorpay_payment_id);
+            const paid = confirm.data.order || {};
+            trackEvent('Purchase', { value: Number(paid.totalAmount) || 0, currency: paid.currency || 'INR', content_name: orderService || 'Academic order' }, paid.orderId || payment.razorpay_payment_id);
             await orderPlaced(confirm.data.order, `Razorpay ${payment.razorpay_payment_id} (verified)`);
           } catch (e: any) {
             setRazorpayError(`${e?.message || 'We could not confirm your payment.'} Payment ID: ${payment.razorpay_payment_id}`);

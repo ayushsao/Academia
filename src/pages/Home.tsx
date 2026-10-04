@@ -23,6 +23,7 @@ import { PopupFunnel } from '../components/PopupFunnel';
 import { Consultant, Discipline, ServiceType, SubjectType } from '../types';
 import type { OrderQuote } from '../lib/orderQuote';
 import type { Coupon } from '../lib/charges';
+import { MobileActionBar } from '../components/MobileActionBar';
 
 // Modals are only downloaded when first opened (they render nothing while closed).
 // Below-the-fold sections: their code loads when they come into view (see ScrollReveal).
@@ -295,6 +296,9 @@ export default function App() {
           COST CALC
         </span>
       </button>
+
+      {/* Phones: WhatsApp / quote / order always at the bottom. */}
+      <MobileActionBar onQuote={() => setDrawerOpen(true)} onOrder={() => handleOpenOrder()} />
 
       {/* Right Slide-out Drawer */}
       <SideDrawer

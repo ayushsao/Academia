@@ -13,6 +13,7 @@ import { MAIN_CURRENCIES, currencySymbolOf } from '../lib/currencyDisplay';
 import { api } from '../lib/api';
 import type { Coupon } from '../lib/charges';
 import { Stars } from './ui/Stars';
+import { trackEvent } from '../lib/track';
 
 interface HeroProps {
   onOpenOrder: (prefill?: {
@@ -220,6 +221,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
     if (!/^\d{6,15}$/.test(phoneDigits)) errs.phone = phone.trim() ? 'Enter a valid phone number.' : 'Phone number is required.';
     setContactErrors(errs);
     if (errs.email || errs.phone) return;
+    trackEvent('Lead', { content_name: 'Home quote calculator' });
     // Hand the order form the exact quote shown here (fetched now if the inputs just changed).
     let finalQuote: OrderQuote | undefined;
     try {
