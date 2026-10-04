@@ -13,14 +13,22 @@ import { fromMinor, toMinor } from '../services/money.js';
 import { razorpayEnabled, razorpayKeyId, verifyRazorpaySignature, PaymentProviderError } from '../services/paymentProviders.js';
 import { createOrderRecord, startCheckout, completeCheckout, startUpiQr, settleUpiQr, recordCheckoutFailure } from '../services/orderCheckout.js';
 import { enforceUploadQuota } from '../services/uploadQuota.js';
+import { pageParams, pageInfo } from '../pagination.js';
 
 const router = Router();
 
 // GET /api/orders — user's own orders
 router.get('/', authenticateUser, async (req, res) => {
     try {
-        const orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 }).lean();
-        res.json({ orders: orders.map(clientOrderView) });
+        // Newest first, a page at a time (default: the latest 100, which covers
+        // almost every customer; ?page=&limit= for more).
+        const { page, limit, skip } = pageParams(req.query, { defaultLimit: 100 });
+        const filter = { userId: req.user.id };
+        const [orders, total] = await Promise.all([
+            Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+            Order.countDocuments(filter),
+        ]);
+        res.json({ orders: orders.map(clientOrderView), ...pageInfo(total, page, limit) });
     } catch (err) {
         res.status(500).json({ error: 'Failed to fetch orders.' });
     }

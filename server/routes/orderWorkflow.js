@@ -19,6 +19,7 @@ import { issueReceipt } from '../services/receipts.js';
 import { BiddingError, setBidding, listForWriter, placeBid, withdrawBid, bidsForOrder, acceptBid } from '../services/orderBidding.js';
 import { releaseOrder, getOrderSettings, saveOrderSettings, canTakeOrders, clientOrderView, clientVisibleFiles, isCompleted, OPEN_ORDER, WRITER_HIDDEN_FIELDS } from '../services/orderRelease.js';
 import { enforceUploadQuota } from '../services/uploadQuota.js';
+import { pageParams, pageInfo } from '../pagination.js';
 
 const require = createRequire(import.meta.url);
 const multer = require('multer');
@@ -144,13 +145,19 @@ router.get('/writer/available', authenticateUser, requireWriter, async (req, res
 router.get('/writer/my-orders', authenticateUser, requireWriter, async (req, res) => {
     try {
         // The client's name only — never their email or other contact details.
-        const orders = await Order.find({ writerId: req.user.id })
-            .select('-transactionId -payment -pricing -charges -catalog -adminNotes -deliveryFiles.filePath -draftDelivery.filePath -totalAmount -paymentStatus -bidding')
-            .populate('userId', 'name')
-            .sort({ createdAt: -1 })
-            .lean();
+        const { page, limit, skip } = pageParams(req.query, { defaultLimit: 100 });
+        const filter = { writerId: req.user.id };
+        const [orders, total] = await Promise.all([
+            Order.find(filter)
+                .select('-transactionId -payment -pricing -charges -catalog -adminNotes -deliveryFiles.filePath -draftDelivery.filePath -totalAmount -paymentStatus -bidding')
+                .populate('userId', 'name')
+                .sort({ createdAt: -1 })
+                .skip(skip).limit(limit)
+                .lean(),
+            Order.countDocuments(filter),
+        ]);
 
-        res.json({ orders: orders.map(o => ({ ...o, status: normaliseStatus(o.status) })) });
+        res.json({ orders: orders.map(o => ({ ...o, status: normaliseStatus(o.status) })), ...pageInfo(total, page, limit) });
     } catch (err) {
         console.error('[OrderWorkflow] my orders error:', err.message);
         res.status(500).json({ error: 'Could not load your orders.' });
@@ -667,16 +674,19 @@ router.get('/admin/delivery-file/:orderId/:fileId', authenticateAdmin, requirePe
 // GET /api/order-workflow/client/orders — client's orders with status tracking
 router.get('/client/orders', authenticateUser, async (req, res) => {
     try {
-        const orders = await Order.find({ userId: req.user.id })
-            .select('-adminNotes -payment -pricing -catalog')
-            .sort({ createdAt: -1 })
-            .lean();
+        const { page, limit, skip } = pageParams(req.query, { defaultLimit: 100 });
+        const filter = { userId: req.user.id };
+        const [orders, total] = await Promise.all([
+            Order.find(filter).select('-adminNotes -payment -pricing -catalog').sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+            Order.countDocuments(filter),
+        ]);
 
         res.json({
             orders: orders.map(o => ({
                 ...clientOrderView(o),
                 status: normaliseStatus(o.status),
             })),
+            ...pageInfo(total, page, limit),
         });
     } catch (err) {
         res.status(500).json({ error: 'Could not load orders.' });

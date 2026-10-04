@@ -872,17 +872,7 @@ const OrdersTab = ({ token }: { token: string }) => {
                     </div>
                 )}
                 {/* Pagination */}
-                {total > 15 && (
-                    <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
-                        <p className="text-sm text-gray-400">Showing {(page - 1) * 15 + 1}–{Math.min(page * 15, total)} of {total}</p>
-                        <div className="flex gap-2">
-                            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                                className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm font-semibold disabled:opacity-40 hover:bg-gray-50">Prev</button>
-                            <button onClick={() => setPage(p => p + 1)} disabled={page * 15 >= total}
-                                className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm font-semibold disabled:opacity-40 hover:bg-gray-50">Next</button>
-                        </div>
-                    </div>
-                )}
+                <Pager page={page} limit={15} total={total} onPage={setPage} />
             </div>
             <PaymentAttempts token={token} />
             {selected && (
@@ -1062,31 +1052,55 @@ const UsersTab = ({ token }: { token: string }) => {
 };
 
 // ─── Contacts Tab ─────────────────────────────────────────────────────────────
+// "Showing 1–20 of 85 · Prev / Next" under a server-paginated list.
+const Pager = ({ page, limit, total, onPage }: { page: number; limit: number; total: number; onPage: (p: number) => void }) => (
+    total > limit ? (
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
+            <p className="text-sm text-gray-400">Showing {(page - 1) * limit + 1}–{Math.min(page * limit, total)} of {total}</p>
+            <div className="flex gap-2">
+                <button onClick={() => onPage(Math.max(1, page - 1))} disabled={page === 1}
+                    className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm font-semibold disabled:opacity-40 hover:bg-gray-50">Prev</button>
+                <button onClick={() => onPage(page + 1)} disabled={page * limit >= total}
+                    className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm font-semibold disabled:opacity-40 hover:bg-gray-50">Next</button>
+            </div>
+        </div>
+    ) : null
+);
+
+const CONTACTS_PER_PAGE = 20;
 const ContactsTab = ({ token }: { token: string }) => {
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [loading, setLoading] = useState(false);
     const [expanded, setExpanded] = useState<string | null>(null);
+    // Server-side pages: only the current page of messages is fetched.
+    const [page, setPage] = useState(1);
+    const [total, setTotal] = useState(0);
+    const [unread, setUnread] = useState(0);
 
     const load = async () => {
         setLoading(true);
-        try { const data = await apiFetch('/admin/contacts', {}, token); setContacts(data.contacts); }
+        try {
+            const data = await apiFetch(`/admin/contacts?page=${page}&limit=${CONTACTS_PER_PAGE}`, {}, token);
+            setContacts(data.contacts); setTotal(data.total ?? data.contacts.length); setUnread(data.unread ?? 0);
+        }
         catch (e: any) { showAlert(e.message); }
         finally { setLoading(false); }
     };
 
-    useEffect(() => { load(); }, []);
+    useEffect(() => { load(); }, [page]);
 
     const markRead = async (id: string) => {
         try {
             await apiFetch(`/admin/contacts/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'read' }) }, token);
             setContacts(prev => prev.map(c => c._id === id ? { ...c, status: 'read' } : c));
+            setUnread(n => Math.max(0, n - 1));
         } catch (e: any) { showAlert(e.message); }
     };
 
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h3 className="font-bold text-[#000a1e]">Contact Submissions <span className="text-gray-400 font-normal text-sm">({contacts.length} total)</span></h3>
+                <h3 className="font-bold text-[#000a1e]">Contact Submissions <span className="text-gray-400 font-normal text-sm">({total} total{unread ? ` · ${unread} unread` : ''})</span></h3>
                 <button onClick={load} className="bg-white border border-gray-200 rounded-[12px] px-4 py-2.5 text-sm hover:bg-gray-50 shadow-sm flex items-center gap-2">
                     <RefreshCw className="w-3.5 h-3.5" /> Refresh
                 </button>
@@ -1137,6 +1151,9 @@ const ContactsTab = ({ token }: { token: string }) => {
                     </div>
                 ))
             )}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm empty:hidden">
+                <Pager page={page} limit={CONTACTS_PER_PAGE} total={total} onPage={setPage} />
+            </div>
         </div>
     );
 };

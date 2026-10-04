@@ -57,6 +57,7 @@ ensureDefaultAdmin().catch(console.error);
 // POST /api/admin/login
 import { rateLimit } from 'express-rate-limit';
 import { validateInput, adminLoginSchema, adminPasswordSchema, adminTwoFactorLoginSchema, adminTwoFactorCodeSchema, adminTwoFactorDisableSchema, adminOrderUpdateSchema, contactStatusSchema } from '../validation.js';
+import { pageParams, pageInfo } from '../pagination.js';
 
 const adminAuthLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -362,7 +363,8 @@ router.get('/stats', authenticateAdmin, async (req, res) => {
 // GET /api/admin/orders
 router.get('/orders', authenticateAdmin, async (req, res) => {
     try {
-        const { status, search, page = 1, limit = 15 } = req.query;
+        const { status, search } = req.query;
+        const { page, limit, skip } = pageParams(req.query, { defaultLimit: 15 });
         const filter = {};
         const STATUS_GROUPS = {
             pending: ['pending', 'Pending'], available: ['available'], in_progress: ['in_progress', 'assigned', 'In Progress'],
@@ -371,8 +373,6 @@ router.get('/orders', authenticateAdmin, async (req, res) => {
         };
         if (status && status !== 'all') filter.status = { $in: STATUS_GROUPS[status] || [String(status)] };
 
-        let query = Order.find(filter).populate('userId', 'name email').sort({ createdAt: -1 });
-
         if (search) {
             const rgx = new RegExp(String(search).slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
             filter.$or = [
@@ -380,20 +380,18 @@ router.get('/orders', authenticateAdmin, async (req, res) => {
             ];
         }
 
-        const total = await Order.countDocuments(filter);
-        const orders = await Order.find(filter)
-            .populate('userId', 'name email')
-            .sort({ createdAt: -1 })
-            .skip((Number(page) - 1) * Number(limit))
-            .limit(Number(limit));
+        const [total, orders] = await Promise.all([
+            Order.countDocuments(filter),
+            Order.find(filter).populate('userId', 'name email').sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+        ]);
 
         const formatted = orders.map(o => ({
-            ...o.toObject(),
+            ...o,
             user_name: o.userId?.name,
             user_email: o.userId?.email,
         }));
 
-        res.json({ orders: formatted, total, page: Number(page), limit: Number(limit) });
+        res.json({ orders: formatted, ...pageInfo(total, page, limit) });
     } catch (err) {
         res.status(500).json({ error: 'Internal server error.' });
     }
@@ -488,32 +486,31 @@ router.delete('/orders/:id', authenticateAdmin, async (req, res) => {
 // GET /api/admin/users
 router.get('/users', authenticateAdmin, async (req, res) => {
     try {
-        const { search, page = 1, limit = 15 } = req.query;
+        const { search } = req.query;
+        const { page, limit, skip } = pageParams(req.query, { defaultLimit: 15 });
         const filter = {};
         if (search) {
             const rgx = new RegExp(String(search).slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
             filter.$or = [{ name: rgx }, { email: rgx }];
         }
-        const total = await User.countDocuments(filter);
-        const users = await User.find(filter)
-            .select('-password')
-            .sort({ createdAt: -1 })
-            .skip((Number(page) - 1) * Number(limit))
-            .limit(Number(limit));
+        const [total, users] = await Promise.all([
+            User.countDocuments(filter),
+            User.find(filter).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+        ]);
 
-        // Attach order counts
-        const enriched = await Promise.all(users.map(async u => {
-            const [orderCount, totalSpentRes] = await Promise.all([
-                Order.countDocuments({ userId: u._id }),
-                Order.aggregate([
-                    { $match: { userId: u._id, status: { $ne: 'Cancelled' }, currency: { $in: ['GBP', null] } } },
-                    { $group: { _id: null, total: { $sum: '$totalAmount' } } }
-                ])
-            ]);
-            return { ...u.toObject(), order_count: orderCount, total_spent: totalSpentRes[0]?.total || 0 };
-        }));
+        // Order counts and spend for the whole page in one query (not two per user).
+        const stats = await Order.aggregate([
+            { $match: { userId: { $in: users.map(u => u._id) } } },
+            { $group: {
+                _id: '$userId',
+                count: { $sum: 1 },
+                spent: { $sum: { $cond: [{ $and: [{ $ne: ['$status', 'Cancelled'] }, { $in: [{ $ifNull: ['$currency', null] }, ['GBP', null]] }] }, '$totalAmount', 0] } },
+            } },
+        ]);
+        const byUser = new Map(stats.map(r => [String(r._id), r]));
+        const enriched = users.map(u => ({ ...u, order_count: byUser.get(String(u._id))?.count || 0, total_spent: byUser.get(String(u._id))?.spent || 0 }));
 
-        res.json({ users: enriched, total, page: Number(page), limit: Number(limit) });
+        res.json({ users: enriched, ...pageInfo(total, page, limit) });
     } catch (err) {
         res.status(500).json({ error: 'Internal server error.' });
     }
@@ -535,8 +532,13 @@ router.delete('/users/:id', authenticateAdmin, async (req, res) => {
 // GET /api/admin/contacts
 router.get('/contacts', authenticateAdmin, async (req, res) => {
     try {
-        const contacts = await Contact.find().sort({ createdAt: -1 });
-        res.json({ contacts });
+        const { page, limit, skip } = pageParams(req.query, { defaultLimit: 20 });
+        const [contacts, total, unread] = await Promise.all([
+            Contact.find().sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+            Contact.countDocuments(),
+            Contact.countDocuments({ status: 'unread' }),
+        ]);
+        res.json({ contacts, unread, ...pageInfo(total, page, limit) });
     } catch (err) {
         res.status(500).json({ error: 'Internal server error.' });
     }

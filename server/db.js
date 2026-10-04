@@ -171,6 +171,13 @@ const orderSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 orderSchema.index({ writerId: 1, status: 1 });
+// List queries: a customer's orders, the admin list (newest first, by status),
+// and finding the order that owns an uploaded file.
+orderSchema.index({ userId: 1, createdAt: -1 });
+orderSchema.index({ writerId: 1, createdAt: -1 });
+orderSchema.index({ status: 1, createdAt: -1 });
+orderSchema.index({ createdAt: -1 });
+orderSchema.index({ files: 1 });
 orderSchema.index({ 'receipt.number': 1 }, { unique: true, partialFilterExpression: { 'receipt.number': { $type: 'string' } } });
 
 const contactSchema = new mongoose.Schema({
@@ -276,6 +283,8 @@ const toolPurchaseSchema = new mongoose.Schema({
 // Unpaid checkouts are removed after a week.
 toolPurchaseSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7 * 24 * 3600, partialFilterExpression: { status: 'CREATED' } });
 export const ToolPurchase = mongoose.model('ToolPurchase', toolPurchaseSchema);
+contactSchema.index({ createdAt: -1 });
+contactSchema.index({ status: 1 });
 export const Contact = mongoose.model('Contact', contactSchema);
 export const Admin = mongoose.model('Admin', adminSchema);
 export const SiteSettings = mongoose.model('SiteSettings', siteSettingsSchema);
