@@ -7,7 +7,7 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { lazyPage } from '../lib/lazyPage';
 import { usePageMeta } from '../lib/usePageMeta';
-import { Calculator, Smartphone } from 'lucide-react';
+import { Calculator } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { ScrollReveal, mountAllSections } from '../components/ScrollReveal';
 import { Hero } from '../components/Hero';
@@ -171,15 +171,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans relative z-0">
-
-      {/* Mobile rotate barrier */}
-      <div className="hidden max-[768px]:landscape:flex fixed inset-0 z-[999] bg-[#000a1e] text-white flex-col items-center justify-center p-6 text-center">
-        <div className="animate-bounce mb-4 text-[#fea520]">
-          <Smartphone className="w-12 h-12" strokeWidth={1.75} aria-hidden="true" />
-        </div>
-        <h2 className="text-xl font-bold mb-2">Please Rotate Your Device</h2>
-        <p className="text-sm text-gray-300">This website is best viewed in portrait mode on mobile devices.</p>
-      </div>
 
       {/* Top bar and navbar stay pinned together while the page scrolls. */}
       <div className="sticky top-0 z-50">

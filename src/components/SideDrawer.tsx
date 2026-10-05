@@ -11,13 +11,15 @@ import {
   Plus,
   Check,
   Mail,
-  Phone
+  Phone,
+  Lock
 } from 'lucide-react';
 import { ServiceType, SubjectType } from '../types';
 import { useOrderQuote, deadlineAtFrom, wordsPerPageFor, DEFAULT_SPACING, type OrderQuote, localDateString } from '../lib/orderQuote';
 import { DIAL_CODES, POPULAR_DIAL_CODES, dialLabel, countryName, currencyForDial } from '../lib/countryCodes';
 import { MAIN_CURRENCIES, currencySymbolOf } from '../lib/currencyDisplay';
 import { trackEvent } from '../lib/track';
+import { checkContact, isValidEmail, isValidPhone } from '../lib/contact';
 
 interface SideDrawerProps {
   isOpen: boolean;
@@ -99,15 +101,14 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
     { enabled: isOpen && pages > 0 },
   );
   const totalPrice = pages > 0 ? (quote || lastQuote)?.total ?? 0 : 0;
+  const contactReady = isValidEmail(email) && isValidPhone(phone);
   // No live rate for the customer's own currency: fall back to US dollars.
   useEffect(() => {
     if (quoteError && /available right now/.test(quoteError) && !MAIN_CURRENCIES.includes(currency)) setCurrency('USD');
   }, [quoteError, currency]);
 
   const handleProceed = async () => {
-    const errs: { email?: string; phone?: string } = {};
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) errs.email = email.trim() ? 'Enter a valid email address.' : 'Email is required.';
-    if (!/^\d{6,15}$/.test(phone.replace(/[\s()+-]/g, ''))) errs.phone = phone.trim() ? 'Enter a valid phone number.' : 'Phone number is required.';
+    const errs = checkContact(email, phone);
     setContactErrors(errs);
     if (errs.email || errs.phone) return;
     trackEvent('Lead', { content_name: 'Instant quote drawer' });
@@ -374,14 +375,22 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
 
           {/* Pricing Box */}
           <div className="mt-auto pt-4 border-t border-[#c4c6cf]/40">
-            <div className="flex justify-between items-baseline mb-4 bg-white/70 p-3.5 rounded-xl border border-white">
+            {/* The price shows once the email and phone are filled in. */}
+            <div aria-live="polite" className="flex justify-between items-baseline gap-3 mb-4 bg-white/70 p-3.5 rounded-xl border border-white">
               <div>
                 <span className="text-xs text-[#708ab5] font-semibold block uppercase">Estimated Quote</span>
                 <span className="text-[11px] text-[#6e6e73] font-medium">Includes Unlimited Revisions · {currency}</span>
               </div>
-              <span className="text-3xl font-extrabold text-[#000a1e]">
-                {currencySymbolOf(currency)}{totalPrice.toLocaleString()}
-              </span>
+              {contactReady ? (
+                <span className="text-3xl font-extrabold text-[#000a1e]">
+                  {currencySymbolOf(currency)}{totalPrice.toLocaleString()}
+                </span>
+              ) : (
+                <span className="flex max-w-[150px] items-start gap-1.5 self-center text-right text-xs font-semibold leading-snug text-[#4b5563]">
+                  <Lock className="mt-px h-3.5 w-3.5 shrink-0 text-[#eb6200]" aria-hidden="true" />
+                  Add email &amp; phone to see the price
+                </span>
+              )}
             </div>
 
             <button

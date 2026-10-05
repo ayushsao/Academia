@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AcademiaLogo } from './AcademiaLogo';
 import {
-  ArrowRight, PlayCircle, Calculator, Minus, Plus, Calendar, ChevronDown, CheckCircle2, FileSearch, PenTool, CheckSquare, Crown, Paperclip, ShieldCheck, Clock, X, GraduationCap, Award, Zap, Star, BookOpen, Users, Check
+  ArrowRight, PlayCircle, Calculator, Minus, Plus, Calendar, ChevronDown, CheckCircle2, FileSearch, PenTool, CheckSquare, Crown, Paperclip, ShieldCheck, Clock, X, GraduationCap, Award, Zap, Star, BookOpen, Users, Check, Lock
 } from 'lucide-react';
 import { ServiceType, SubjectType } from '../types';
 import { useOrderQuote, fetchOrderQuote, SPACING_OPTIONS, DEFAULT_SPACING, pagesFor, deadlineAtFrom, type OrderQuote, type Spacing, localDateString } from '../lib/orderQuote';
@@ -14,6 +14,7 @@ import { api } from '../lib/api';
 import type { Coupon } from '../lib/charges';
 import { Stars } from './ui/Stars';
 import { trackEvent } from '../lib/track';
+import { checkContact, isValidEmail, isValidPhone } from '../lib/contact';
 
 interface HeroProps {
   onOpenOrder: (prefill?: {
@@ -176,6 +177,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
   };
   const removeCoupon = () => { setCoupon(null); setCouponInput(''); setCouponMsg(null); };
   const shownPrice = coupon ? Math.round(calculatedPrice * (100 - coupon.percent)) / 100 : calculatedPrice;
+  const contactReady = isValidEmail(email) && isValidPhone(phone);
 
   useEffect(() => {
     // Number roll animation
@@ -218,10 +220,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
   const handleSubmitQuote = async (e: React.FormEvent) => {
     e.preventDefault();
     // Email and phone are required before the detailed quote.
-    const errs: { email?: string; phone?: string } = {};
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) errs.email = email.trim() ? 'Enter a valid email address.' : 'Email is required.';
-    const phoneDigits = phone.replace(/[\s()+-]/g, '');
-    if (!/^\d{6,15}$/.test(phoneDigits)) errs.phone = phone.trim() ? 'Enter a valid phone number.' : 'Phone number is required.';
+    const errs = checkContact(email, phone);
     setContactErrors(errs);
     if (errs.email || errs.phone) return;
     trackEvent('Lead', { content_name: 'Home quote calculator' });
@@ -1254,33 +1253,49 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                   </div>
                 </div>
 
-                <div className="flex justify-between items-end">
-                  <div className="flex flex-col gap-1">
-                    {calculatedPrice > 0 && (
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[13px] text-gray-400 line-through font-semibold">{currencySymbol}{originalCatalogPrice}</span>
-                        <span className="text-xs font-extrabold bg-[#fea520]/20 text-[#c85600] px-2 py-0.5 rounded-full">
-                          Save 51%
-                        </span>
-                      </div>
-                    )}
-                    {coupon && calculatedPrice > 0 && (
-                      <span className="text-xs font-bold text-emerald-700">Coupon {coupon.code}: −{coupon.percent}% applied</span>
-                    )}
-                    {quoteError && words > 0 && !quote ? (
-                      <span role="alert" className="text-xs font-semibold text-red-600">{quoteError}</span>
-                    ) : (
-                    <span className="text-sm font-medium text-[#708ab5] flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#1d1d1f] stroke-[2.5]" /> Free Plagiarism Check Included
-                    </span>
-                    )}
+                {/* The price shows once the email and phone are filled in. */}
+                <div aria-live="polite">
+                {contactReady ? (
+                  <div className="flex justify-between items-end">
+                    <div className="flex flex-col gap-1">
+                      {calculatedPrice > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[13px] text-gray-400 line-through font-semibold">{currencySymbol}{originalCatalogPrice}</span>
+                          <span className="text-xs font-extrabold bg-[#fea520]/20 text-[#c85600] px-2 py-0.5 rounded-full">
+                            Save 51%
+                          </span>
+                        </div>
+                      )}
+                      {coupon && calculatedPrice > 0 && (
+                        <span className="text-xs font-bold text-emerald-700">Coupon {coupon.code}: −{coupon.percent}% applied</span>
+                      )}
+                      {quoteError && words > 0 && !quote ? (
+                        <span role="alert" className="text-xs font-semibold text-red-600">{quoteError}</span>
+                      ) : (
+                      <span className="text-sm font-medium text-[#708ab5] flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#1d1d1f] stroke-[2.5]" /> Free Plagiarism Check Included
+                      </span>
+                      )}
+                    </div>
+                    <div className="flex items-start text-[#1a1a2e]">
+                      <span className="text-[24px] font-black mt-1 mr-1">{currencySymbol}</span>
+                      <span className="text-[46px] font-black tracking-tighter leading-none">
+                        {animatedPrice}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-start text-[#1a1a2e]">
-                    <span className="text-[24px] font-black mt-1 mr-1">{currencySymbol}</span>
-                    <span className="text-[46px] font-black tracking-tighter leading-none">
-                      {animatedPrice}
-                    </span>
+                ) : (
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="flex items-start gap-2 text-[13px] font-semibold leading-snug text-[#4b5563]">
+                      <Lock className="mt-0.5 h-4 w-4 shrink-0 text-[#eb6200]" aria-hidden="true" />
+                      Enter your email and phone number above to see your price.
+                    </p>
+                    <div className="flex shrink-0 items-start whitespace-nowrap text-[#c9d1dc]" aria-hidden="true">
+                      <span className="text-[24px] font-black mt-1 mr-1">{currencySymbol}</span>
+                      <span className="text-[40px] font-black tracking-[0.06em] leading-none">•••</span>
+                    </div>
                   </div>
+                )}
                 </div>
 
                 <button
