@@ -9,6 +9,7 @@ import { Notice, inputClass } from '../../../components/writer/FormKit';
 import { Spinner, formatBytes } from '../../../components/writer/WriterBits';
 import { cn } from '../../../lib/utils';
 import { SUBMISSION_KINDS } from '../../../lib/submissionKinds';
+import { BackLink } from '../../../components/ui/BackLink';
 
 type Detail = {
     assignment: WriterAssignment; isAssigned: boolean; offer: Offer | null; submissions: Submission[]; earning: Earning | null;
@@ -148,7 +149,7 @@ export default function WriterAssignmentDetail() {
 
     return (
         <div className="space-y-6">
-            <Link to={d.isAssigned ? '/writer/assignments' : '/writer/opportunities'} className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-[#002147]"><ArrowLeft className="h-4 w-4" /> Back</Link>
+            <BackLink to={d.isAssigned ? '/writer/assignments' : '/writer/opportunities'} label={d.isAssigned ? 'My assignments' : 'Opportunities'} />
             <header className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">

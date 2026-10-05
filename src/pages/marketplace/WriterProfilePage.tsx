@@ -7,11 +7,23 @@ import { API, api } from '../../lib/api';
 import type { PublicWriter } from '../../lib/writerTypes';
 import { countryName } from '../../lib/writerOptions';
 import { AvailabilityDot, Spinner, WriterAvatar } from '../../components/writer/WriterBits';
+import { BackLink } from '../../components/ui/BackLink';
 
 function Chips({ items, tone = 'plain' }: { items: string[]; tone?: 'plain' | 'strong' }) {
     return (
         <div className="flex flex-wrap gap-2">
             {items.map(i => <span key={i} className={tone === 'strong' ? 'rounded-lg bg-[#002147] px-3 py-1.5 text-sm font-medium text-white' : 'rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700'}>{i}</span>)}
+        </div>
+    );
+}
+
+// One labelled group of chips inside the "At a glance" card; hidden when empty.
+function GlanceGroup({ title, icon: Icon, items, tone }: { title: string; icon: typeof Star; items?: string[]; tone?: 'plain' | 'strong' }) {
+    if (!items?.length) return null;
+    return (
+        <div className="py-5 first:pt-0 last:pb-0">
+            <h3 className="mb-3 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.06em] text-slate-500"><Icon className="h-4 w-4 text-[#b86e00]" aria-hidden="true" /> {title}</h3>
+            <Chips items={items} tone={tone} />
         </div>
     );
 }
@@ -67,7 +79,7 @@ export default function WriterProfilePage() {
         <div className="flex min-h-screen flex-col bg-[#f6f8fc] font-sans">
             <Navbar activeSection="writers" />
             <main className="mx-auto w-full max-w-6xl flex-grow px-4 pb-24 pt-8 sm:px-6 lg:pt-12">
-                <button onClick={() => navigate(-1)} className="mb-6 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-[#002147]"><ArrowLeft className="h-4 w-4" /> Back</button>
+                <BackLink label="All writers" fallback="/hire-writers" className="mb-6" />
 
                 {/* Header */}
                 <header className="relative overflow-hidden rounded-3xl bg-[#002147] p-6 text-white sm:p-10">
@@ -148,12 +160,19 @@ export default function WriterProfilePage() {
                         )}
                     </div>
 
-                    <aside className="space-y-6">
-                        <Block title="Expertise" icon={Layers}><Chips items={writer.expertiseAreas} tone="strong" /></Block>
-                        <Block title="Subjects" icon={GraduationCap}><Chips items={writer.subjects} /></Block>
-                        <Block title="Skills" icon={Award}><Chips items={writer.skills} /></Block>
-                        <Block title="Academic levels" icon={Layers}><Chips items={writer.academicLevels} /></Block>
-                        <Block title="Languages" icon={Languages}><Chips items={writer.languages} /></Block>
+                    {/* One compact card that stays in view while the main column scrolls,
+                        so the two columns read as balanced instead of one long side. */}
+                    <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+                        <section className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-7">
+                            <h2 className="mb-5 text-lg font-bold text-[#0b1b33]">At a glance</h2>
+                            <div className="divide-y divide-slate-100">
+                                <GlanceGroup title="Expertise" icon={Layers} items={writer.expertiseAreas} tone="strong" />
+                                <GlanceGroup title="Subjects" icon={GraduationCap} items={writer.subjects} />
+                                <GlanceGroup title="Skills" icon={Award} items={writer.skills} />
+                                <GlanceGroup title="Academic levels" icon={Layers} items={writer.academicLevels} />
+                                <GlanceGroup title="Languages" icon={Languages} items={writer.languages} />
+                            </div>
+                        </section>
                         <p className="px-2 text-xs text-slate-500">Member since {new Date(writer.memberSince).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}. Contact happens through the platform; personal contact details are never shared.</p>
                     </aside>
                 </div>

@@ -9,6 +9,7 @@ import { Field, Notice, inputClass } from '../../../components/writer/FormKit';
 import { Spinner } from '../../../components/writer/WriterBits';
 import { useWriter } from '../onboarding/WriterContext';
 import { cn } from '../../../lib/utils';
+import { BackLink } from '../../../components/ui/BackLink';
 
 type Step = 'plan' | 'review' | 'payment' | 'verification' | 'activation';
 const STEPS: { id: Step; label: string }[] = [
@@ -183,7 +184,7 @@ export default function MembershipCheckout() {
 
     return (
         <div className="mx-auto max-w-3xl space-y-6">
-            <Link to="/writer/membership" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-[#002147]"><ArrowLeft className="h-4 w-4" /> Membership</Link>
+            <BackLink to="/writer/membership" label="Membership" />
             <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-8">
                 <Stepper current={step} />
                 <div className="mt-8">
