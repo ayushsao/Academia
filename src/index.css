@@ -272,3 +272,10 @@ html {
   body.has-mobile-bar { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
   body.has-mobile-bar [data-chat-widget] { bottom: calc(84px + env(safe-area-inset-bottom)); }
 }
+
+/* Route preloader (components/ui/Preloader.tsx) */
+.am-route-loader { animation: am-route-in .3s ease .2s both; }
+.am-route-bar { animation: am-route-slide 1.1s cubic-bezier(.65, 0, .35, 1) infinite; }
+@keyframes am-route-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes am-route-slide { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+@media (prefers-reduced-motion: reduce) { .am-route-bar { animation: none; width: 100%; } }

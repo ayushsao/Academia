@@ -7,6 +7,7 @@ import { DialogHost } from './lib/dialog';
 import { SmoothScroll, scrollToTopNow } from './lib/smoothScroll';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
+import { Preloader } from './components/ui/Preloader';
 
 // Speed Insights grouped by page type (otherwise every page shows as "Unknown").
 function SpeedInsightsWithRoute() {
@@ -62,11 +63,7 @@ const WriterMembership = lazyPage(() => import('./pages/marketplace/writer/Write
 const MembershipCheckout = lazyPage(() => import('./pages/marketplace/writer/MembershipCheckout'));
 const WriterOrders = lazyPage(() => import('./pages/marketplace/writer/WriterOrders'));
 
-const PageLoader = () => (
-    <div className="flex min-h-[60vh] items-center justify-center" role="status" aria-label="Loading">
-        <span className="h-8 w-8 animate-spin rounded-full border-[3px] border-slate-200 border-t-[#002147]" />
-    </div>
-);
+const PageLoader = () => <Preloader />;
 
 // The chat widget isn't needed for first paint: mount it once the browser is idle.
 function DeferredChatWidget() {
