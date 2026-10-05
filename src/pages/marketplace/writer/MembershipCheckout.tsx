@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Check, CreditCard, Landmark, ShieldCheck, ArrowLeft, PartyPopper, Hourglass, CalendarClock, ExternalLink } from 'lucide-react';
+import { Check, CreditCard, Landmark, ShieldCheck, ArrowLeft, PartyPopper, Hourglass, CalendarClock, ExternalLink, MessageCircle } from 'lucide-react';
 import { api, ApiError } from '../../../lib/api';
 import { formatDate, formatMoney } from '../../../lib/money';
 import { PERIOD_LABEL, type BillingPeriod, type MembershipMe, type MembershipPayment, type Quote, type Subscription } from '../../../lib/membershipTypes';
@@ -55,6 +55,15 @@ function Row({ label, value, strong, tone }: { label: string; value: React.React
         </div>
     );
 }
+
+// Our team's WhatsApp, with the invoice details filled in.
+const SUPPORT_WHATSAPP = '919263606941';
+const membershipWhatsappUrl = (p: MembershipPayment) => `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(
+    `Hi AssignmentMinds, I'd like to pay for my writer membership on WhatsApp.
+Invoice: ${p.paymentRef}
+Plan: ${p.planName} (${p.billingPeriod.toLowerCase()})
+Amount: ${formatMoney(p.amountMinor, p.currency)}`,
+)}`;
 
 export default function MembershipCheckout() {
     const [params] = useSearchParams();
@@ -146,6 +155,20 @@ export default function MembershipCheckout() {
         } catch (err) { setError((err as Error).message); } finally { setBusy(false); }
     };
 
+    // Pay through our team on WhatsApp (no tax): opens WhatsApp with the invoice
+    // details, and the invoice waits for an admin to confirm the payment.
+    const payWhatsapp = async () => {
+        if (!payment) return;
+        const win = window.open('', '_blank');   // opened now so popup blockers allow it
+        setBusy(true); setError('');
+        try {
+            const r = await api<{ payment: MembershipPayment }>(`/membership/payments/${payment.paymentRef}/start`, { method: 'POST', body: { provider: 'WHATSAPP' } });
+            const url = membershipWhatsappUrl(r.payment);
+            if (win) win.location.href = url; else window.location.href = url;
+            setPayment(r.payment); setStep('verification');
+        } catch (e) { win?.close(); setError((e as Error).message); } finally { setBusy(false); }
+    };
+
     const cancelCheckout = async () => {
         if (payment?.status === 'CREATED' && payment.kind !== 'RENEWAL') {
             try { await api(`/membership/payments/${payment.paymentRef}/cancel`, { method: 'POST' }); } catch (e) { if (!(e instanceof ApiError)) throw e; }
@@ -210,7 +233,6 @@ export default function MembershipCheckout() {
                                 </div>
                                 <p className="text-3xl font-extrabold text-[#0b1b33]">{formatMoney(amount, currency)}</p>
                             </div>
-                            {!onlineOk && !providers?.manual.enabled && <Notice tone="warning">Payments aren’t available right now. Please try again later or contact support.</Notice>}
 
                             {onlineOk && (
                                 <button onClick={payOnline} disabled={busy} className="flex w-full items-center gap-4 rounded-2xl border-2 border-[#002147] p-5 text-left transition hover:bg-[#002147]/[0.03] disabled:opacity-60">
@@ -219,6 +241,15 @@ export default function MembershipCheckout() {
                                     {busy ? <Spinner className="h-5 w-5 text-[#002147]" /> : <ShieldCheck className="h-5 w-5 text-emerald-600" />}
                                 </button>
                             )}
+
+                            <button onClick={payWhatsapp} disabled={busy} className="flex w-full items-center gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/40 p-5 text-left transition hover:bg-emerald-50 disabled:opacity-60">
+                                <MessageCircle className="h-7 w-7 shrink-0 text-[#128C7E]" />
+                                <span className="flex-1">
+                                    <span className="flex flex-wrap items-center gap-2 font-bold text-[#0b1b33]">Pay via WhatsApp <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-bold text-white">No tax</span></span>
+                                    <span className="text-sm text-slate-600">Chat with our team, pay {formatMoney(amount, currency)} and we activate your membership once it’s confirmed.</span>
+                                </span>
+                                {busy && <Spinner className="h-5 w-5 text-[#128C7E]" />}
+                            </button>
 
                             {providers?.manual.enabled && (
                                 <div className="rounded-2xl border border-slate-200">
@@ -262,8 +293,18 @@ export default function MembershipCheckout() {
                                 <>
                                     <Hourglass className="mx-auto h-12 w-12 text-[#b86e00]" />
                                     <h1 className="mt-4 text-2xl font-extrabold text-[#0b1b33]">We’re verifying your payment</h1>
-                                    <p className="mx-auto mt-2 max-w-md text-slate-600">We received reference <strong>{payment.manual?.reference}</strong> for invoice {payment.paymentRef}. We’ll activate your membership and email you as soon as it’s confirmed.</p>
-                                    <Link to="/writer/membership" className="mt-6 inline-block rounded-xl bg-[#002147] px-6 py-3 font-semibold text-white">Back to membership</Link>
+                                    {payment.provider === 'WHATSAPP' || payment.manual?.method === 'WHATSAPP' ? (
+                                        <>
+                                            <p className="mx-auto mt-2 max-w-md text-slate-600">Finish the payment of <strong>{formatMoney(payment.amountMinor, payment.currency)}</strong> with our team on WhatsApp (invoice <strong>{payment.paymentRef}</strong>). We’ll activate your membership and email you as soon as it’s confirmed.</p>
+                                            <a href={membershipWhatsappUrl(payment)} target="_blank" rel="noopener noreferrer" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-6 py-3 font-semibold text-white"><MessageCircle className="h-5 w-5" /> Open WhatsApp</a>
+                                            <div><Link to="/writer/membership" className="mt-3 inline-block text-sm font-semibold text-slate-500 hover:text-[#002147]">Back to membership</Link></div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <p className="mx-auto mt-2 max-w-md text-slate-600">We received reference <strong>{payment.manual?.reference}</strong> for invoice {payment.paymentRef}. We’ll activate your membership and email you as soon as it’s confirmed.</p>
+                                            <Link to="/writer/membership" className="mt-6 inline-block rounded-xl bg-[#002147] px-6 py-3 font-semibold text-white">Back to membership</Link>
+                                        </>
+                                    )}
                                 </>
                             ) : (
                                 <>

@@ -861,7 +861,7 @@ const subscriptionPaymentSchema = new mongoose.Schema({
   country: { type: String, default: '' },
   status: { type: String, required: true, default: 'CREATED', index: true,
     enum: ['CREATED', 'PENDING_VERIFICATION', 'PAID', 'FAILED', 'REJECTED', 'EXPIRED', 'CANCELLED'] },
-  provider: { type: String, enum: ['RAZORPAY', 'MANUAL', 'NONE'], default: 'NONE' },
+  provider: { type: String, enum: ['RAZORPAY', 'MANUAL', 'WHATSAPP', 'NONE'], default: 'NONE' },
   providerOrderId: { type: String, index: true, sparse: true },
   providerPaymentId: { type: String },
   manual: {

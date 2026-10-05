@@ -56,7 +56,7 @@ export interface MembershipPayment {
     creditMinor: number;
     periodStart?: string;
     status: PaymentStatus;
-    provider: 'RAZORPAY' | 'MANUAL' | 'NONE';
+    provider: 'RAZORPAY' | 'MANUAL' | 'WHATSAPP' | 'NONE';
     manual: { method: string; reference: string; submittedAt: string } | null;
     reviewNote?: string;
     failureReason?: string;

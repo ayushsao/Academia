@@ -269,7 +269,7 @@ const planCode = z.string().trim().toUpperCase().regex(/^[A-Z][A-Z0-9_]{1,29}$/,
 
 export const membershipSelectionSchema = z.object({ planCode, billingPeriod, currency: currencyCode }).strict();
 
-export const paymentStartSchema = z.object({ provider: z.enum(['RAZORPAY', 'MANUAL']) }).strict();
+export const paymentStartSchema = z.object({ provider: z.enum(['RAZORPAY', 'MANUAL', 'WHATSAPP']) }).strict();
 
 export const razorpayVerifySchema = z.object({
     razorpay_order_id: z.string().trim().min(1).max(64),

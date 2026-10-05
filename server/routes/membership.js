@@ -206,6 +206,16 @@ router.post('/payments/:ref/start', payLimiter, authenticateUser, requireWriter,
             });
         }
 
+        // Paid through our team on WhatsApp (no tax). The writer is sent to WhatsApp
+        // with the invoice details; an admin approves it under Memberships → Payments.
+        if (req.body.provider === 'WHATSAPP') {
+            payment.provider = 'WHATSAPP';
+            payment.status = 'PENDING_VERIFICATION';
+            payment.manual = { method: 'WHATSAPP', reference: `WhatsApp · ${payment.paymentRef}`, submittedAt: new Date() };
+            await payment.save();
+            return res.json({ provider: 'WHATSAPP', payment: paymentView(payment) });
+        }
+
         if (!manualPaymentAvailable(settings)) throw new MembershipError('Manual payment is not available right now.', 503);
         payment.provider = 'MANUAL';
         await payment.save();
