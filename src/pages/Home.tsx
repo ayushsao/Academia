@@ -19,7 +19,6 @@ import { SideDrawer } from '../components/SideDrawer';
 import { TopUtilityBar } from '../components/TopUtilityBar';
 import { SubjectsSection } from '../components/catalog/SubjectsDirectory';
 import { FloatingElements } from '../components/FloatingElements';
-import { PopupFunnel } from '../components/PopupFunnel';
 import { Consultant, Discipline, ServiceType, SubjectType } from '../types';
 import type { OrderQuote } from '../lib/orderQuote';
 import type { Coupon } from '../lib/charges';
@@ -347,8 +346,6 @@ export default function App() {
           />
         )}
       </Suspense>
-
-      <PopupFunnel />
     </div>
   );
 }

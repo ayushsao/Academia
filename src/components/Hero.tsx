@@ -67,12 +67,15 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
   const [deadline, setDeadline] = useState<string>(getNextWeek());
   const [animatedPrice, setAnimatedPrice] = useState<number>(0);
 
-  // The carousel advances every 5 s, only while it's on screen and the tab is
-  // visible (no off-screen re-renders on phones), and not for people who ask
-  // their system for reduced motion.
+  // On desktop the carousel advances every 5 s, only while it's on screen and
+  // the tab is visible, and not for people who ask their system for reduced
+  // motion. On phones the slides are as tall as their content, so changing
+  // slide by itself would move the page under the reader: there it changes
+  // only when the dots are tapped.
   const carouselRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!window.matchMedia('(min-width: 1024px)').matches) return;
     let onScreen = true;
     const observer = typeof IntersectionObserver !== 'undefined' && carouselRef.current
       ? new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; })
@@ -269,8 +272,9 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
 
       <div className="max-w-[1280px] 2xl:max-w-[1440px] mx-auto px-4 sm:px-6 relative z-10 flex flex-col lg:flex-row items-stretch justify-between gap-6 lg:gap-8 2xl:gap-10">
 
-        {/* LEFT: Dynamic Carousel Container */}
-        <div ref={carouselRef} className="flex-1 w-full min-w-0 relative overflow-hidden rounded-[16px] shadow-[0_4px_24px_rgba(30,58,95,0.08)] bg-white min-h-[560px] lg:min-h-[560px]">
+        {/* LEFT: Dynamic Carousel Container. On phones each slide is as tall as
+            its content and scrolls with the page (no scroll box inside it). */}
+        <div ref={carouselRef} className="flex-1 w-full min-w-0 relative overflow-hidden rounded-[16px] shadow-[0_4px_24px_rgba(30,58,95,0.08)] bg-white lg:min-h-[560px]">
           {/* initial={false}: the first slide shows straight away (no entrance animation delaying the first paint). */}
           <AnimatePresence mode="wait" initial={false}>
             {/* SLIDE 0: Path to Academic Excellence */}
@@ -281,7 +285,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 50 }}
                 transition={{ duration: 0.5, ease: 'easeOut' }}
-                className="absolute inset-0 bg-white p-5 sm:p-6 md:p-7 w-full h-full border border-[#f0f2f5] flex flex-col justify-between overflow-y-auto"
+                className="relative lg:absolute lg:inset-0 bg-white p-5 sm:p-6 md:p-7 pb-9 sm:pb-9 md:pb-9 lg:pb-7 w-full lg:h-full border border-[#f0f2f5] flex flex-col justify-between lg:overflow-y-auto"
               >
                 {/* 1. Top Bar & Live Status */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-pink-100/70 shrink-0">
@@ -486,7 +490,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 50 }}
                 transition={{ duration: 0.5, ease: 'easeOut' }}
-                className="absolute inset-0 bg-white p-5 sm:p-6 md:p-7 w-full h-full border border-[#f0f2f5] flex flex-col justify-between overflow-y-auto"
+                className="relative lg:absolute lg:inset-0 bg-white p-5 sm:p-6 md:p-7 pb-9 sm:pb-9 md:pb-9 lg:pb-7 w-full lg:h-full border border-[#f0f2f5] flex flex-col justify-between lg:overflow-y-auto"
               >
                 {/* 1. Top Bar */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200/80 shrink-0">
@@ -657,7 +661,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 50 }}
                 transition={{ duration: 0.5, ease: 'easeOut' }}
-                className="absolute inset-0 bg-gradient-to-br from-[#831843] via-[#9d174d] to-[#be185d] p-5 sm:p-6 md:p-7 w-full h-full flex flex-col justify-between text-white overflow-y-auto"
+                className="relative lg:absolute lg:inset-0 bg-gradient-to-br from-[#831843] via-[#9d174d] to-[#be185d] p-5 sm:p-6 md:p-7 pb-9 sm:pb-9 md:pb-9 lg:pb-7 w-full lg:h-full flex flex-col justify-between text-white lg:overflow-y-auto"
               >
                 {/* 1. Top Bar */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-white/20 shrink-0">
@@ -808,8 +812,8 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
           </div>
         </div>
 
-        {/* Right Form Column (Cost Calculator) — AM golden-frame card */}
-        <div className="w-full lg:w-[480px] xl:w-[500px] shrink-0 relative z-10 flex justify-center lg:justify-end">
+        {/* Right Form Column (Cost Calculator) — AM golden-frame card. First on phones. */}
+        <div className="order-first lg:order-none w-full lg:w-[480px] xl:w-[500px] shrink-0 relative z-10 flex justify-center lg:justify-end">
 
           {/* AM golden outer frame */}
           <div className="am-form-frame w-full">
