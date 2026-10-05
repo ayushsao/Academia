@@ -143,7 +143,7 @@ router.get('/writer/dashboard', authenticateUser, requireWriter, async (req, res
 
 router.get('/writer/opportunities', authenticateUser, requireWriter, async (req, res) => {
     try {
-        const offers = await AssignmentOffer.find({ writerId: req.writer._id, status: 'OFFERED', expiresAt: { $gt: new Date() } }).sort({ expiresAt: 1 });
+        const offers = await AssignmentOffer.find({ writerId: req.writer._id, status: 'OFFERED', expiresAt: { $gt: new Date() } }).sort({ expiresAt: 1 }).limit(100);
         const assignments = await Assignment.find({ _id: { $in: offers.map(o => o.assignmentId) } });
         const map = new Map(assignments.map(a => [String(a._id), a]));
         res.json({

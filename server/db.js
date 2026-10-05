@@ -178,6 +178,9 @@ orderSchema.index({ writerId: 1, createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 orderSchema.index({ createdAt: -1 });
 orderSchema.index({ files: 1 });
+// Orders open to writers (OPEN_ORDER in services/orderRelease.js) and the admin's submitted queue.
+orderSchema.index({ adminApproved: 1, writerId: 1, status: 1, createdAt: -1 });
+orderSchema.index({ status: 1, submittedAt: -1 });
 orderSchema.index({ 'receipt.number': 1 }, { unique: true, partialFilterExpression: { 'receipt.number': { $type: 'string' } } });
 
 const contactSchema = new mongoose.Schema({
@@ -599,6 +602,7 @@ const assignmentOfferSchema = new mongoose.Schema({
 }, { timestamps: true });
 // A writer is offered a given assignment at most once.
 assignmentOfferSchema.index({ assignmentId: 1, writerId: 1 }, { unique: true });
+assignmentOfferSchema.index({ writerId: 1, status: 1, expiresAt: 1 });   // a writer's open offers
 
 const assignmentSubmissionSchema = new mongoose.Schema({
   assignmentId: { type: ObjectId, ref: 'Assignment', required: true, index: true },

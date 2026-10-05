@@ -32,6 +32,8 @@ const toView = (m) => ({
     id: String(m._id), thread: m.threadKey, orderId: m.orderId, sender: m.sender, senderName: m.senderName,
     body: m.body, createdAt: m.createdAt, readByAdminAt: m.readByAdminAt, readByCustomerAt: m.readByCustomerAt,
 });
+// A conversation shows its newest messages (older ones stay stored).
+const MESSAGES_SHOWN = 200;
 const sendLimiter = rateLimit({ windowMs: 60 * 1000, max: 20, message: { error: 'You’re sending messages too quickly. Please wait a moment.' } });
 const fail = (res, err, fallback) => {
     if (err?.status) return res.status(err.status).json({ error: err.message });
@@ -102,7 +104,7 @@ supportRouter.get('/threads', async (req, res) => {
 supportRouter.get('/messages', async (req, res) => {
     try {
         const { key } = await customerThread(req.user.id, req.query.thread);
-        const messages = await SupportMessage.find({ threadKey: key, userId: req.user.id }).sort({ createdAt: 1 }).limit(500).lean();
+        const messages = await SupportMessage.find({ threadKey: key, userId: req.user.id }).sort({ createdAt: -1 }).limit(MESSAGES_SHOWN).lean().then(rows => rows.reverse());
         await markReadByUser(key, req.user.id);
         res.json({ messages: messages.map(toView) });
     } catch (err) { fail(res, err, 'Could not load messages.'); }
@@ -136,7 +138,7 @@ writerSupportRouter.use(noStore, authenticateUser, (req, res, next) =>
 writerSupportRouter.get('/messages', async (req, res) => {
     try {
         const key = writerKey(req.user.id);
-        const messages = await SupportMessage.find({ threadKey: key, userId: req.user.id }).sort({ createdAt: 1 }).limit(500).lean();
+        const messages = await SupportMessage.find({ threadKey: key, userId: req.user.id }).sort({ createdAt: -1 }).limit(MESSAGES_SHOWN).lean().then(rows => rows.reverse());
         await markReadByUser(key, req.user.id);
         res.json({ messages: messages.map(toView) });
     } catch (err) { fail(res, err, 'Could not load messages.'); }
@@ -218,7 +220,7 @@ supportAdminRouter.get('/threads', async (req, res) => {
 supportAdminRouter.get('/threads/:key/messages', async (req, res) => {
     try {
         const t = await adminThread(req, req.params.key);
-        const messages = await SupportMessage.find({ threadKey: t.key }).sort({ createdAt: 1 }).limit(500).lean();
+        const messages = await SupportMessage.find({ threadKey: t.key }).sort({ createdAt: -1 }).limit(MESSAGES_SHOWN).lean().then(rows => rows.reverse());
         const unread = await SupportMessage.updateMany({ threadKey: t.key, sender: { $ne: 'ADMIN' }, readByAdminAt: null }, { $set: { readByAdminAt: new Date() } });
         if (unread.modifiedCount) {
             publish(ADMIN_CHANNEL[t.kind], 'read', { thread: t.key, by: 'ADMIN' });

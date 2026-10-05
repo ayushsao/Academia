@@ -19,7 +19,7 @@ import { issueReceipt } from '../services/receipts.js';
 import { BiddingError, setBidding, listForWriter, placeBid, withdrawBid, bidsForOrder, acceptBid } from '../services/orderBidding.js';
 import { releaseOrder, getOrderSettings, saveOrderSettings, canTakeOrders, clientOrderView, clientVisibleFiles, isCompleted, OPEN_ORDER, WRITER_HIDDEN_FIELDS } from '../services/orderRelease.js';
 import { enforceUploadQuota } from '../services/uploadQuota.js';
-import { pageParams, pageInfo } from '../pagination.js';
+import { pageParams, pageInfo, MAX_PAGE_SIZE } from '../pagination.js';
 
 const require = createRequire(import.meta.url);
 const multer = require('multer');
@@ -125,13 +125,19 @@ router.get('/writer/available', authenticateUser, requireWriter, async (req, res
         }
 
         // 2. Only show orders that ADMIN HAS APPROVED (jab admin approve karega tabhi show hoga)
-        const orders = await Order.find(OPEN_ORDER)
-            .select(`${WRITER_HIDDEN_FIELDS} -deliveryFiles`)
-            .sort({ createdAt: -1 })
-            .lean();
+        const { page, limit, skip } = pageParams(req.query, { defaultLimit: 50 });
+        const [orders, total] = await Promise.all([
+            Order.find(OPEN_ORDER)
+                .select(`${WRITER_HIDDEN_FIELDS} -deliveryFiles`)
+                .sort({ createdAt: -1 })
+                .skip(skip).limit(limit)
+                .lean(),
+            Order.countDocuments(OPEN_ORDER),
+        ]);
 
         res.json({
             orders: orders.map(o => ({ ...o, status: normaliseStatus(o.status) })),
+            ...pageInfo(total, page, limit),
             requiresMembership: false,
             membershipPlan: writer?.membership?.plan || 'Active Plan',
         });
@@ -553,6 +559,7 @@ router.get('/admin/submitted', authenticateAdmin, requirePermission('orders.read
             .populate('userId', 'name email')
             .populate('writerId', 'name email')
             .sort({ submittedAt: -1 })
+            .limit(MAX_PAGE_SIZE)
             .lean();
 
         res.json({ orders: orders.map(o => ({ ...o, status: normaliseStatus(o.status) })) });
