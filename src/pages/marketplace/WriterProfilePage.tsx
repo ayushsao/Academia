@@ -125,6 +125,17 @@ export default function WriterProfilePage() {
                         <Block title="About" icon={Award}>
                             <div className="space-y-3 text-slate-700">{writer.bio?.split('\n').filter(Boolean).map((p, i) => <p key={i}>{p}</p>)}</div>
                         </Block>
+                        {/* The long lists sit in the wide column, where they wrap into a few
+                            lines; the side card keeps only the short ones. */}
+                        {(!!writer.subjects?.length || !!writer.skills?.length) && (
+                            <section className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8">
+                                <h2 className="mb-5 flex items-center gap-2 text-lg font-bold text-[#0b1b33]"><GraduationCap className="h-5 w-5 text-[#b86e00]" /> Subjects &amp; skills</h2>
+                                <div className="divide-y divide-slate-100">
+                                    <GlanceGroup title="Subjects" icon={GraduationCap} items={writer.subjects} />
+                                    <GlanceGroup title="Skills" icon={Award} items={writer.skills} />
+                                </div>
+                            </section>
+                        )}
                         {writer.writingExperience && (
                             <Block title="Writing experience" icon={FileText}>
                                 <p className="whitespace-pre-line text-slate-700">{writer.writingExperience}</p>
@@ -167,8 +178,6 @@ export default function WriterProfilePage() {
                             <h2 className="mb-5 text-lg font-bold text-[#0b1b33]">At a glance</h2>
                             <div className="divide-y divide-slate-100">
                                 <GlanceGroup title="Expertise" icon={Layers} items={writer.expertiseAreas} tone="strong" />
-                                <GlanceGroup title="Subjects" icon={GraduationCap} items={writer.subjects} />
-                                <GlanceGroup title="Skills" icon={Award} items={writer.skills} />
                                 <GlanceGroup title="Academic levels" icon={Layers} items={writer.academicLevels} />
                                 <GlanceGroup title="Languages" icon={Languages} items={writer.languages} />
                             </div>
