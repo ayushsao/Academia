@@ -25,6 +25,7 @@ import {
 } from '../services/writerService.js';
 import { deleteWriterAccount } from '../services/writerDeletion.js';
 import { enforceUploadQuota } from '../services/uploadQuota.js';
+import { photoForDisplay } from '../services/writerPhotos.js';
 
 const router = Router();
 
@@ -276,7 +277,23 @@ router.get('/:writerId/photo', identifyPrincipal, async (req, res) => {
         if (!allowed) return res.status(404).end();
         const ext = profile.profilePhoto.split('.').pop();
         const mimeType = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' }[ext] || 'application/octet-stream';
-        await streamStoredFile(res, { storedName: profile.profilePhoto, mimeType, originalName: `photo.${ext}` });
+        const photo = await photoForDisplay(profile.profilePhoto, mimeType);
+        if (!photo) {
+            // The file is gone (e.g. uploaded before durable storage): drop the dead
+            // reference so the profile shows initials and asks for a new photo.
+            console.warn(`[Writers] photo ${profile.profilePhoto} for writer ${writer._id} is missing; clearing it.`);
+            await WriterProfile.updateOne({ writerId: writer._id, profilePhoto: profile.profilePhoto }, { $set: { profilePhoto: null } });
+            return res.status(404).end();
+        }
+        // Photo URLs carry a version (?v=), so a public photo can be cached for a year;
+        // anything else stays private to the viewer's browser for a day.
+        const publicPhoto = isPubliclyVisible(writer, profile) && req.query.v;
+        res.setHeader('Content-Type', photo.type);
+        res.setHeader('Content-Length', photo.body.length);
+        res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Cache-Control', publicPhoto ? 'public, max-age=31536000, immutable' : 'private, max-age=86400');
+        res.end(photo.body);
     } catch (err) { handleError(res, err, 'Could not load photo.'); }
 });
 

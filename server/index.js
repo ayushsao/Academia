@@ -80,9 +80,14 @@ app.use(mongoSanitize({
 }));
 
 // ── Rate Limiting (Global) ───────────────────────────────────────────────────
+// Images (writer photos, catalogue media) are cheap, cached and requested in
+// bulk by list pages; they don't count, so people sharing one IP (mobile
+// networks, colleges) never see missing photos.
+const IMAGE_GET = /^\/(writers\/[a-f0-9]{24}\/photo|catalog\/media\/[^/]+)$/;
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 500,
+    skip: (req) => req.method === 'GET' && IMAGE_GET.test(req.path),
     message: { error: 'Too many requests from this IP, please try again later.' }
 });
 app.use('/api', globalLimiter);

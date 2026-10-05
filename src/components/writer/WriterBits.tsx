@@ -31,22 +31,32 @@ export function WriterAvatar({ writerId, name, hasPhoto, version, size = 48, mod
 }) {
     const [privateUrl, setPrivateUrl] = useState<string | null>(null);
     const [failed, setFailed] = useState(false);
+    // A photo that fails (e.g. the server was waking up) is retried once before
+    // falling back to initials.
+    const [attempt, setAttempt] = useState(0);
+    const onError = () => {
+        if (attempt === 0) setTimeout(() => setAttempt(1), 1500);
+        else setFailed(true);
+    };
 
     useEffect(() => {
         setFailed(false);
         if (mode !== 'private' || !hasPhoto || !writerId || src) return;
         let revoked = false, url: string | null = null;
-        fetchFileUrl(`/writers/${writerId}/photo?v=${version || ''}`, token)
+        fetchFileUrl(`/writers/${writerId}/photo?v=${version || ''}${attempt ? '&retry=1' : ''}`, token)
             .then(u => { url = u; if (!revoked) setPrivateUrl(u); else URL.revokeObjectURL(u); })
-            .catch(() => setFailed(true));
+            .catch(() => onError());
         return () => { revoked = true; if (url) URL.revokeObjectURL(url); };
-    }, [mode, hasPhoto, writerId, version, token, src]);
+    }, [mode, hasPhoto, writerId, version, token, src, attempt]);
 
-    const url = src || (hasPhoto && writerId ? (mode === 'public' ? writerPhotoUrl(writerId, version) : privateUrl) : null);
+    useEffect(() => { setAttempt(0); }, [writerId, version]);
+
+    const publicUrl = hasPhoto && writerId ? writerPhotoUrl(writerId, version) + (attempt ? `${version ? '&' : '?'}retry=1` : '') : null;
+    const url = src || (mode === 'public' ? publicUrl : privateUrl);
     const style = { width: size, height: size, fontSize: Math.max(12, size * 0.36) };
 
     if (url && !failed) {
-        return <img loading="lazy" decoding="async" src={url} alt={name ? `${name}'s photo` : 'Writer photo'} style={style} onError={() => setFailed(true)}
+        return <img loading="lazy" decoding="async" src={url} alt={name ? `${name}'s photo` : 'Writer photo'} style={style} onError={onError}
             className={cn('shrink-0 rounded-full object-cover bg-slate-100', className)} />;
     }
     return (

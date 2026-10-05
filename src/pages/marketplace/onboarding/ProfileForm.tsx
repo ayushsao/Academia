@@ -19,13 +19,33 @@ function Section({ title, description, children }: { title: string; description?
     );
 }
 
+// Scales an image down to at most 512 px on its longer side, as a JPEG.
+// Small images and anything the browser can't decode are returned unchanged.
+async function shrinkPhoto(file: File): Promise<File> {
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type) || typeof createImageBitmap !== 'function') return file;
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, 512 / Math.max(bitmap.width, bitmap.height));
+    if (scale === 1 && file.size < 300 * 1024) { bitmap.close(); return file; }
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.86));
+    return blob ? new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : file;
+}
+
 export function PhotoUploader({ writer, onUpdate, disabled }: { writer: WriterMe; onUpdate: (w: WriterMe) => void; disabled?: boolean }) {
     const input = useRef<HTMLInputElement>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
 
-    const upload = async (file?: File) => {
-        if (!file) return;
+    const upload = async (picked?: File) => {
+        if (!picked) return;
+        if (picked.size > 20 * 1024 * 1024) { setError('Photo must be 20 MB or smaller.'); return; }
+        // Large phone photos are shrunk in the browser first: faster upload, and
+        // the photo loads quickly wherever it's shown.
+        const file = await shrinkPhoto(picked).catch(() => picked);
         if (file.size > 5 * 1024 * 1024) { setError('Photo must be 5 MB or smaller.'); return; }
         const form = new FormData();
         form.append('file', file);
