@@ -61,8 +61,13 @@ export default function WriterProfilePage() {
     // it moves). Once it has scrolled under the site navbar, a compact copy is
     // pinned there instead, so the writer and "Request" are always in view.
     const headerRef = useRef<HTMLElement>(null);
+    const contentEndRef = useRef<HTMLDivElement>(null);
+    const barRef = useRef<HTMLDivElement>(null);
     const [compact, setCompact] = useState(false);
     const [navBottom, setNavBottom] = useState(64);
+    // Negative when the profile content ends: the bar then scrolls away with
+    // it instead of sitting over the footer.
+    const [stopShift, setStopShift] = useState(0);
     useEffect(() => {
         const header = headerRef.current;
         if (!header) return;
@@ -75,6 +80,9 @@ export default function WriterProfilePage() {
                 // Different thresholds for showing and hiding, so it never flickers at the edge.
                 const bottom = header.getBoundingClientRect().bottom;
                 setCompact(was => (was ? bottom < nav + 40 : bottom < nav + 12));
+                const end = contentEndRef.current?.getBoundingClientRect().top;
+                const barHeight = barRef.current?.offsetHeight || 0;
+                setStopShift(end === undefined ? 0 : Math.min(0, end - (nav + barHeight)));
             });
         };
         update();
@@ -109,8 +117,8 @@ export default function WriterProfilePage() {
                 <BackLink label="All writers" fallback="/hire-writers" className="mb-6" />
 
                 {/* Compact header, pinned under the navbar after the full one scrolls away */}
-                <div aria-hidden={!compact} style={{ top: navBottom }}
-                    className={cn('fixed inset-x-0 z-40 px-3 pt-2 transition-all duration-300 sm:px-6', compact ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-3 opacity-0')}>
+                <div ref={barRef} aria-hidden={!compact} style={{ top: navBottom + stopShift }}
+                    className={cn('fixed inset-x-0 z-40 px-3 pt-2 transition-[opacity,transform] duration-300 sm:px-6', compact ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-3 opacity-0')}>
                     <div className="mx-auto flex max-w-6xl items-center gap-3 rounded-2xl bg-[#002147] px-3 py-2.5 text-white shadow-[0_12px_32px_rgba(0,33,71,0.28)] sm:gap-4 sm:px-5">
                         <WriterAvatar writerId={writer.id} name={writer.name} hasPhoto={writer.hasPhoto} version={writer.photoVersion} size={44} className="ring-2 ring-white/20" />
                         <div className="min-w-0 flex-1">
@@ -236,6 +244,7 @@ export default function WriterProfilePage() {
                         <p className="px-2 text-xs text-slate-500">Member since {new Date(writer.memberSince).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}. Contact happens through the platform; personal contact details are never shared.</p>
                     </aside>
                 </div>
+                <div ref={contentEndRef} aria-hidden="true" />
             </main>
             <Footer />
         </div>
