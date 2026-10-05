@@ -25,6 +25,9 @@ function render(pagePath, { title, description }) {
         [/<link rel="canonical" href="[^"]*"\s*\/>/, `<link rel="canonical" href="${url}" />`],
     ];
     let html = template;
+    // The home page's largest image (the first hero slide): start loading it
+    // with the HTML instead of after the JavaScript has run.
+    if (pagePath === '/') replacements.push([/<\/title>/, '</title>\n  <link rel="preload" as="image" href="/hero/scholar-640.webp" type="image/webp" fetchpriority="high" />']);
     for (const [pattern, value] of replacements) {
         if (!pattern.test(html)) throw new Error(`prerender-meta: index.html is missing ${pattern}`);
         html = html.replace(pattern, value);

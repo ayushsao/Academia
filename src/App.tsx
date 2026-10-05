@@ -8,6 +8,15 @@ import { SmoothScroll, scrollToTopNow } from './lib/smoothScroll';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 
+// Speed Insights grouped by page type (otherwise every page shows as "Unknown").
+function SpeedInsightsWithRoute() {
+    const { pathname } = useLocation();
+    const route = pathname === '/' ? '/'
+        : pathname.replace(/^\/(p|blog|writer|dashboard\/receipt)\/[^/]+$/, '/$1/[slug]')
+            .replace(/^\/subjects\/[^/]+(\/[^/]+)?(\/[^/]+)?$/, (_m, a, b) => `/subjects/[subject]${a ? '/[service]' : ''}${b ? '/[project]' : ''}`);
+    return <SpeedInsights route={route} />;
+}
+
 // Every page except Home is loaded on demand, so a first visit only downloads
 // what the landing page needs (admin, dashboards and tools come later, if ever).
 const named = <T extends Record<string, any>>(load: () => Promise<T>, name: keyof T) =>
@@ -201,7 +210,7 @@ export default function App() {
             <DeferredChatWidget />
             <DialogHost />
             <Analytics />
-            <SpeedInsights />
+            <SpeedInsightsWithRoute />
         </BrowserRouter>
     );
 }
