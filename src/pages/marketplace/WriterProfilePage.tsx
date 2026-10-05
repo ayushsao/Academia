@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Star, MapPin, BadgeCheck, GraduationCap, FileText, Languages, Layers, Award, Gauge, MessageCircle, ArrowLeft, ExternalLink, Crown } from 'lucide-react';
 import { MarketplaceNavbar as Navbar } from '../../components/writer/MarketplaceNavbar';
@@ -8,6 +8,7 @@ import type { PublicWriter } from '../../lib/writerTypes';
 import { countryName } from '../../lib/writerOptions';
 import { AvailabilityDot, Spinner, WriterAvatar } from '../../components/writer/WriterBits';
 import { BackLink } from '../../components/ui/BackLink';
+import { cn } from '../../lib/utils';
 
 function Chips({ items, tone = 'plain' }: { items: string[]; tone?: 'plain' | 'strong' }) {
     return (
@@ -56,6 +57,32 @@ export default function WriterProfilePage() {
         setTimeout(() => window.dispatchEvent(new Event('open-order-modal')), 300);
     };
 
+    // The full header stays in place (it never changes size, so nothing below
+    // it moves). Once it has scrolled under the site navbar, a compact copy is
+    // pinned there instead, so the writer and "Request" are always in view.
+    const headerRef = useRef<HTMLElement>(null);
+    const [compact, setCompact] = useState(false);
+    const [navBottom, setNavBottom] = useState(64);
+    useEffect(() => {
+        const header = headerRef.current;
+        if (!header) return;
+        let frame = 0;
+        const update = () => {
+            cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(() => {
+                const nav = Math.max(0, document.querySelector('nav')?.getBoundingClientRect().bottom || 0);
+                setNavBottom(nav);
+                // Different thresholds for showing and hiding, so it never flickers at the edge.
+                const bottom = header.getBoundingClientRect().bottom;
+                setCompact(was => (was ? bottom < nav + 40 : bottom < nav + 12));
+            });
+        };
+        update();
+        window.addEventListener('scroll', update, { passive: true });
+        window.addEventListener('resize', update);
+        return () => { cancelAnimationFrame(frame); window.removeEventListener('scroll', update); window.removeEventListener('resize', update); };
+    }, [writer]);
+
     if (loading) return <div className="min-h-screen bg-[#f6f8fc]"><Navbar /><div className="flex min-h-screen items-center justify-center"><Spinner className="h-8 w-8 text-[#002147]" /></div></div>;
     if (!writer) return (
         <div className="min-h-screen bg-[#f6f8fc]"><Navbar />
@@ -81,8 +108,32 @@ export default function WriterProfilePage() {
             <main className="mx-auto w-full max-w-6xl flex-grow px-4 pb-24 pt-8 sm:px-6 lg:pt-12">
                 <BackLink label="All writers" fallback="/hire-writers" className="mb-6" />
 
+                {/* Compact header, pinned under the navbar after the full one scrolls away */}
+                <div aria-hidden={!compact} style={{ top: navBottom }}
+                    className={cn('fixed inset-x-0 z-40 px-3 pt-2 transition-all duration-300 sm:px-6', compact ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-3 opacity-0')}>
+                    <div className="mx-auto flex max-w-6xl items-center gap-3 rounded-2xl bg-[#002147] px-3 py-2.5 text-white shadow-[0_12px_32px_rgba(0,33,71,0.28)] sm:gap-4 sm:px-5">
+                        <WriterAvatar writerId={writer.id} name={writer.name} hasPhoto={writer.hasPhoto} version={writer.photoVersion} size={44} className="ring-2 ring-white/20" />
+                        <div className="min-w-0 flex-1">
+                            <p className="flex items-center gap-1.5 font-extrabold tracking-tight sm:text-lg">
+                                <span className="truncate">{writer.name}</span>
+                                {writer.verified && <BadgeCheck className="h-5 w-5 shrink-0 text-[#fea520]" aria-label="Verified writer" />}
+                            </p>
+                            <p className="mt-0.5 flex items-center gap-3 text-xs text-white/70">
+                                <span className="hidden items-center gap-1 sm:inline-flex"><MapPin className="h-3.5 w-3.5" />{countryName(writer.country)}</span>
+                                <span className="hidden sm:inline">{writer.yearsExperience} yrs experience</span>
+                                <span className="rounded-full bg-white px-2 py-0.5"><AvailabilityDot status={writer.availability} /></span>
+                            </p>
+                        </div>
+                        <button onClick={requestWriter} disabled={writer.availability !== 'AVAILABLE'} tabIndex={compact ? 0 : -1}
+                            className="shrink-0 rounded-xl bg-[#fea520] px-4 py-2.5 text-sm font-bold text-[#0b1b33] transition hover:bg-[#f39200] disabled:cursor-not-allowed disabled:opacity-60">
+                            <span className="sm:hidden">{writer.availability === 'AVAILABLE' ? 'Request' : 'Unavailable'}</span>
+                            <span className="hidden sm:inline">{writer.availability === 'AVAILABLE' ? 'Request this writer' : 'Currently unavailable'}</span>
+                        </button>
+                    </div>
+                </div>
+
                 {/* Header */}
-                <header className="relative overflow-hidden rounded-3xl bg-[#002147] p-6 text-white sm:p-10">
+                <header ref={headerRef} className="relative overflow-hidden rounded-3xl bg-[#002147] p-6 text-white sm:p-10">
                     <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full border-[36px] border-[#fea520]/15" />
                     <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center">
                         <WriterAvatar writerId={writer.id} name={writer.name} hasPhoto={writer.hasPhoto} version={writer.photoVersion} size={112} className="ring-4 ring-white/15" />
@@ -173,7 +224,7 @@ export default function WriterProfilePage() {
 
                     {/* One compact card that stays in view while the main column scrolls,
                         so the two columns read as balanced instead of one long side. */}
-                    <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+                    <aside className="space-y-4 lg:sticky lg:top-44 lg:self-start">
                         <section className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-7">
                             <h2 className="mb-5 text-lg font-bold text-[#0b1b33]">At a glance</h2>
                             <div className="divide-y divide-slate-100">
