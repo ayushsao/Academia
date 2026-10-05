@@ -7,7 +7,7 @@ import { DialogHost } from './lib/dialog';
 import { SmoothScroll, scrollToTopNow } from './lib/smoothScroll';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
-import { Preloader } from './components/ui/Preloader';
+import { Preloader, useHideInitialPreloader } from './components/ui/Preloader';
 
 // Speed Insights grouped by page type (otherwise every page shows as "Unknown").
 function SpeedInsightsWithRoute() {
@@ -122,6 +122,7 @@ function ScrollToTop() {
 }
 
 export default function App() {
+    useHideInitialPreloader();
     return (
         <BrowserRouter>
             <SearchIndexing />

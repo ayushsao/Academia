@@ -59,18 +59,21 @@ src="https://www.facebook.com/tr?id=2397052827491113&ev=PageView&noscript=1"
 src="https://www.facebook.com/tr?id=1563662191722672&ev=PageView&noscript=1"
 /></noscript>
 <!-- End Meta Pixel Code -->
-  <!-- Preloader: painted with the HTML, replaced as soon as the app renders (no added delay). -->
+  <!-- Preloader: painted with the HTML over the app, faded out once the app has rendered (see useHideInitialPreloader). -->
   <style>
-    #am-preloader{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#fff;animation:am-fade .25s ease both}
+    #am-preloader{position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#fff;animation:am-fade .25s ease both}
+    #am-preloader.am-done{animation:am-out .35s ease forwards;pointer-events:none}
     #am-preloader .am-word{font:800 26px/1 Poppins,system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:-.02em;color:#000a1e}
     #am-preloader .am-word span{color:#eb6200}
     #am-preloader .am-track{width:136px;height:3px;border-radius:3px;background:#eef1f5;overflow:hidden}
     #am-preloader .am-bar{width:40%;height:100%;border-radius:3px;background:linear-gradient(90deg,#fea520,#eb6200);animation:am-slide 1.1s cubic-bezier(.65,0,.35,1) infinite}
     @keyframes am-slide{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
     @keyframes am-fade{from{opacity:0}to{opacity:1}}
+    @keyframes am-out{from{opacity:1}to{opacity:0}}
     @media (prefers-reduced-motion:reduce){#am-preloader .am-bar{animation:none;width:100%}}
   </style>
-  <div id="root"><div id="am-preloader" role="status" aria-label="Loading AssignmentMinds"><div class="am-word">Assignment<span>Minds</span></div><div class="am-track"><div class="am-bar"></div></div></div></div>
+  <div id="am-preloader" role="status" aria-label="Loading AssignmentMinds"><div class="am-word">Assignment<span>Minds</span></div><div class="am-track"><div class="am-bar"></div></div></div>
+  <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 

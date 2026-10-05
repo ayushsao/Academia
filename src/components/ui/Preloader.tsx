@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { cn } from '../../lib/utils';
 
 // Shown while a page's code loads: the wordmark over a thin sliding bar (same
@@ -13,4 +13,21 @@ export function Preloader({ className }: { className?: string }) {
             </div>
         </div>
     );
+}
+
+// The first-load preloader in index.html sits over the app. It stays up until
+// at least MIN_SHOW_MS after the page started loading, so it doesn't just
+// flash, then fades out. A page that takes longer than that to load gets no
+// extra wait.
+const MIN_SHOW_MS = 1000;
+export function useHideInitialPreloader() {
+    useEffect(() => {
+        const el = document.getElementById('am-preloader');
+        if (!el || el.classList.contains('am-done')) return;
+        const timer = setTimeout(() => {
+            el.classList.add('am-done');
+            setTimeout(() => el.remove(), 400);
+        }, Math.max(0, MIN_SHOW_MS - performance.now()));
+        return () => clearTimeout(timer);
+    }, []);
 }
