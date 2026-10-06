@@ -308,6 +308,19 @@ router.patch('/documents/:docId', requirePermission('writers.documents'), valida
     } catch (err) { handleError(res, err, 'Failed to update document.'); }
 });
 
+// The profile photo exactly as the writer uploaded it (the site shows a resized
+// copy, or initials when the photo is plain). Opening it is audited like a document.
+router.get('/:writerId/photo/original', requirePermission('writers.documents'), loadBundle, async (req, res) => {
+    try {
+        const storedName = req.bundle.profile?.profilePhoto;
+        if (!storedName) return res.status(404).json({ error: 'This writer has no profile photo.' });
+        const ext = storedName.split('.').pop();
+        const mimeType = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' }[ext] || 'application/octet-stream';
+        await audit(req, 'WRITER_PHOTO_VIEWED', req.bundle.writer.userId, 'Original profile photo', req.bundle.writer._id);
+        await streamStoredFile(res, { storedName, mimeType, originalName: `profile-photo.${ext}` }, { download: req.query.download === '1' });
+    } catch (err) { handleError(res, err, 'Failed to load photo.'); }
+});
+
 // Every document opened by an admin is audited.
 router.get('/documents/:docId/file', requirePermission('writers.documents'), async (req, res) => {
     try {

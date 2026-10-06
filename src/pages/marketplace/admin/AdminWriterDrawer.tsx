@@ -104,6 +104,12 @@ export default function AdminWriterDrawer({ writerId, token, onClose, onChanged 
                                     <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">Application: {APPLICATION_STATUS_LABEL[writer.application.status]}</span>
                                     <AvailabilityDot status={writer.availability.effectiveStatus} />
                                 </div>
+                                {writer.profile.hasPhoto && writer.permissions.documents && (
+                                    <button type="button" onClick={() => openProtectedFile(`/admin/writers/${writer.id}/photo/original`, token).catch(e => setError(e.message))}
+                                        className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-[#002147] hover:underline">
+                                        <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /> Original photo (as uploaded)
+                                    </button>
+                                )}
                                 {writer.lastReview && <p className="mt-1.5 text-xs text-slate-500">Last reviewed by <span className="font-semibold text-slate-700">{writer.lastReview.by}</span> · {new Date(writer.lastReview.at).toLocaleString()}</p>}
                                 {writer.risk && writer.risk.level !== 'NONE' && <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-slate-600"><RiskBadge risk={writer.risk} />{writer.risk.flags.map(f => RISK_KIND_LABEL[f] || f).join(' · ')} <span className="text-slate-400">— review under Trust &amp; Safety</span></p>}
                             </div>
