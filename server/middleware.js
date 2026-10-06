@@ -9,7 +9,7 @@ export { JWT_SECRET, ADMIN_SECRET } from './config.js';
 import { JWT_SECRET, ADMIN_SECRET } from './config.js';
 
 const SESSION_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
-// A signed-in admin session (a 2FA challenge token carries a "purpose" instead).
+// A signed-in admin session (a token issued for any other "purpose" is not one).
 const isAdminSession = (p) => p && p.role === 'admin' && !p.purpose;
 
 // Only our own HMAC tokens are accepted (never "none" or another algorithm).
@@ -121,7 +121,7 @@ export async function authenticateAdmin(req, res, next) {
     } catch {
         return res.status(401).json({ error: 'Unauthorized: Invalid admin token' });
     }
-    // Only a full session token opens the console — never a two-factor challenge.
+    // Only a full session token opens the console.
     if (!isAdminSession(payload)) return res.status(401).json({ error: 'Unauthorized: Invalid admin token' });
     try {
         const role = await currentAdminRole(payload.id);

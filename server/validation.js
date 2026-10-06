@@ -34,16 +34,6 @@ export const adminLoginSchema = z.object({
 });
 
 // An admin changing their own password.
-// Admin two-factor authentication.
-const totpCode = z.string().trim().transform(s => s.replace(/\s/g, '')).pipe(z.string().regex(/^\d{6}$/, 'Enter the 6-digit code from your authenticator app'));
-export const adminTwoFactorLoginSchema = z.object({
-    challenge: z.string().min(10).max(2000),
-    code: totpCode.optional(),
-    recoveryCode: z.string().trim().min(8).max(20).optional(),
-}).strict().refine(b => Boolean(b.code) !== Boolean(b.recoveryCode), 'Enter either the 6-digit code or a recovery code.');
-export const adminTwoFactorCodeSchema = z.object({ code: totpCode }).strict();
-export const adminTwoFactorDisableSchema = z.object({ password: z.string().min(1).max(200), code: totpCode }).strict();
-
 export const adminPasswordSchema = z.object({
     currentPassword: z.string().min(1, 'Enter your current password').max(200),
     newPassword: z.string().min(12, 'Use at least 12 characters').max(200)

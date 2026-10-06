@@ -25,7 +25,7 @@ import BlogTab from './marketplace/admin/BlogTab';
 import BiddingTab, { ProjectRow } from './marketplace/admin/BiddingTab';
 import { Newspaper, Gavel } from 'lucide-react';
 import AdminPasswordDialog from './marketplace/admin/AdminPasswordDialog';
-import { AdminLogin, AdminSecurityDialog, restoreAdminSession, signOutAdmin } from './marketplace/admin/AdminAuth';
+import { AdminLogin, restoreAdminSession, signOutAdmin } from './marketplace/admin/AdminAuth';
 
 import { API, downloadFile } from '../lib/api';
 import { formatOrderTotal, formatMoney } from '../lib/money';
@@ -1481,7 +1481,6 @@ export const AdminPanel: React.FC = () => {
     // fallback token when the browser blocks the cookie). Nothing is stored.
     const [token, setToken] = useState<string>('');
     const [restoring, setRestoring] = useState(true);
-    const [securityOpen, setSecurityOpen] = useState(false);
     const [access, setAccess] = useState<AdminAccess | null>(null);
     const [accessError, setAccessError] = useState('');
     const [tab, setTab] = useState<TabId | null>(null);
@@ -1589,9 +1588,6 @@ export const AdminPanel: React.FC = () => {
                         <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold" title="Your role">
                             <Shield className="w-3.5 h-3.5" />{access.roleLabel}
                         </span>
-                        <button onClick={() => setSecurityOpen(true)} aria-label="Security and two-factor authentication" title="Security" className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50">
-                            <Shield className="w-3.5 h-3.5" /><span className="hidden sm:inline">Security</span>
-                        </button>
                         <button onClick={() => setChangingPassword(true)} aria-label="Change password" title="Change password" className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-50">
                             <KeyRound className="w-3.5 h-3.5" /><span className="hidden sm:inline">Password</span>
                         </button>
@@ -1625,7 +1621,6 @@ export const AdminPanel: React.FC = () => {
                 </main>
             </div>
             {changingPassword && <AdminPasswordDialog token={token} onClose={() => setChangingPassword(false)} />}
-            {securityOpen && <AdminSecurityDialog token={token} onClose={() => setSecurityOpen(false)} />}
         </div>
     );
 };

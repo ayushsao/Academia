@@ -199,16 +199,6 @@ const adminSchema = new mongoose.Schema({
   // See server/permissions.js. 'ADMIN' is the legacy value for a full admin (= SUPER_ADMIN).
   role: { type: String, default: 'SUPER_ADMIN', enum: ['SUPER_ADMIN', 'ADMIN', 'HR', 'OPERATIONS', 'FINANCE', 'MARKETING'] },
   lastLoginAt: { type: Date },
-  // Two-factor authentication (services/twoFactor.js). Secrets are encrypted;
-  // recovery codes are stored as hashes only. Never sent to clients.
-  twoFactor: {
-    enabled: { type: Boolean, default: false },
-    secretEnc: { type: String, select: false },
-    pendingSecretEnc: { type: String, select: false },   // being set up, not yet confirmed
-    recoveryHashes: { type: [String], default: [], select: false },
-    lastUsedStep: { type: Number, default: -1 },         // stops a code being used twice
-    enabledAt: Date,
-  },
 }, { timestamps: true });
 
 const siteSettingsSchema = new mongoose.Schema({
