@@ -16,7 +16,7 @@ export const ChatWidget = () => {
     return (
         <div data-chat-widget className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end pointer-events-none">
             {isOpen && (
-                <div role="dialog" aria-label="Chat" className="pointer-events-auto mb-4 flex h-[550px] w-[350px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-3xl border border-black/5 bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.25)] animate-in fade-in slide-in-from-bottom-4 duration-300 sm:h-[620px] sm:w-[390px]">
+                <div role="dialog" aria-label="Chat" className="pointer-events-auto mb-4 flex h-[550px] max-h-[calc(100dvh-9.5rem)] w-[350px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-3xl border border-black/5 bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.25)] animate-in fade-in slide-in-from-bottom-4 duration-300 sm:h-[620px] sm:w-[390px]">
                     <div className="flex items-center justify-between border-b border-black/5 px-5 py-4">
                         <div className="flex items-center gap-3">
                             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#002147]">

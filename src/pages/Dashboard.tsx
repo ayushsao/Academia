@@ -76,6 +76,20 @@ export const Dashboard: React.FC = () => {
     const [chatThread, setChatThread] = useState<string | undefined>(undefined);
     const [unreadMessages, setUnreadMessages] = useState(0);
     const openChat = (thread: string) => { setChatThread(thread); setActiveTab('messages'); };
+    // The account menu opens on tap (phones have no hover) and closes on a tap outside it.
+    const [accountOpen, setAccountOpen] = useState(false);
+    const accountRef = React.useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (!accountOpen) return;
+        const close = (e: PointerEvent) => { if (!accountRef.current?.contains(e.target as Node)) setAccountOpen(false); };
+        document.addEventListener('pointerdown', close);
+        return () => document.removeEventListener('pointerdown', close);
+    }, [accountOpen]);
+    // Phones: only the WhatsApp button floats above the bottom navigation (see .has-dash-nav in index.css).
+    useEffect(() => {
+        document.body.classList.add('has-dash-nav');
+        return () => document.body.classList.remove('has-dash-nav');
+    }, []);
     useEffect(() => {
         api<{ threads: { unread: number }[] }>('/support/threads')
             .then(d => setUnreadMessages(d.threads.reduce((n, t) => n + t.unread, 0)))
@@ -213,15 +227,15 @@ export const Dashboard: React.FC = () => {
     return (
         <div className="min-h-screen bg-[#fafbfc] font-sans">
             {/* Top Orange Navigation Bar */}
-            <header className="bg-gradient-to-r from-[#e37e25] to-[#f4933a] shadow-md px-6 py-3 flex items-center justify-between sticky top-0 z-40">
+            <header className="bg-gradient-to-r from-[#e37e25] to-[#f4933a] shadow-md px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-2 sticky top-0 z-40">
                 {/* Logo Area */}
-                <div className="flex items-center gap-0 cursor-pointer group" onClick={() => navigate('/')}>
-                    <div className="w-10 h-10 bg-[#000a1e] rounded-full flex items-center justify-center z-10 transition-transform group-hover:scale-110">
-                        <AcademiaLogo isDark className="h-7 w-auto" />
+                <div className="flex min-w-0 items-center gap-0 cursor-pointer group" onClick={() => navigate('/')}>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 bg-[#000a1e] rounded-full flex items-center justify-center z-10 transition-transform group-hover:scale-110">
+                        <AcademiaLogo isDark className="h-5 sm:h-7 w-auto" />
                     </div>
-                    <div className="flex flex-col z-0 -ml-0.5">
-                        <span className="text-2xl font-black text-white uppercase tracking-tight leading-none">ssignment<span className="text-[#000a1e]">Minds</span>™</span>
-                        <span className="text-[9px] font-bold text-white/90 tracking-widest uppercase pl-1 pt-0.5">World's No. 1 Academic Help</span>
+                    <div className="flex min-w-0 flex-col z-0 -ml-0.5">
+                        <span className="whitespace-nowrap text-[15px] min-[380px]:text-[17px] sm:text-2xl font-black text-white uppercase tracking-tight leading-none">ssignment<span className="text-[#000a1e]">Minds</span><span className="hidden sm:inline">™</span></span>
+                        <span className="hidden sm:block text-[9px] font-bold text-white/90 tracking-widest uppercase pl-1 pt-0.5">World's No. 1 Academic Help</span>
                     </div>
                 </div>
 
@@ -273,7 +287,7 @@ export const Dashboard: React.FC = () => {
                 </div>
 
                 {/* Mobile Bottom Navigation Bar (Fixed) */}
-                <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#000a1e] border-t border-gray-800 flex justify-around items-center px-2 py-3 z-50 rounded-t-2xl shadow-[0_-10px_20px_rgba(0,0,0,0.15)] pb-safe">
+                <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#000a1e] border-t border-gray-800 flex justify-around items-center px-2 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] z-50 rounded-t-2xl shadow-[0_-10px_20px_rgba(0,0,0,0.15)]">
                     <button onClick={() => navigate('/')} className="flex flex-col items-center gap-1 opacity-70 hover:opacity-100 text-white">
                         <Home className="w-5 h-5" />
                         <span className="text-[10px] font-bold">Home</span>
@@ -298,12 +312,12 @@ export const Dashboard: React.FC = () => {
                 </div>
 
                 {/* Right Side Icons & Profile */}
-                <div className="flex items-center gap-2 sm:gap-5">
+                <div className="flex shrink-0 items-center gap-2 sm:gap-5">
                     <button
                         onClick={() => setOrderModalOpen(true)}
-                        className="bg-white text-[#e37e25] px-3 sm:px-4 py-1.5 rounded text-xs sm:text-sm font-bold shadow-sm hover:bg-gray-50 flex items-center gap-1 relative whitespace-nowrap"
+                        className="bg-white text-[#e37e25] px-2.5 sm:px-4 py-1.5 rounded text-xs sm:text-sm font-bold shadow-sm hover:bg-gray-50 flex items-center gap-1 whitespace-nowrap"
                     >
-                        New Order <Plus className="w-3 h-3 absolute -top-1 -right-1 text-emerald-500 font-extrabold" />
+                        <Plus className="w-3.5 h-3.5 text-emerald-600" strokeWidth={3} aria-hidden="true" /> New Order
                     </button>
 
                     <div className="hidden sm:flex items-center gap-1 text-white/90">
@@ -315,28 +329,33 @@ export const Dashboard: React.FC = () => {
                         <Bell className="w-5 h-5" />
                     </button>
 
-                    <div className="relative group cursor-pointer pl-2 sm:pl-4 sm:border-l border-white/20 flex flex-col items-center">
-                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white text-[#e37e25] flex items-center justify-center font-bold relative z-10 border-2 border-white overflow-hidden shadow-sm">
-                            <User className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </div>
-                        <span className="hidden sm:inline-block text-[10px] text-white font-bold tracking-wide mt-0.5">{user?.name?.split(' ')[0] || 'Account'}</span>
-                        <span className="hidden sm:inline-block absolute -bottom-2 bg-white text-[#222] text-[8px] font-black px-1.5 rounded-sm shadow-sm">NEW</span>
+                    <div ref={accountRef} className="relative pl-1 sm:pl-4 sm:border-l border-white/20">
+                        <button type="button" onClick={() => setAccountOpen(o => !o)} aria-haspopup="menu" aria-expanded={accountOpen} aria-label="Account menu"
+                            className="relative flex flex-col items-center">
+                            <span className="w-8 h-8 rounded-full bg-white text-[#e37e25] flex items-center justify-center font-bold relative z-10 border-2 border-white overflow-hidden shadow-sm">
+                                <User className="w-4 h-4 sm:w-5 sm:h-5" />
+                            </span>
+                            <span className="hidden sm:inline-block text-[10px] text-white font-bold tracking-wide mt-0.5">{user?.name?.split(' ')[0] || 'Account'}</span>
+                        </button>
 
-                        {/* Logout Dropdown */}
-                        <div className="absolute top-full right-0 mt-2 w-32 bg-white rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                            <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 font-bold hover:bg-gray-50 rounded flex items-center gap-2">
-                                <LogOut className="w-4 h-4" /> Logout
-                            </button>
-                        </div>
+                        {/* Account menu */}
+                        {accountOpen && (
+                            <div role="menu" className="absolute top-full right-0 mt-2 w-48 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5">
+                                <p className="truncate border-b border-gray-100 px-4 py-2.5 text-xs text-gray-500">{user?.email}</p>
+                                <button role="menuitem" onClick={handleLogout} className="w-full text-left px-4 py-2.5 text-sm text-red-600 font-bold hover:bg-gray-50 flex items-center gap-2">
+                                    <LogOut className="w-4 h-4" /> Logout
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </header>
 
             {/* Main Layout Area */}
-            <main className="max-w-[1400px] mx-auto p-3 sm:p-6 pb-24 lg:pb-6 grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6">
+            <main className="max-w-[1400px] mx-auto p-3 sm:p-6 pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-6 grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6">
 
-                {/* Left Side Main Content Base on Tab */}
-                <div className="flex-1 w-full space-y-6">
+                {/* Left Side Main Content Base on Tab (min-w-0: wide tables scroll inside instead of pushing the sidebar off screen) */}
+                <div className="flex-1 w-full min-w-0 space-y-6">
                     {activeTab === 'messages' && (
                         <CustomerMessages initialThread={chatThread} onUnreadChange={setUnreadMessages} />
                     )}
@@ -414,15 +433,15 @@ export const Dashboard: React.FC = () => {
                                 </div>
                             ) : (
                                 <div className="w-full overflow-x-auto">
-                                    <table className="w-full text-left border-collapse min-w-[700px]">
+                                    <table className="am-order-table w-full text-left border-collapse md:min-w-[700px]">
                                         <thead>
                                             <tr className="bg-[#dfe4ef] text-[#4a5568] text-[11px] sm:text-sm">
-                                                <th className="font-bold py-3 px-4 sm:px-6 whitespace-nowrap">Order ID & Status</th>
-                                                <th className="font-bold py-3 px-4 sm:px-6 whitespace-nowrap">Service Type</th>
-                                                <th className="font-bold py-3 px-4 sm:px-6 whitespace-nowrap">Deadline</th>
-                                                <th className="font-bold py-3 px-4 sm:px-6 whitespace-nowrap">Files</th>
-                                                <th className="font-bold py-3 px-4 sm:px-6 whitespace-nowrap">Price Quote</th>
-                                                <th className="font-bold py-3 px-4 sm:px-6 whitespace-nowrap">Payment</th>
+                                                <th className="font-bold py-3 px-4 2xl:px-6 whitespace-nowrap">Order ID & Status</th>
+                                                <th className="font-bold py-3 px-4 2xl:px-6 whitespace-nowrap">Service Type</th>
+                                                <th className="font-bold py-3 px-4 2xl:px-6 whitespace-nowrap">Deadline</th>
+                                                <th className="font-bold py-3 px-4 2xl:px-6 whitespace-nowrap">Files</th>
+                                                <th className="font-bold py-3 px-4 2xl:px-6 whitespace-nowrap">Price Quote</th>
+                                                <th className="font-bold py-3 px-4 2xl:px-6 whitespace-nowrap">Payment</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -433,7 +452,7 @@ export const Dashboard: React.FC = () => {
                                                 return (
                                                     <React.Fragment key={oid}>
                                                         <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                                            <td className="py-4 px-4 sm:px-6">
+                                                            <td className="am-wide py-4 px-4 2xl:px-6">
                                                                 <div className="font-bold text-[#000a1e] text-xs sm:text-sm">{oid}</div>
                                                                 <button type="button" onClick={() => openChat(oid)} className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-[#c2570c] hover:underline">
                                                                     <MessageCircle className="w-3.5 h-3.5" aria-hidden="true" /> Message support
@@ -443,7 +462,7 @@ export const Dashboard: React.FC = () => {
                                                                 </span>
                                                                 {normaliseStatus(order.status) === 'submitted' && <div className="mt-1 text-[10px] sm:text-xs text-gray-500">Writer submitted the work. We’re checking it.</div>}
                                                             </td>
-                                                            <td className="py-4 px-4 sm:px-6">
+                                                            <td data-label="Service" className="am-wide py-4 px-4 2xl:px-6">
                                                                 <div className="font-bold text-gray-700 text-xs sm:text-sm whitespace-pre-wrap line-clamp-2">{order.service}</div>
                                                                 <div className="text-[10px] sm:text-xs text-gray-500 mt-1">{order.subject}</div>
                                                                 {(order as any).pricing?.model === 'WORDS' && (() => {
@@ -453,11 +472,11 @@ export const Dashboard: React.FC = () => {
                                                                     return <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5">{Number(p.words).toLocaleString()} words · {p.pages} page{p.pages === 1 ? '' : 's'}{delivery ? ` · ${delivery}` : ''}</div>;
                                                                 })()}
                                                             </td>
-                                                            <td className="py-4 px-4 sm:px-6 text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">
+                                                            <td data-label="Deadline" className="py-4 px-4 2xl:px-6 text-xs sm:text-sm font-semibold text-gray-700">
                                                                 {order.deadline}
                                                             </td>
-                                                            <td className="py-4 px-4 sm:px-6 text-xs whitespace-nowrap">
-                                                                <div className="flex items-center gap-2">
+                                                            <td data-label="Files" className="am-wide py-4 px-4 2xl:px-6 text-xs whitespace-nowrap">
+                                                                <div className="flex flex-wrap items-center gap-2">
                                                                     <button
                                                                         onClick={() => setExpandedOrderId(isExpanded ? null : oid)}
                                                                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold cursor-pointer transition-colors ${hasFiles ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'}`}
@@ -483,10 +502,10 @@ export const Dashboard: React.FC = () => {
                                                                     />
                                                                 </div>
                                                             </td>
-                                                            <td className="py-4 px-4 sm:px-6 font-black text-[#e37e25] text-sm">
+                                                            <td data-label="Price" className="py-4 px-4 2xl:px-6 font-black text-[#e37e25] text-sm">
                                                                 {formatOrderTotal(order.totalAmount, order.currency)}
                                                             </td>
-                                                            <td className="py-4 px-4 sm:px-6">
+                                                            <td data-label="Payment" className="am-wide py-4 px-4 2xl:px-6">
                                                                 {(order as any).payment?.status === 'PAID' ? (
                                                                     <div className="flex flex-col items-start gap-1">
                                                                         <span className="text-[10px] sm:text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">PAID</span>
@@ -498,7 +517,7 @@ export const Dashboard: React.FC = () => {
                                                                     <div className="flex flex-col items-start gap-1.5">
                                                                         <span className="text-[10px] sm:text-xs font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-100" title={(order as any).payment?.provider === 'WHATSAPP' ? 'Confirm your payment with our team on WhatsApp' : 'We’re checking your payment'}>PENDING</span>
                                                                         {(order as any).payment?.provider === 'WHATSAPP' && (
-                                                                            <div className="w-56" onClick={(e) => e.stopPropagation()}>
+                                                                            <div className="w-full max-w-[260px] md:w-56" onClick={(e) => e.stopPropagation()}>
                                                                                 <WhatsAppPaymentReference compact orderId={oid} initialReference={(order as any).transactionId || ''}
                                                                                     onSaved={(updated) => setOrders(orders.map(o => (o as any).orderId === oid ? { ...o, ...updated } : o))} />
                                                                             </div>
@@ -511,8 +530,8 @@ export const Dashboard: React.FC = () => {
                                                         </tr>
                                                         {isExpanded && (
                                                             <tr className="bg-blue-50/40 border-b border-blue-100">
-                                                                <td colSpan={6} className="py-3 px-6">
-                                                                    <div className="text-xs font-bold text-[#000a1e] mb-2 uppercase tracking-wider flex items-center justify-between">
+                                                                <td colSpan={6} className="am-wide py-3 px-4 2xl:px-6">
+                                                                    <div className="text-xs font-bold text-[#000a1e] mb-2 uppercase tracking-wider flex flex-wrap items-center justify-between gap-2">
                                                                         <span>Uploaded Files for Order {oid}</span>
                                                                         <button
                                                                             onClick={() => studentFileInputRefs.current[oid]?.click()}
@@ -601,14 +620,14 @@ export const Dashboard: React.FC = () => {
                                     };
 
                                     return (
-                                        <div key={oid} className="bg-white rounded-2xl border border-emerald-200 p-5 hover:shadow-md transition-shadow">
+                                        <div key={oid} className="bg-white rounded-2xl border border-emerald-200 p-4 sm:p-5 hover:shadow-md transition-shadow">
                                             {/* Header */}
-                                            <div className="flex items-start justify-between mb-3">
-                                                <div>
+                                            <div className="flex items-start justify-between gap-3 mb-3">
+                                                <div className="min-w-0">
                                                     <span className="text-[10px] font-bold text-slate-400">{oid}</span>
                                                     <h3 className="text-sm font-bold text-[#0b1b33] mt-0.5 line-clamp-2">{(order as any).topicTitle || order.service}</h3>
                                                 </div>
-                                                <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded-lg">
+                                                <span className="inline-flex shrink-0 items-center gap-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded-lg">
                                                     <CheckCircle className="w-3 h-3" /> Completed
                                                 </span>
                                             </div>
@@ -760,7 +779,7 @@ export const Dashboard: React.FC = () => {
                     )}
 
                     {activeTab === 'resources' && (
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden min-h-[500px] p-8">
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden min-h-[500px] p-5 sm:p-8">
                             <h2 className="text-xl font-bold text-[#000a1e] mb-6">Premium Academic Resources</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {([
@@ -786,10 +805,10 @@ export const Dashboard: React.FC = () => {
 
                 {/* Right Side: Sidebar Navigation/Action Buttons */}
                 <div className="space-y-4">
-                    {/* Floating WhatsApp Button */}
-                    <div className="fixed bottom-6 right-6 z-50">
-                        <a href="https://wa.me/919263606941" target="_blank" rel="noreferrer" aria-label="Chat on WhatsApp" className="w-14 h-14 bg-[#25D366] hover:bg-[#20b858] text-white rounded-full flex items-center justify-center shadow-[0_4px_15px_rgba(37,211,102,0.4)] transition-transform hover:scale-110">
-                            <MessageCircle className="w-8 h-8" />
+                    {/* Floating WhatsApp Button: above the bottom navigation on phones, above the chat bubble on desktop. */}
+                    <div className="fixed right-4 bottom-[calc(84px+env(safe-area-inset-bottom))] lg:right-6 lg:bottom-[92px] z-50">
+                        <a href="https://wa.me/919263606941" target="_blank" rel="noreferrer" aria-label="Chat on WhatsApp" className="w-12 h-12 lg:w-14 lg:h-14 bg-[#25D366] hover:bg-[#20b858] text-white rounded-full flex items-center justify-center shadow-[0_4px_15px_rgba(37,211,102,0.4)] transition-transform hover:scale-110">
+                            <MessageCircle className="w-6 h-6 lg:w-8 lg:h-8" />
                         </a>
                     </div>
 
