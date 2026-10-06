@@ -189,26 +189,32 @@
     },
     "/privacy-policy": {
         "title": "Privacy Policy | AssignmentMinds",
-        "description": "How AssignmentMinds collects, uses and protects your personal information and files."
+        "description": "How AssignmentMinds collects, uses and protects your personal information and files.",
+        "robots": "noindex, follow"
     },
     "/terms": {
         "title": "Terms & Conditions | AssignmentMinds",
-        "description": "The terms for using AssignmentMinds academic support services, orders and payments."
+        "description": "The terms for using AssignmentMinds academic support services, orders and payments.",
+        "robots": "noindex, follow"
     },
     "/refund-policy": {
         "title": "Refund Policy | AssignmentMinds",
-        "description": "The AssignmentMinds refund policy for academic support orders."
+        "description": "The AssignmentMinds refund policy for academic support orders.",
+        "robots": "noindex, follow"
     },
     "/cancellation-policy": {
         "title": "Cancellation Policy | AssignmentMinds",
-        "description": "How and when AssignmentMinds orders can be cancelled."
+        "description": "How and when AssignmentMinds orders can be cancelled.",
+        "robots": "noindex, follow"
     },
     "/usage-policy": {
         "title": "Usage Policy | AssignmentMinds",
-        "description": "How work delivered by AssignmentMinds may be used, cited and shared."
+        "description": "How work delivered by AssignmentMinds may be used, cited and shared.",
+        "robots": "noindex, follow"
     },
     "/writer-terms": {
         "title": "Writer Terms | AssignmentMinds",
-        "description": "Terms for freelance academic writers working with AssignmentMinds."
+        "description": "Terms for freelance academic writers working with AssignmentMinds.",
+        "robots": "noindex, follow"
     }
 }

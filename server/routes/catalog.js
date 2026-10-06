@@ -9,11 +9,15 @@ import { remember } from '../services/cache.js';
 import fs from 'fs';
 
 // Public pages with their own title/description (shared with the frontend
-// build); every one of them belongs in the sitemap.
+// build) belong in the sitemap, except those marked noindex there (the
+// legal pages).
 let SEO_PATHS = [];
+let NOINDEX_PATHS = new Set(['/terms', '/privacy-policy', '/refund-policy', '/cancellation-policy', '/usage-policy', '/writer-terms']);
 try {
-    SEO_PATHS = Object.keys(JSON.parse(fs.readFileSync(new URL('../../src/data/seoPages.json', import.meta.url), 'utf8')));
-} catch { /* the fixed list below still covers the main pages */ }
+    const seoPages = JSON.parse(fs.readFileSync(new URL('../../src/data/seoPages.json', import.meta.url), 'utf8'));
+    SEO_PATHS = Object.keys(seoPages);
+    NOINDEX_PATHS = new Set(SEO_PATHS.filter(p => String(seoPages[p].robots || '').startsWith('noindex')));
+} catch { /* the fixed lists here still cover the main pages */ }
 
 // Public catalogue: /api/catalog. Only ACTIVE + published items whose parents
 // are ACTIVE + published are visible. Internal fields are never returned.
@@ -165,9 +169,8 @@ router.get('/sitemap.xml', async (_req, res) => {
         ];
         // Main public pages (account areas are excluded — see public/robots.txt).
         const now = new Date();
-        const mainPages = ['/', '/subjects', '/hire-writers', '/become-a-writer', '/writer-membership', '/writer-terms', '/reviews', '/resources',
-            '/about', '/terms', '/privacy-policy', '/refund-policy', '/cancellation-policy', '/usage-policy'];
-        const pages = [...new Set([...mainPages, ...SEO_PATHS.filter(p => p !== '/blog')])];
+        const mainPages = ['/', '/subjects', '/hire-writers', '/become-a-writer', '/writer-membership', '/reviews', '/resources', '/about'];
+        const pages = [...new Set([...mainPages, ...SEO_PATHS.filter(p => p !== '/blog')])].filter(p => !NOINDEX_PATHS.has(p));
         urls.unshift(...pages.map(loc => ({ loc, at: now })));
         const { BlogPost } = await import('../db.js');
         const posts = await BlogPost.find({ status: 'PUBLISHED' }).select('slug updatedAt').lean();

@@ -5,7 +5,9 @@ import seoPages from '../data/seoPages.json';
 // non-www copies never compete with the real pages in search results.
 export const SITE_URL = 'https://www.assignmentminds.com';
 
-type PageMeta = { title: string; description: string };
+// `robots` is set for pages kept out of search results (the legal pages), so
+// a search for the brand name leads to the home page.
+type PageMeta = { title: string; description: string; robots?: string };
 const PAGES: Record<string, PageMeta> = seoPages;
 
 // Sets the title, description, canonical link and Open Graph/Twitter tags
@@ -16,6 +18,7 @@ export function usePageMeta(path: string, fallback?: PageMeta) {
     const meta = PAGES[path] || fallback;
     const title = meta?.title;
     const description = meta?.description;
+    const robots = meta?.robots || 'index, follow';
 
     useEffect(() => {
         if (!title) return;
@@ -45,6 +48,7 @@ export function usePageMeta(path: string, fallback?: PageMeta) {
             metaTag('property', 'og:description', description);
             metaTag('name', 'twitter:description', description);
         }
+        metaTag('name', 'robots', robots);
         metaTag('property', 'og:title', title);
         metaTag('name', 'twitter:title', title);
         metaTag('property', 'og:url', url);
@@ -54,5 +58,5 @@ export function usePageMeta(path: string, fallback?: PageMeta) {
             document.title = previousTitle;
             restore.reverse().forEach(fn => fn());
         };
-    }, [path, title, description]);
+    }, [path, title, description, robots]);
 }

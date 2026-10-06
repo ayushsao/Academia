@@ -18,7 +18,7 @@ const SUPPORT_EMAIL = 'support@assignmentminds.com';
 const SOCIAL_LINKS = {
   facebook: '',
   x: '',
-  instagram: '',
+  instagram: 'https://www.instagram.com/assignmentminds_/',
   pinterest: '',
   youtube: '',
   linkedin: '',

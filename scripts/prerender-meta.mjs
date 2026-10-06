@@ -1,7 +1,7 @@
 // Runs after `vite build`. The site is a single-page app, so every URL gets the
 // same dist/index.html and the home page's title until JavaScript runs. This
 // writes dist/<path>/index.html for each page in src/data/seoPages.json with
-// that page's own title, description, canonical link and Open Graph tags, so
+// that page's own title, description, canonical link, robots and Open Graph tags, so
 // search engines see the right values in the raw HTML. Vercel serves these
 // files before the catch-all rewrite to /index.html.
 import fs from 'fs';
@@ -14,7 +14,7 @@ const template = fs.readFileSync(path.join(dist, 'index.html'), 'utf8');
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-function render(pagePath, { title, description }) {
+function render(pagePath, { title, description, robots }) {
     const url = `${SITE_URL}${pagePath === '/' ? '/' : pagePath}`;
     const replacements = [
         [/<title>[\s\S]*?<\/title>/, `<title>${esc(title)}</title>`],
@@ -23,6 +23,7 @@ function render(pagePath, { title, description }) {
         [/<meta property="og:description"\s+content="[^"]*"\s*\/>/, `<meta property="og:description" content="${esc(description)}" />`],
         [/<meta property="og:url" content="[^"]*"\s*\/>/, `<meta property="og:url" content="${url}" />`],
         [/<link rel="canonical" href="[^"]*"\s*\/>/, `<link rel="canonical" href="${url}" />`],
+        [/<meta name="robots" content="[^"]*"\s*\/>/, `<meta name="robots" content="${esc(robots || 'index, follow')}" />`],
     ];
     let html = template;
     // The home page's largest image (the first hero slide): start loading it
