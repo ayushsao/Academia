@@ -25,7 +25,7 @@ import {
 } from '../services/writerService.js';
 import { deleteWriterAccount } from '../services/writerDeletion.js';
 import { enforceUploadQuota } from '../services/uploadQuota.js';
-import { photoForDisplay } from '../services/writerPhotos.js';
+import { photoForDisplay, BLANK_PHOTO } from '../services/writerPhotos.js';
 
 const router = Router();
 
@@ -285,6 +285,8 @@ router.get('/:writerId/photo', identifyPrincipal, async (req, res) => {
             await WriterProfile.updateOne({ writerId: writer._id, profilePhoto: profile.profilePhoto }, { $set: { profilePhoto: null } });
             return res.status(404).end();
         }
+        // A plain image with nothing in it: the profile shows initials (the file is kept).
+        if (photo === BLANK_PHOTO) return res.status(404).end();
         // Photo URLs carry a version (?v=), so a public photo can be cached for a year;
         // anything else stays private to the viewer's browser for a day.
         const publicPhoto = isPubliclyVisible(writer, profile) && req.query.v;

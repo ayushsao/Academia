@@ -83,5 +83,9 @@ export async function openProtectedFile(path: string, token?: string) {
     }
 }
 
-export const writerPhotoUrl = (writerId: string, version?: number | null) =>
-    `${API}/writers/${writerId}/photo${version ? `?v=${version}` : ''}`;
+// `r` is the version of how the server prepares photos: raising it gives every
+// photo a new address, so browsers drop copies cached before a change.
+const PHOTO_RENDER = 2;
+export const writerPhotoPath = (writerId: string, version?: number | null) =>
+    `/writers/${writerId}/photo?r=${PHOTO_RENDER}${version ? `&v=${version}` : ''}`;
+export const writerPhotoUrl = (writerId: string, version?: number | null) => `${API}${writerPhotoPath(writerId, version)}`;

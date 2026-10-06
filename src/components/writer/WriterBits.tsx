@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { WRITER_STATUS_META, type WriterStatus } from '../../lib/writerOptions';
-import { fetchFileUrl, writerPhotoUrl } from '../../lib/api';
+import { fetchFileUrl, writerPhotoPath, writerPhotoUrl } from '../../lib/api';
 import { cn } from '../../lib/utils';
 
 export function StatusBadge({ status, className }: { status: WriterStatus; className?: string }) {
@@ -43,7 +43,7 @@ export function WriterAvatar({ writerId, name, hasPhoto, version, size = 48, mod
         setFailed(false);
         if (mode !== 'private' || !hasPhoto || !writerId || src) return;
         let revoked = false, url: string | null = null;
-        fetchFileUrl(`/writers/${writerId}/photo?v=${version || ''}${attempt ? '&retry=1' : ''}`, token)
+        fetchFileUrl(`${writerPhotoPath(writerId, version)}${attempt ? '&retry=1' : ''}`, token)
             .then(u => { url = u; if (!revoked) setPrivateUrl(u); else URL.revokeObjectURL(u); })
             .catch(() => onError());
         return () => { revoked = true; if (url) URL.revokeObjectURL(url); };
@@ -51,7 +51,7 @@ export function WriterAvatar({ writerId, name, hasPhoto, version, size = 48, mod
 
     useEffect(() => { setAttempt(0); }, [writerId, version]);
 
-    const publicUrl = hasPhoto && writerId ? writerPhotoUrl(writerId, version) + (attempt ? `${version ? '&' : '?'}retry=1` : '') : null;
+    const publicUrl = hasPhoto && writerId ? writerPhotoUrl(writerId, version) + (attempt ? '&retry=1' : '') : null;
     const url = src || (mode === 'public' ? publicUrl : privateUrl);
     const style = { width: size, height: size, fontSize: Math.max(12, size * 0.36) };
 
