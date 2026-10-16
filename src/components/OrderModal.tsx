@@ -286,7 +286,14 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const priceCurrency = catMode ? (catQuote?.currency || catCurrency || 'GBP') : (shownStd?.currency || quoteCurrency);
   const hasPrice = catMode ? !!catQuote : !!shownStd;
   const charges = computeCharges(catMode ? (catQuote?.totalMinor ?? 0) : toMinor(grandTotal, priceCurrency), priceCurrency, coupon, payChannel);
-  const money = (minor: number) => formatMoney(minor, priceCurrency);
+  const money = (minor: number) => {
+    const formatted = formatMoney(minor, priceCurrency);
+    if (priceCurrency === 'INR') {
+      const usd = (minor / 8500).toFixed(2);
+      return `${formatted} ($${usd})`;
+    }
+    return formatted;
+  };
   const totalLabel = hasPrice ? money(charges.totalMinor) : '—';
   const finalMajor = fromMinor(charges.totalMinor, priceCurrency);
   // UPI takes rupees: offered for rupee prices; other currencies pay by card or PayPal.
@@ -1200,7 +1207,9 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                         <div className="p-1 border border-gray-100 rounded-xl bg-white shadow-sm mb-3">
                           <img src={upiQr.imageUrl} alt="UPI QR code for this order" data-testid="order-upi-qr" className="w-52 h-auto object-contain" />
                         </div>
-                        <p className="text-xl font-extrabold text-[#000a1e] mb-1">₹ {upiQr.amount.toLocaleString('en-IN')}</p>
+                        <p className="text-xl font-extrabold text-[#000a1e] mb-1">
+                          ₹ {upiQr.amount.toLocaleString('en-IN')} <span className="text-sm font-semibold text-gray-500">(${(upiQr.amount / 85).toFixed(2)})</span>
+                        </p>
                         <p className="text-[11px] text-[#1d1d1f] font-semibold mb-2 inline-flex items-center gap-1"><Lock className="w-3 h-3" /> Amount is fixed · scan with any UPI app</p>
                         <p role="status" className="text-[11px] text-[#6e6e73] inline-flex items-center gap-1.5">
                           <Loader2 className="w-3.5 h-3.5 animate-spin" /> Waiting for your payment… {Math.floor(upiSecondsLeft / 60)}:{String(upiSecondsLeft % 60).padStart(2, '0')} left
@@ -1210,11 +1219,13 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                         <p className="text-[11px] text-[#6e6e73] mb-3">If you already paid, your order will be confirmed shortly. Otherwise, get a new QR.</p>
                         <button type="button" onClick={handleUpiQr} disabled={upiQrBusy} className="rounded-lg bg-[#000a1e] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#002147] disabled:opacity-60">{upiQrBusy ? 'Creating QR…' : 'Get a new QR'}</button>
                       </>) : (<>
-                        <p className="text-xl font-extrabold text-[#000a1e] mb-1">₹ {upiAmount.toLocaleString('en-IN')}</p>
+                        <p className="text-xl font-extrabold text-[#000a1e] mb-1">
+                          ₹ {upiAmount.toLocaleString('en-IN')} <span className="text-sm font-semibold text-gray-500">(${(upiAmount / 85).toFixed(2)})</span>
+                        </p>
                         <p className="text-[11px] text-[#6e6e73] font-medium mb-3 max-w-xs">You'll get a QR for exactly this amount. It can't be changed in your UPI app, and your order is confirmed automatically once you pay.</p>
                         <button type="button" onClick={handleUpiQr} disabled={upiQrBusy || !quoteReady} data-testid="get-upi-qr"
                           className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#000a1e] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#002147] disabled:opacity-60 w-full">
-                          {upiQrBusy ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating QR…</> : <><Lock className="w-3.5 h-3.5" /> Get UPI QR for ₹ {upiAmount.toLocaleString('en-IN')}</>}
+                          {upiQrBusy ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating QR…</> : <><Lock className="w-3.5 h-3.5" /> Get UPI QR for ₹ {upiAmount.toLocaleString('en-IN')} (${(upiAmount / 85).toFixed(2)})</>}
                         </button>
                       </>)
                     ) : (<>
@@ -1226,8 +1237,10 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                         className="w-40 h-auto object-contain"
                       />
                     </div>
-                    <p className="text-xl font-extrabold text-[#000a1e] mb-1">₹ {upiAmount.toLocaleString('en-IN')}</p>
-                    <p className="text-[10px] text-[#6e6e73] font-medium mb-3">Enter this amount in your UPI app (GPay, PhonePe, Paytm…)</p>
+                    <p className="text-xl font-extrabold text-[#000a1e] mb-1">
+                      ₹ {upiAmount.toLocaleString('en-IN')} <span className="text-sm font-semibold text-gray-500">(${(upiAmount / 85).toFixed(2)})</span>
+                    </p>
+                    <p className="text-[10px] text-[#6e6e73] font-medium mb-3">Enter this amount in your UPI app (GPay, PhonePe, Paytm)</p>
 
                     <div className="w-full">
                       <span className="text-[10px] font-semibold text-gray-500 block mb-1">Or Send to Direct UPI ID:</span>

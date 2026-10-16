@@ -1,0 +1,64 @@
+# Nightly encrypted backup of the MongoDB database (all collections, including
+# uploaded files stored in GridFS).
+#
+# Setup (GitHub → repo → Settings → Secrets and variables → Actions):
+#   MONGO_URI          the same connection string the server uses
+#   BACKUP_PASSWORD    a long random password; keep a copy somewhere safe
+#
+# This repository is public, so the archive is encrypted (AES-256) before it
+# is stored as a workflow artifact; without BACKUP_PASSWORD it is unreadable.
+# Artifacts are kept for 14 days. Run it any time from the Actions tab.
+#
+# Restore:
+#   openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in mongo-backup.archive.gz.enc \
+#     -out mongo-backup.archive.gz -pass env:BACKUP_PASSWORD
+#   mongorestore --uri "$MONGO_URI" --gzip --archive=mongo-backup.archive.gz
+name: Database backup
+
+on:
+  schedule:
+    - cron: '30 20 * * *'   # 02:00 IST every day
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check secrets
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
+        run: |
+          if [ -z "$MONGO_URI" ] || [ -z "$BACKUP_PASSWORD" ]; then
+            echo "::error::Set the MONGO_URI and BACKUP_PASSWORD repository secrets first."
+            exit 1
+          fi
+
+      - name: Install MongoDB Database Tools
+        run: |
+          curl -fsSL https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.10.0.tgz -o tools.tgz
+          tar -xzf tools.tgz
+          echo "$PWD/$(tar -tzf tools.tgz | head -1 | cut -d/ -f1)/bin" >> "$GITHUB_PATH"
+
+      - name: Dump and encrypt
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
+        run: |
+          mongodump --uri "$MONGO_URI" --gzip --archive=mongo-backup.archive.gz
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
+            -in mongo-backup.archive.gz -out mongo-backup.archive.gz.enc -pass env:BACKUP_PASSWORD
+          rm mongo-backup.archive.gz
+          ls -lh mongo-backup.archive.gz.enc
+
+      - name: Store encrypted backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: mongo-backup-${{ github.run_id }}
+          path: mongo-backup.archive.gz.enc
+          retention-days: 14
+          if-no-files-found: error

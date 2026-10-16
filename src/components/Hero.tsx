@@ -843,12 +843,12 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                 <CheckCircle2 className="w-3.5 h-3.5 stroke-[2] text-[#eb6200]" />
                 <span>Free Revisions Included</span>
               </span>
-              <span className="hidden sm:inline text-[#d1d5db]">•</span>
+              <span className="hidden sm:inline text-[#d1d5db]">|</span>
               <span className="flex items-center gap-1 whitespace-nowrap">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#eb6200]" />
                 <span>No AI</span>
               </span>
-              <span className="hidden sm:inline text-[#d1d5db]">•</span>
+              <span className="hidden sm:inline text-[#d1d5db]">|</span>
               <span className="flex items-center gap-1 whitespace-nowrap">
                 <Clock className="w-3.5 h-3.5 text-[#1e3a5f]" />
                 <span>24/7 Support</span>
@@ -1161,7 +1161,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     />
 
                     <textarea
-                      placeholder="Description (Write instructions or attach rubric file)..."
+                      placeholder="Description (Write instructions or attach rubric file)"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       rows={2}
@@ -1260,7 +1260,9 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                     <div className="flex flex-col gap-1">
                       {calculatedPrice > 0 && (
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[13px] text-gray-400 line-through font-semibold">{currencySymbol}{originalCatalogPrice}</span>
+                          <span className="text-[13px] text-gray-400 line-through font-semibold">
+                            {currencySymbol}{originalCatalogPrice} {currency === 'INR' && `($${Math.round(originalCatalogPrice / 85)})`}
+                          </span>
                           <span className="text-xs font-extrabold bg-[#fea520]/20 text-[#c85600] px-2 py-0.5 rounded-full">
                             Save 51%
                           </span>
@@ -1277,22 +1279,29 @@ export const Hero: React.FC<HeroProps> = ({ onOpenOrder, onScrollToTimeline }) =
                       </span>
                       )}
                     </div>
-                    <div className="flex items-start text-[#1a1a2e]">
-                      <span className="text-[24px] font-black mt-1 mr-1">{currencySymbol}</span>
-                      <span className="text-[46px] font-black tracking-tighter leading-none">
-                        {animatedPrice}
-                      </span>
+                    <div className="flex flex-col items-end text-[#1a1a2e]">
+                      <div className="flex items-start">
+                        <span className="text-[24px] font-black mt-1 mr-1">{currencySymbol}</span>
+                        <span className="text-[46px] font-black tracking-tighter leading-none">
+                          {animatedPrice.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                      {currency === 'INR' && animatedPrice > 0 && (
+                        <span className="text-[13px] font-bold text-gray-500 mt-0.5">
+                          ≈ ${Math.max(1, Math.round(animatedPrice / 85)).toLocaleString()} USD
+                        </span>
+                      )}
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between gap-4">
                     <p className="flex items-start gap-2 text-[13px] font-semibold leading-snug text-[#4b5563]">
                       <Lock className="mt-0.5 h-4 w-4 shrink-0 text-[#eb6200]" aria-hidden="true" />
-                      Enter your email and phone number above to see your price.
+                      Enter your email and phone number above to see your price
                     </p>
                     <div className="flex shrink-0 items-start whitespace-nowrap text-[#c9d1dc]" aria-hidden="true">
                       <span className="text-[24px] font-black mt-1 mr-1">{currencySymbol}</span>
-                      <span className="text-[40px] font-black tracking-[0.06em] leading-none">•••</span>
+                      <span className="text-[32px] font-black tracking-[0.06em] leading-none">—</span>
                     </div>
                   </div>
                 )}

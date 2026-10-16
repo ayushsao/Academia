@@ -382,9 +382,16 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
                 <span className="text-[11px] text-[#6e6e73] font-medium">Includes Unlimited Revisions · {currency}</span>
               </div>
               {contactReady ? (
-                <span className="text-3xl font-extrabold text-[#000a1e]">
-                  {currencySymbolOf(currency)}{totalPrice.toLocaleString()}
-                </span>
+                <div className="text-right">
+                  <span className="text-3xl font-extrabold text-[#000a1e]">
+                    {currencySymbolOf(currency)}{totalPrice.toLocaleString()}
+                  </span>
+                  {currency === 'INR' && totalPrice > 0 && (
+                    <span className="block text-xs font-bold text-gray-500 mt-0.5">
+                      ≈ ${Math.max(1, Math.round(totalPrice / 85)).toLocaleString()} USD
+                    </span>
+                  )}
+                </div>
               ) : (
                 <span className="flex max-w-[150px] items-start gap-1.5 self-center text-right text-xs font-semibold leading-snug text-[#4b5563]">
                   <Lock className="mt-px h-3.5 w-3.5 shrink-0 text-[#eb6200]" aria-hidden="true" />

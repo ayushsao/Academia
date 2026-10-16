@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -45,7 +45,7 @@ export const WhyChooseUs: React.FC = () => {
     const guarantees = [
         {
             title: 'Affordable Prices',
-            desc: "A student's tight budget should never come in the way of their academic excellence. Thus, we've kept the prices of our UK assignment writing services.",
+            desc: "A student's tight budget should never come in the way of their academic excellence. Thus, we've kept the prices of our UK assignment writing services accessible and highly competitive.",
             illustration: Illustrations.Pricing,
         },
         {

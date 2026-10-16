@@ -101,7 +101,7 @@ export default function OrderPricingPanel({ token }: { token: string }) {
                                     <input id={`h-${k}`} type="number" min={data.limits.minNoticeHours} max={2160} value={tiers[k].minHours} onChange={e => set(k, { minHours: Number(e.target.value) })} className={fieldClass} />
                                 </>}
                             </div>
-                            <p className="pb-2.5 text-sm text-gray-500">Deadline {window(k)} · 1,000 words {mode === 'SMOOTH' ? (k === 'STANDARD' ? 'from' : 'up to') : '='} <strong className="text-[#000a1e]">₹{Math.round(1000 * data.baseRatePerWord * (tiers[k].multiplier || 0)).toLocaleString('en-IN')}</strong></p>
+                            <p className="pb-2.5 text-sm text-gray-500">Deadline {window(k)} · 1,000 words {mode === 'SMOOTH' ? (k === 'STANDARD' ? 'from' : 'up to') : '='} <strong className="text-[#000a1e]">₹{Math.round(1000 * data.baseRatePerWord * (tiers[k].multiplier || 0)).toLocaleString('en-IN')} <span className="font-normal text-gray-500">(${(Math.round(1000 * data.baseRatePerWord * (tiers[k].multiplier || 0)) / 85).toFixed(2)})</span></strong></p>
                         </li>
                     ))}
                 </ul>
@@ -114,7 +114,7 @@ export default function OrderPricingPanel({ token }: { token: string }) {
                         <thead><tr className="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-gray-400"><th className="py-2 font-semibold">Deadline in</th><th className="py-2 font-semibold">Delivery type</th><th className="py-2 font-semibold">Multiplier</th><th className="py-2 text-right font-semibold">1,000 words</th></tr></thead>
                         <tbody>
                             {PREVIEW_HOURS.map(h => { const { type, m } = multiplierAt(h, mode, tiers, data.limits.minNoticeHours); return (
-                                <tr key={h} className="border-b border-gray-50"><td className="py-2 text-gray-600">{days(h)}</td><td className="py-2 text-gray-600">{LABEL[type]}</td><td className="py-2 font-semibold text-[#000a1e]">{m}×</td><td className="py-2 text-right font-semibold text-[#000a1e]">₹{Math.round(1000 * data.baseRatePerWord * m).toLocaleString('en-IN')}</td></tr>
+                                <tr key={h} className="border-b border-gray-50"><td className="py-2 text-gray-600">{days(h)}</td><td className="py-2 text-gray-600">{LABEL[type]}</td><td className="py-2 font-semibold text-[#000a1e]">{m}×</td><td className="py-2 text-right font-semibold text-[#000a1e]">₹{Math.round(1000 * data.baseRatePerWord * m).toLocaleString('en-IN')} <span className="text-xs font-normal text-gray-500">(${(Math.round(1000 * data.baseRatePerWord * m) / 85).toFixed(2)})</span></td></tr>
                             ); })}
                         </tbody>
                     </table>
