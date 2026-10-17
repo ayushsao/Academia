@@ -8,7 +8,7 @@ import { fromMinor } from './money.js';
 export const BUSINESS = {
     name: 'AssignmentMinds',
     email: 'support@assignmentminds.com',
-    phone: '+91 92636 06941',
+    phone: '+91 74831 52175',
     website: (process.env.APP_URL || 'https://www.assignmentminds.com').replace(/\/+$/, ''),
 };
 

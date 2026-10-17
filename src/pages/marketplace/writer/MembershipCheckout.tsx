@@ -58,7 +58,7 @@ function Row({ label, value, strong, tone }: { label: string; value: React.React
 }
 
 // Our team's WhatsApp, with the invoice details filled in.
-const SUPPORT_WHATSAPP = '919263606941';
+const SUPPORT_WHATSAPP = '917483152175';
 const membershipWhatsappUrl = (p: MembershipPayment) => `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(
     `Hi AssignmentMinds, I'd like to pay for my writer membership on WhatsApp.
 Invoice: ${p.paymentRef}

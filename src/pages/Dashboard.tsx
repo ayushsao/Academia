@@ -807,13 +807,13 @@ export const Dashboard: React.FC = () => {
                 <div className="space-y-4">
                     {/* Floating WhatsApp Button: above the bottom navigation on phones, above the chat bubble on desktop. */}
                     <div className="fixed right-4 bottom-[calc(84px+env(safe-area-inset-bottom))] lg:right-6 lg:bottom-[92px] z-50">
-                        <a href="https://wa.me/919263606941" target="_blank" rel="noreferrer" aria-label="Chat on WhatsApp" className="w-12 h-12 lg:w-14 lg:h-14 bg-[#25D366] hover:bg-[#20b858] text-white rounded-full flex items-center justify-center shadow-[0_4px_15px_rgba(37,211,102,0.4)] transition-transform hover:scale-110">
+                        <a href="https://wa.me/917483152175" target="_blank" rel="noreferrer" aria-label="Chat on WhatsApp" className="w-12 h-12 lg:w-14 lg:h-14 bg-[#25D366] hover:bg-[#20b858] text-white rounded-full flex items-center justify-center shadow-[0_4px_15px_rgba(37,211,102,0.4)] transition-transform hover:scale-110">
                             <MessageCircle className="w-6 h-6 lg:w-8 lg:h-8" />
                         </a>
                     </div>
 
                     {/* Personal A/C Manager Button */}
-                    <a href={`https://wa.me/919263606941?text=${encodeURIComponent(`Hi, I'd like to talk to my account manager. My account email is ${user?.email || ''}.`)}`} target="_blank" rel="noreferrer" className="w-full bg-[#f0f9f1] border border-[#a3d8ab] rounded-md p-4 flex items-center justify-between hover:bg-[#e4f5e7] transition-colors relative group">
+                    <a href={`https://wa.me/917483152175?text=${encodeURIComponent(`Hi, I'd like to talk to my account manager. My account email is ${user?.email || ''}.`)}`} target="_blank" rel="noreferrer" className="w-full bg-[#f0f9f1] border border-[#a3d8ab] rounded-md p-4 flex items-center justify-between hover:bg-[#e4f5e7] transition-colors relative group">
                         <div className="flex flex-col items-start pr-8">
                             <span className="bg-emerald-600 text-white text-[9px] font-black uppercase px-1.5 py-0.5 rounded-sm line-height-none tracking-wider mb-1">FREE</span>
                             <span className="text-[#3b8449] font-semibold text-[13px] uppercase tracking-wide leading-tight text-left">PERSONAL A/C MANAGER</span>

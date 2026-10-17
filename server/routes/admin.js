@@ -603,7 +603,7 @@ router.get('/settings', authenticateAdmin, async (req, res) => {
         // Defaults for settings never saved.
         if (!Array.isArray(obj.coupons)) obj.coupons = DEFAULT_COUPONS;
         if (!obj.site_announcement) obj.site_announcement = '';
-        if (!obj.whatsapp_number) obj.whatsapp_number = '+447700900000';
+        if (!obj.whatsapp_number) obj.whatsapp_number = '+917483152175';
         res.json(obj);
     } catch (err) {
         res.status(500).json({ error: 'Internal server error.' });

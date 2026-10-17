@@ -18,7 +18,7 @@ export const AssistanceBanner: React.FC<AssistanceBannerProps> = ({ onOpenOrder 
         if (phoneString) {
             text = `Hello AssignmentMinds, I need some free assistance! You can reach me at: ${dialCode} ${phoneString}`;
         }
-        window.open(`https://wa.me/919263606941?text=${encodeURIComponent(text)}`, '_blank');
+        window.open(`https://wa.me/917483152175?text=${encodeURIComponent(text)}`, '_blank');
     };
 
     return (

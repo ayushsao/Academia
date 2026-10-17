@@ -94,7 +94,7 @@ export const ContactSection: React.FC = () => {
                     {
                         icon: Phone,
                         label: 'Phone / WhatsApp',
-                        value: '+91 92636 06941'
+                        value: '+91 74831 52175'
                     },
                     {
                         icon: Mail,
@@ -137,7 +137,7 @@ export const ContactSection: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="from_phone">Phone (Optional)</Label>
-                                <Input id="from_phone" type="text" name="from_phone" placeholder="+91 92636 06941" />
+                                <Input id="from_phone" type="text" name="from_phone" placeholder="+91 74831 52175" />
                             </div>
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="subject">Subject</Label>

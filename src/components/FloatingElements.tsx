@@ -23,7 +23,7 @@ export const FloatingElements: React.FC = () => {
         <>
             {/* WhatsApp Floating Bubble */}
             <a
-                href="https://wa.me/919263606941"
+                href="https://wa.me/917483152175"
                 aria-label="Chat on WhatsApp"
                 target="_blank"
                 rel="noreferrer"
@@ -34,7 +34,7 @@ export const FloatingElements: React.FC = () => {
 
             {/* Mobile Sticky Action Bar */}
             <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-3 z-50 flex justify-around items-center md:hidden pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-                <a href="tel:+919263606941" className="flex flex-col items-center gap-1 text-gray-500">
+                <a href="tel:+917483152175" className="flex flex-col items-center gap-1 text-gray-500">
                     <Phone className="w-5 h-5 text-[#002147]" />
                     <span className="text-[10px] font-bold">Call Us</span>
                 </a>

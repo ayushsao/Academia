@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { MessageCircle, Calculator, ArrowRight } from 'lucide-react';
 
-const WHATSAPP_URL = `https://wa.me/919263606941?text=${encodeURIComponent('Hi AssignmentMinds, I need help with an assignment.')}`;
+const WHATSAPP_URL = `https://wa.me/917483152175?text=${encodeURIComponent('Hi AssignmentMinds, I need help with an assignment.')}`;
 
 // Phones: the three main actions stay at the bottom of the screen, so a
 // visitor (often arriving from an ad) can act without scrolling. While it's

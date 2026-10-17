@@ -12,7 +12,7 @@ type Section = { heading?: string; body: string[] };
 type PolicyDoc = { title: string; intro: string; sections: Section[] };
 
 const SUPPORT_EMAIL = 'support@assignmentminds.com';
-const SUPPORT_PHONE = '+91 92636 06941';
+const SUPPORT_PHONE = '+91 74831 52175';
 const LAST_UPDATED = '28 September 2026';
 
 export const POLICIES: Record<string, PolicyDoc> = {
@@ -142,7 +142,7 @@ export default function PolicyPage() {
                         ))}
                     </div>
                     <p className="mt-10 rounded-xl bg-[#fff7f0] px-4 py-3 text-sm text-gray-700">
-                        Questions? Email <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold text-[#e36100] hover:underline">{SUPPORT_EMAIL}</a> or message us on <a href="https://wa.me/919263606941" target="_blank" rel="noreferrer" className="font-semibold text-[#e36100] hover:underline">WhatsApp</a>.
+                        Questions? Email <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold text-[#e36100] hover:underline">{SUPPORT_EMAIL}</a> or message us on <a href="https://wa.me/917483152175" target="_blank" rel="noreferrer" className="font-semibold text-[#e36100] hover:underline">WhatsApp</a>.
                     </p>
                     <p className="mt-8 text-sm"><Link to="/" className="font-semibold text-[#002147] hover:underline">← Back to home</Link></p>
                 </article>

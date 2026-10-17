@@ -9,9 +9,9 @@ interface FooterProps {
   onNavigate?: (sectionId: string) => void;
 }
 
-const PHONE_DISPLAY = '+91 92636 06941';
-const PHONE_TEL = 'tel:+919263606941';
-const WHATSAPP_URL = 'https://wa.me/919263606941';
+const PHONE_DISPLAY = '+91 74831 52175';
+const PHONE_TEL = 'tel:+917483152175';
+const WHATSAPP_URL = 'https://wa.me/917483152175';
 const SUPPORT_EMAIL = 'support@assignmentminds.com';
 
 // Paste each profile URL here; icons without a URL stay visible but do nothing.

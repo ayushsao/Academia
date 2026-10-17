@@ -29,7 +29,7 @@ import { showAlert } from '../lib/dialog';
 import { trackEvent } from '../lib/track';
 
 // Orders arranged on WhatsApp go to this number (no tax; the team confirms payment there).
-const WHATSAPP_NUMBER = '919263606941';
+const WHATSAPP_NUMBER = '917483152175';
 
 // UPI (rupee orders) is paid with a Razorpay QR made for the order: its amount is
 // fixed, so it can't be changed in the UPI app, and the order is confirmed
